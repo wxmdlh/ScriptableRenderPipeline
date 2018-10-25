@@ -8,6 +8,7 @@ using UnityEngine.Experimental.VFX;
 using UnityEditor;
 using UnityEditor.VFX;
 using UnityEditor.VFX.UI;
+using UnityEditor.ProjectWindowCallback;
 
 namespace UnityEditor
 {
@@ -73,7 +74,24 @@ namespace UnityEditor
                 return;
             }
 
-            ProjectWindowUtil.CreateAssetWithContent("New VFX.vfx", templateString);
+            ProjectWindowUtil.CreateAssetWithContent("New VFX.vfx", templateString,EditorGUIUtility.FindTexture(typeof(VisualEffectAsset)));
+        }
+
+        internal class DoCreateNewSubgraph : EndNameEditAction
+        {
+            public override void Action(int instanceId, string pathName, string resourceFile)
+            {
+                VisualEffectSubgraph sg = VisualEffectResource.CreateNewSubgraph(pathName);
+                ProjectWindowUtil.FrameObjectInProjectWindow(sg.GetInstanceID());
+            }
+        }
+
+        [MenuItem("Assets/Create/Visual Effects/Visual Effect Subgraph", false, 306)]
+        public static void CreateVisualEffectSubgraph()
+        {
+            DoCreateNewSubgraph action = DoCreateNewSubgraph.CreateInstance<DoCreateNewSubgraph>();
+
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, action, "New VFX Subgraph.subvfx", EditorGUIUtility.FindTexture(typeof(VisualEffectSubgraph)), null);
         }
     }
 }
