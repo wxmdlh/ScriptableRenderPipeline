@@ -240,16 +240,11 @@ namespace UnityEditor.VFX.UI
             private set;
         }
 
-        protected virtual bool syncInput
-        {
-            get { return true; }
-        }
-
         void SyncAnchors()
         {
             Profiler.BeginSample("VFXNodeUI.SyncAnchors");
-            if (syncInput)
-                SyncAnchors(controller.inputPorts, inputContainer);
+
+            SyncAnchors(controller.inputPorts, inputContainer);
             SyncAnchors(controller.outputPorts, outputContainer);
             Profiler.EndSample();
         }

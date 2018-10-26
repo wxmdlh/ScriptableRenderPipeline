@@ -52,6 +52,12 @@ namespace UnityEditor.VFX
                         RemoveSlot(outputSlots[0]);
                         AddSlot(newSlot);
 
+                        if( m_Nodes.Count > 1)
+                        {
+                            m_Nodes.RemoveRange(1, m_Nodes.Count - 2);
+                        }
+                        m_ExprSlots = null;
+                        m_ValueExpr = null;
                     }
                     else
                     {
@@ -59,6 +65,8 @@ namespace UnityEditor.VFX
                         newSlot.value = inputSlots[0].value;
                         RemoveSlot(inputSlots[0]);
                         AddSlot(newSlot);
+                        m_ExprSlots = outputSlots[0].GetVFXValueTypeSlots().ToArray();
+                        m_ValueExpr = m_ExprSlots.Select(t => t.DefaultExpression(valueMode)).ToArray();
                     }
                 }
 

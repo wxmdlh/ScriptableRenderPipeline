@@ -1708,7 +1708,7 @@ namespace UnityEditor.VFX.UI
                 }
                 else
                 {
-                    if (parameter.GetNbInputSlots() < 1)
+                    if (parameter.GetNbOutputSlots() < 1)
                     {
                         parameter.AddSlot(VFXSlot.Create(new VFXProperty(typeof(float), "o"), VFXSlot.Direction.kOutput));
                     }
