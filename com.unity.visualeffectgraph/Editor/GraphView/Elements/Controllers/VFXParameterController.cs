@@ -312,7 +312,7 @@ namespace UnityEditor.VFX.UI
 
         public VFXParameterController(VFXParameter model, VFXViewController viewController) : base(viewController, model)
         {
-            m_Slot = model.outputSlots[0];
+            m_Slot = isOutput?model.inputSlots[0]:model.outputSlots[0];
             viewController.RegisterNotification(m_Slot, OnSlotChanged);
 
             exposedName = MakeNameUnique(exposedName);
@@ -697,7 +697,24 @@ namespace UnityEditor.VFX.UI
             {
                 VFXParameter model = this.model as VFXParameter;
 
-                return model.GetOutputSlot(0).property.type;
+                return m_Slot.property.type;
+            }
+        }
+        public bool isOutput
+        {
+            get
+            {
+                return model.isOutput;
+            }
+
+            set
+            {
+                if (model.isOutput != value)
+                {
+                    model.isOutput = value;
+                    m_Slot = model.isOutput ? model.inputSlots[0] : model.outputSlots[0];
+                }
+
             }
         }
 

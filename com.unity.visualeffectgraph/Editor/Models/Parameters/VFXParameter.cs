@@ -23,16 +23,53 @@ namespace UnityEditor.VFX
         private int m_Order;
         [SerializeField]
         private string m_Category;
-        [VFXSetting, SerializeField]
+        [VFXSetting(VFXSettingAttribute.VisibleFlags.None), SerializeField]
         public VFXSerializableObject m_Min;
-        [VFXSetting, SerializeField]
+        [VFXSetting(VFXSettingAttribute.VisibleFlags.None), SerializeField]
         public VFXSerializableObject m_Max;
+
+        [SerializeField]
+        private bool m_IsOutput;
+
+
+        public bool isOutput 
+        { 
+            get
+            {
+                return m_IsOutput;
+            }
+
+            set
+            {
+                if( m_IsOutput != value)
+                {
+                    m_IsOutput = value;
+
+                    if( m_IsOutput)
+                    {
+                        var newSlot = VFXSlot.Create(new VFXProperty(outputSlots[0].property.type, "i"), VFXSlot.Direction.kInput);
+                        newSlot.value = outputSlots[0].value;
+                        RemoveSlot(outputSlots[0]);
+                        AddSlot(newSlot);
+
+                    }
+                    else
+                    {
+                        var newSlot = VFXSlot.Create(new VFXProperty(inputSlots[0].property.type, "o"), VFXSlot.Direction.kOutput);
+                        newSlot.value = inputSlots[0].value;
+                        RemoveSlot(inputSlots[0]);
+                        AddSlot(newSlot);
+                    }
+                }
+
+            }
+        }
 
         public bool canHaveRange
         {
             get
             {
-                return type == typeof(float) || type == typeof(int) || type == typeof(uint);
+                return !isOutput && (type == typeof(float) || type == typeof(int) || type == typeof(uint));
             }
         }
 
@@ -157,24 +194,30 @@ namespace UnityEditor.VFX
             }
         }
 
-        protected override IEnumerable<string> filteredOutSettings
-        {
-            get
-            {
-                yield return "m_Min";
-                yield return "m_Max";
-            }
-        }
-
         public Type type
         {
-            get { return outputSlots[0].property.type; }
+            get { 
+                if( isOutput )
+                {
+                    return inputSlots[0].property.type;
+                }
+                else
+                    return outputSlots[0].property.type; 
+            }
         }
 
         public object value
         {
-            get { return outputSlots[0].value; }
-            set { outputSlots[0].value = value; }
+            get { 
+                if( ! isOutput)
+                    return outputSlots[0].value;
+                return null;
+            }
+            set {
+                if (isOutput)
+                    throw new System.InvalidOperationException("output parameters have no value");
+                outputSlots[0].value = value; 
+            }
         }
 
 
@@ -200,6 +243,8 @@ namespace UnityEditor.VFX
         {
             base.OnInvalidate(model, cause);
 
+            if (isOutput)
+                return;
             if (cause == InvalidationCause.kSettingChanged)
             {
                 var valueExpr = m_ExprSlots.Select(t => t.DefaultExpression(valueMode)).ToArray();
@@ -210,7 +255,7 @@ namespace UnityEditor.VFX
                     for (int i = 0; i < m_ValueExpr.Length; ++i)
                     {
                         if (m_ValueExpr[i].ValueMode != valueExpr[i].ValueMode
-                            ||  m_ValueExpr[i].valueType != valueExpr[i].valueType)
+                            || m_ValueExpr[i].valueType != valueExpr[i].valueType)
                         {
                             valueExprChanged = true;
                             break;
@@ -268,15 +313,18 @@ namespace UnityEditor.VFX
         public override void OnEnable()
         {
             base.OnEnable();
-            if (outputSlots.Count != 0)
+            if( ! isOutput)
             {
-                m_ExprSlots = outputSlots[0].GetVFXValueTypeSlots().ToArray();
-                m_ValueExpr = m_ExprSlots.Select(t => t.DefaultExpression(valueMode)).ToArray();
-            }
-            else
-            {
-                m_ExprSlots = new VFXSlot[0];
-                m_ValueExpr = new VFXValue[0];
+                if (outputSlots.Count != 0)
+                {
+                    m_ExprSlots = outputSlots[0].GetVFXValueTypeSlots().ToArray();
+                    m_ValueExpr = m_ExprSlots.Select(t => t.DefaultExpression(valueMode)).ToArray();
+                }
+                else
+                {
+                    m_ExprSlots = new VFXSlot[0];
+                    m_ValueExpr = new VFXValue[0];
+                }
             }
 
             if (m_Nodes != null)
@@ -386,7 +434,12 @@ namespace UnityEditor.VFX
             {
                 // the linked slot of the outSlot decides so make sure that all appear once and only once in all the nodes
                 List<NodeLinkedSlot> links = new List<NodeLinkedSlot>();
-                GetAllLinks(links, outputSlots[0]);
+
+                var targetSlot = isOutput ? inputSlots.FirstOrDefault() : outputSlots[0];
+                if (targetSlot == null)
+                    return;
+
+                GetAllLinks(links, targetSlot);
                 HashSet<int> usedIds = new HashSet<int>();
                 foreach (var info in nodes)
                 {
@@ -443,11 +496,12 @@ namespace UnityEditor.VFX
             var newInfos = NewNode();
             newInfos.position = position;
 
+            var targetSlot = isOutput ? inputSlots[0] : outputSlots[0];
 
             newInfos.linkedSlots = new List<NodeLinkedSlot>();
-            GetAllLinks(newInfos.linkedSlots, outputSlots[0]);
+            GetAllLinks(newInfos.linkedSlots, targetSlot);
             newInfos.expandedSlots = new List<VFXSlot>();
-            GetAllExpandedSlots(newInfos.expandedSlots, outputSlots[0]);
+            GetAllExpandedSlots(newInfos.expandedSlots, targetSlot);
             if (m_Nodes == null)
             {
                 m_Nodes = new List<Node>();
@@ -457,10 +511,13 @@ namespace UnityEditor.VFX
 
         public override void UpdateOutputExpressions()
         {
-            for (int i = 0; i < m_ExprSlots.Length; ++i)
+            if( ! isOutput)
             {
-                m_ValueExpr[i].SetContent(m_ExprSlots[i].value);
-                m_ExprSlots[i].SetExpression(m_ValueExpr[i]);
+                for (int i = 0; i < m_ExprSlots.Length; ++i)
+                {
+                    m_ValueExpr[i].SetContent(m_ExprSlots[i].value);
+                    m_ExprSlots[i].SetExpression(m_ValueExpr[i]);
+                }
             }
         }
 
