@@ -1577,6 +1577,40 @@ namespace UnityEditor.VFX.UI
             return Enumerable.Empty<VFXParameterController>();
         }
 
+        // The subgraph version
+        public void SetParametersOrder(VFXParameterController controller, int index, bool input)
+        {
+            if( ! isSubgraph)
+            {
+                throw new InvalidOperationException("Can't change the direction of parameter outside a subgraph");
+            }
+            var orderedParameters = m_ParameterControllers.Where(t => t.Value.isOutput == !input).OrderBy(t => t.Value.order).Select(t => t.Value).ToList();
+
+            int oldIndex = orderedParameters.IndexOf(controller);
+
+            if (oldIndex != -1)
+            {
+                orderedParameters.RemoveAt(oldIndex);
+
+                if (oldIndex < index)
+                    --index;
+            }
+
+            controller.isOutput = !input;
+
+            if (index < orderedParameters.Count)
+                orderedParameters.Insert(index, controller);
+            else
+                orderedParameters.Add(controller);
+
+            for (int i = 0; i < orderedParameters.Count; ++i)
+            {
+                orderedParameters[i].order = i;
+            }
+            NotifyChange(AnyThing);
+        }
+
+        //The normal graph version
         public void SetParametersOrder(VFXParameterController controller, int index, string category)
         {
             var orderedParameters = m_ParameterControllers.Where(t => t.Key.category == category).OrderBy(t => t.Value.order).Select(t => t.Value).ToList();
@@ -1659,6 +1693,26 @@ namespace UnityEditor.VFX.UI
             else if (model is VFXParameter)
             {
                 VFXParameter parameter = model as VFXParameter;
+                if (parameter.isOutput && ! isSubgraph)
+                {
+                    parameter.isOutput = false;
+                }
+
+                if ( parameter.isOutput)
+                {
+                    if(parameter.GetNbInputSlots() < 1)
+                    {
+                        parameter.AddSlot(VFXSlot.Create(new VFXProperty(typeof(float),"i"),VFXSlot.Direction.kInput));
+                    }
+                }
+                else
+                {
+                    if (parameter.GetNbInputSlots() < 1)
+                    {
+                        parameter.AddSlot(VFXSlot.Create(new VFXProperty(typeof(float), "o"), VFXSlot.Direction.kOutput));
+                    }
+                }
+
                 parameter.ValidateNodes();
 
                 m_ParameterControllers[parameter] = new VFXParameterController(parameter, this);

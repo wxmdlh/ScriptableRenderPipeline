@@ -368,7 +368,10 @@ namespace  UnityEditor.VFX.UI
             //TODO sort elements
             foreach (var row in rows)
             {
-                controller.SetParametersOrder(row.controller, index++, category == m_DefaultCategory ? "" : category.title);
+                if( controller.isSubgraph)
+                    controller.SetParametersOrder(row.controller, index++, category == m_DefaultCategory);
+                else
+                    controller.SetParametersOrder(row.controller, index++, category == m_DefaultCategory ? "" : category.title);
             }
         }
 
@@ -420,7 +423,7 @@ namespace  UnityEditor.VFX.UI
                     title = controller.name;
                     return;
                 }
-                var actualControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => (controller.isSubgraph && t.model.category != "output")|| string.IsNullOrEmpty(t.model.category)));
+                var actualControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => !t.isOutput && string.IsNullOrEmpty(t.model.category)));
                 m_DefaultCategory.SyncParameters(actualControllers);
 
                 if( ! controller.isSubgraph )
@@ -493,7 +496,7 @@ namespace  UnityEditor.VFX.UI
                         m_DefaultCategory.headerVisible = true;
                     }
 
-                    var outputControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.model.category == "output"));
+                    var outputControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.isOutput));
                     m_OutputCategory.SyncParameters(outputControllers);
                 }
             }
