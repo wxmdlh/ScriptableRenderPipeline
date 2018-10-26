@@ -50,6 +50,8 @@ namespace  UnityEditor.VFX.UI
         new void Clear()
         {
             m_DefaultCategory.Clear();
+            if( m_OutputCategory != null)
+                m_OutputCategory.Clear();
 
             foreach (var cat in m_Categories)
             {
@@ -117,6 +119,8 @@ namespace  UnityEditor.VFX.UI
 
         void OnKeyDown(KeyDownEvent e)
         {
+            if( controller.isSubgraph)
+                return;
             if (e.keyCode == KeyCode.F2)
             {
                 var graphView = GetFirstAncestorOfType<VFXView>();
@@ -302,9 +306,11 @@ namespace  UnityEditor.VFX.UI
         {
             GenericMenu menu = new GenericMenu();
 
-
-            menu.AddItem(EditorGUIUtility.TrTextContent("Category"), false, OnAddCategory);
-            menu.AddSeparator(string.Empty);
+            if( ! controller.isSubgraph)
+            {
+                menu.AddItem(EditorGUIUtility.TrTextContent("Category"), false, OnAddCategory);
+                menu.AddSeparator(string.Empty);
+            }
 
             foreach (var parameter in VFXLibrary.GetParameters())
             {
@@ -336,6 +342,8 @@ namespace  UnityEditor.VFX.UI
 
         void OnAddCategory()
         {
+            if( controller.isSubgraph)
+                return;
             string newCategoryName = EditorGUIUtility.TrTextContent("new category").text;
             int cpt = 1;
             while (controller.graph.UIInfos.categories.Any(t => t.name == newCategoryName))
@@ -366,10 +374,23 @@ namespace  UnityEditor.VFX.UI
 
         public void SetCategoryExpanded(VFXBlackboardCategory category, bool expanded)
         {
-            controller.SetCategoryExpanded(category.title, expanded);
+            if (controller.isSubgraph)
+            {
+                if(m_DefaultCategory == category)
+                {
+                    m_DefaultCategory.expanded = !m_DefaultCategory.expanded;
+                }
+                else
+                {
+                    m_OutputCategory.expanded = !m_OutputCategory.expanded;
+                }
+            }
+            else
+                controller.SetCategoryExpanded(category.title, expanded);
         }
 
         VFXBlackboardCategory m_DefaultCategory;
+        VFXBlackboardCategory m_OutputCategory;
         Dictionary<string, VFXBlackboardCategory> m_Categories = new Dictionary<string, VFXBlackboardCategory>();
 
 
@@ -399,54 +420,81 @@ namespace  UnityEditor.VFX.UI
                     title = controller.name;
                     return;
                 }
-
-                var orderedCategories = controller.graph.UIInfos.categories;
-                var newCategories = new List<VFXBlackboardCategory>();
-
-                if (orderedCategories != null)
-                {
-                    foreach (var catModel in controller.graph.UIInfos.categories)
-                    {
-                        VFXBlackboardCategory cat = null;
-                        if (!m_Categories.TryGetValue(catModel.name, out cat))
-                        {
-                            cat = new VFXBlackboardCategory() {title = catModel.name };
-                            cat.SetSelectable();
-                            m_Categories.Add(catModel.name, cat);
-                        }
-                        m_ExpandedStatus[catModel.name] = !catModel.collapsed;
-
-                        newCategories.Add(cat);
-                    }
-
-                    foreach (var category in m_Categories.Keys.Except(orderedCategories.Select(t => t.name)).ToArray())
-                    {
-                        m_Categories[category].RemoveFromHierarchy();
-                        m_Categories.Remove(category);
-                        m_ExpandedStatus.Remove(category);
-                    }
-                }
-
-                var prevCat = m_DefaultCategory;
-
-                foreach (var cat in newCategories)
-                {
-                    if (cat.parent == null)
-                        Insert(IndexOf(prevCat) + 1, cat);
-                    else
-                        cat.PlaceInFront(prevCat);
-                    prevCat = cat;
-                }
-
-                var actualControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => string.IsNullOrEmpty(t.model.category)));
+                var actualControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => (controller.isSubgraph && t.model.category != "output")|| string.IsNullOrEmpty(t.model.category)));
                 m_DefaultCategory.SyncParameters(actualControllers);
 
-
-                foreach (var cat in newCategories)
+                if( ! controller.isSubgraph )
                 {
-                    actualControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.model.category == cat.title));
-                    cat.SyncParameters(actualControllers);
-                    cat.expanded = m_ExpandedStatus[cat.title];
+                    if(m_OutputCategory != null && m_OutputCategory.parent != null)
+                    {
+                        m_OutputCategory.RemoveFromHierarchy();
+                        m_DefaultCategory.headerVisible = false;
+                        m_DefaultCategory.expanded = true;
+
+                    }
+                    var orderedCategories = controller.graph.UIInfos.categories;
+                    var newCategories = new List<VFXBlackboardCategory>();
+
+                    if (orderedCategories != null)
+                    {
+                        foreach (var catModel in controller.graph.UIInfos.categories)
+                        {
+                            VFXBlackboardCategory cat = null;
+                            if (!m_Categories.TryGetValue(catModel.name, out cat))
+                            {
+                                cat = new VFXBlackboardCategory() {title = catModel.name };
+                                cat.SetSelectable();
+                                m_Categories.Add(catModel.name, cat);
+                            }
+                            m_ExpandedStatus[catModel.name] = !catModel.collapsed;
+
+                            newCategories.Add(cat);
+                        }
+
+                        foreach (var category in m_Categories.Keys.Except(orderedCategories.Select(t => t.name)).ToArray())
+                        {
+                            m_Categories[category].RemoveFromHierarchy();
+                            m_Categories.Remove(category);
+                            m_ExpandedStatus.Remove(category);
+                        }
+                    }
+
+                    var prevCat = m_DefaultCategory;
+
+                    foreach (var cat in newCategories)
+                    {
+                        if (cat.parent == null)
+                            Insert(IndexOf(prevCat) + 1, cat);
+                        else
+                            cat.PlaceInFront(prevCat);
+                        prevCat = cat;
+                    }
+                    foreach (var cat in newCategories)
+                    {
+                        actualControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.model.category == cat.title));
+                        cat.SyncParameters(actualControllers);
+                        cat.expanded = m_ExpandedStatus[cat.title];
+                    }
+                }
+                else
+                {
+                    if( m_OutputCategory == null)
+                    {
+                        m_DefaultCategory.title = "input";
+                        m_DefaultCategory.headerVisible = true;
+                        m_OutputCategory = new VFXBlackboardCategory(){title = "output"};
+                        m_OutputCategory.headerVisible = true;
+
+                    }
+                    if (m_OutputCategory.parent == null)
+                    {
+                        Add(m_OutputCategory);
+                        m_OutputCategory.expanded = true;
+                        m_DefaultCategory.headerVisible = true;
+                    }
+
+                    var outputControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.model.category == "output"));
+                    m_OutputCategory.SyncParameters(outputControllers);
                 }
             }
         }
