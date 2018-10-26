@@ -1286,6 +1286,8 @@ namespace UnityEditor.VFX.UI
 
         VFXViewController(VisualEffectResource vfx) : base(vfx)
         {
+            isSubgraph = AssetDatabase.LoadAssetAtPath<VisualEffectAsset>(AssetDatabase.GetAssetPath(vfx)) == null;
+
             ModelChanged(vfx); // This will initialize the graph from the vfx asset.
 
             if (m_FlowAnchorController == null)
@@ -1300,7 +1302,6 @@ namespace UnityEditor.VFX.UI
             if (m_Graph != null)
                 m_Graph.BuildParameterInfo();
 
-            isSubgraph = AssetDatabase.LoadAssetAtPath<VisualEffectAsset>(AssetDatabase.GetAssetPath(vfx)) == null;
 
             InitializeUndoStack();
             GraphChanged();
