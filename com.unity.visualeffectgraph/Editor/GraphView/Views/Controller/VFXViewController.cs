@@ -1281,13 +1281,8 @@ namespace UnityEditor.VFX.UI
             }
         }
 
-
-        public bool isSubgraph{get; private set;}
-
         VFXViewController(VisualEffectResource vfx) : base(vfx)
         {
-            isSubgraph = AssetDatabase.LoadAssetAtPath<VisualEffectAsset>(AssetDatabase.GetAssetPath(vfx)) == null;
-
             ModelChanged(vfx); // This will initialize the graph from the vfx asset.
 
             if (m_FlowAnchorController == null)
@@ -1578,13 +1573,10 @@ namespace UnityEditor.VFX.UI
             return Enumerable.Empty<VFXParameterController>();
         }
 
-        // The subgraph version
+        // The default version
         public void SetParametersOrder(VFXParameterController controller, int index, bool input)
         {
-            if( ! isSubgraph)
-            {
-                throw new InvalidOperationException("Can't change the direction of parameter outside a subgraph");
-            }
+            controller.model.category = string.Empty;
             var orderedParameters = m_ParameterControllers.Where(t => t.Value.isOutput == !input).OrderBy(t => t.Value.order).Select(t => t.Value).ToList();
 
             int oldIndex = orderedParameters.IndexOf(controller);
@@ -1611,9 +1603,10 @@ namespace UnityEditor.VFX.UI
             NotifyChange(AnyThing);
         }
 
-        //The normal graph version
+        //The category version
         public void SetParametersOrder(VFXParameterController controller, int index, string category)
         {
+            controller.isOutput = false;
             var orderedParameters = m_ParameterControllers.Where(t => t.Key.category == category).OrderBy(t => t.Value.order).Select(t => t.Value).ToList();
 
             int oldIndex = orderedParameters.IndexOf(controller);
@@ -1694,10 +1687,6 @@ namespace UnityEditor.VFX.UI
             else if (model is VFXParameter)
             {
                 VFXParameter parameter = model as VFXParameter;
-                if (parameter.isOutput && ! isSubgraph)
-                {
-                    parameter.isOutput = false;
-                }
 
                 if ( parameter.isOutput)
                 {
