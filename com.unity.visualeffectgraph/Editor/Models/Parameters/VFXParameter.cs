@@ -298,7 +298,21 @@ namespace UnityEditor.VFX
             }
         }
 
-        protected override IEnumerable<VFXPropertyWithValue> outputProperties { get { return PropertiesFromSlotsOrDefaultFromClass(VFXSlot.Direction.kOutput); } }
+        protected override IEnumerable<VFXPropertyWithValue> inputProperties { 
+            get { 
+                if(isOutput)
+                    return PropertiesFromSlotsOrDefaultFromClass(VFXSlot.Direction.kInput);
+                return Enumerable.Empty<VFXPropertyWithValue>();
+            } 
+        }
+        protected override IEnumerable<VFXPropertyWithValue> outputProperties { 
+            get
+            {
+                if (isOutput)
+                    return PropertiesFromSlotsOrDefaultFromClass(VFXSlot.Direction.kOutput);
+                return Enumerable.Empty<VFXPropertyWithValue>();
+            } 
+        }
 
         public void Init(Type _type)
         {

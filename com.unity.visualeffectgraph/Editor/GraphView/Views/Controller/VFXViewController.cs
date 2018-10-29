@@ -1694,12 +1694,28 @@ namespace UnityEditor.VFX.UI
                     {
                         parameter.AddSlot(VFXSlot.Create(new VFXProperty(typeof(float),"i"),VFXSlot.Direction.kInput));
                     }
+                    while (parameter.GetNbInputSlots() > 1)
+                    {
+                        parameter.RemoveSlot(parameter.inputSlots[1]);
+                    }
+                    while (parameter.GetNbOutputSlots() > 0)
+                    {
+                        parameter.RemoveSlot(parameter.outputSlots[0]);
+                    }
                 }
                 else
                 {
                     if (parameter.GetNbOutputSlots() < 1)
                     {
                         parameter.AddSlot(VFXSlot.Create(new VFXProperty(typeof(float), "o"), VFXSlot.Direction.kOutput));
+                    }
+                    while (parameter.GetNbOutputSlots() > 1)
+                    {
+                        parameter.RemoveSlot(parameter.outputSlots[1]);
+                    }
+                    while (parameter.GetNbInputSlots() > 0)
+                    {
+                        parameter.RemoveSlot(parameter.inputSlots[0]);
                     }
                 }
 
