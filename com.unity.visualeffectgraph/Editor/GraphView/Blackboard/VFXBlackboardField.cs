@@ -53,6 +53,11 @@ namespace  UnityEditor.VFX.UI
             if(controller.isOutput)
             {
                 icon = Resources.Load<Texture2D>("VFX/output dot");
+
+                if (controller.nodeCount < 1)
+                    capabilities |= Capabilities.Droppable;
+                else
+                    capabilities &= ~Capabilities.Droppable;
             }
             else if (controller.exposed)
             {

@@ -428,7 +428,10 @@ namespace UnityEditor.VFX
 
         void GetAllLinks(List<NodeLinkedSlot> list, VFXSlot slot)
         {
-            list.AddRange(slot.LinkedSlots.Select(t => new NodeLinkedSlot() { outputSlot = slot, inputSlot = t }));
+            if( isOutput)
+                list.AddRange(slot.LinkedSlots.Select(t => new NodeLinkedSlot() { outputSlot = t, inputSlot = slot }));
+            else
+                list.AddRange(slot.LinkedSlots.Select(t => new NodeLinkedSlot() { outputSlot = slot, inputSlot = t }));
             foreach (var child in slot.children)
             {
                 GetAllLinks(list, child);
@@ -457,7 +460,7 @@ namespace UnityEditor.VFX
                 // the linked slot of the outSlot decides so make sure that all appear once and only once in all the nodes
                 List<NodeLinkedSlot> links = new List<NodeLinkedSlot>();
 
-                var targetSlot = isOutput ? inputSlots.FirstOrDefault() : outputSlots[0];
+                var targetSlot = isOutput ? inputSlots.FirstOrDefault() : outputSlots.FirstOrDefault();
                 if (targetSlot == null)
                     return;
 
@@ -495,10 +498,10 @@ namespace UnityEditor.VFX
                         links.Remove(slot);
                     }
                 }
-                // if there are some links in the output slots that are in none of the infos, create a default param with them
+                // if there are some links in the output slots that are in not found in the infos, find or create a node for them.
                 if (links.Count > 0)
                 {
-                    var newInfos = NewNode();
+                    Node newInfos = nodes.Count > 0? nodes[0]:NewNode();
                     newInfos.position = Vector2.zero;
                     newInfos.linkedSlots = links;
                     newInfos.expandedSlots = new List<VFXSlot>();
