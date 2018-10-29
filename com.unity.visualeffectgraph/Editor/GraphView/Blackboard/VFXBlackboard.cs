@@ -79,6 +79,7 @@ namespace  UnityEditor.VFX.UI
             m_DefaultCategory.headerVisible = false;
             m_OutputCategory = new VFXBlackboardCategory() { title = "output" };
             m_OutputCategory.headerVisible = true;
+            m_OutputCategory.expanded = PlayerPrefs.GetInt("VFX.blackboard.outputexpanded", 0) != 0;
             Add(m_OutputCategory);
 
             styleSheets.Add(Resources.Load<StyleSheet>("VFXBlackboard"));
@@ -373,8 +374,12 @@ namespace  UnityEditor.VFX.UI
 
         public void SetCategoryExpanded(VFXBlackboardCategory category, bool expanded)
         {
-            if(category == m_OutputCategory)
+            if (category == m_OutputCategory)
+            {
                 m_OutputCategory.expanded = !m_OutputCategory.expanded;
+
+                PlayerPrefs.SetInt("VFX.blackboard.outputexpanded", m_OutputCategory.expanded?1:0);
+            }
             else
                 controller.SetCategoryExpanded(category.title, expanded);
         }
