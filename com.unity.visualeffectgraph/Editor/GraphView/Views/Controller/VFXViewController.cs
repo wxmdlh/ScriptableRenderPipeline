@@ -588,13 +588,22 @@ namespace UnityEditor.VFX.UI
             if (resulting.inputSlot != null && resulting.outputSlot != null)
             {
                 VFXParameterNodeController fromController = output.sourceNode as VFXParameterNodeController;
-
                 if (fromController != null)
                 {
                     if (fromController.infos.linkedSlots == null)
                         fromController.infos.linkedSlots = new List<VFXParameter.NodeLinkedSlot>();
                     fromController.infos.linkedSlots.Add(resulting);
                 }
+
+                VFXParameterNodeController toController = input.sourceNode as VFXParameterNodeController;
+                if( toController != null)
+                {
+                    var infos = toController.infos;
+                    if (infos.linkedSlots == null)
+                        infos.linkedSlots = new List<VFXParameter.NodeLinkedSlot>();
+                    infos.linkedSlots.Add(resulting);
+                }
+
                 DataEdgesMightHaveChanged();
                 return true;
             }
@@ -1190,6 +1199,10 @@ namespace UnityEditor.VFX.UI
 
         public VFXNodeController AddVFXParameter(Vector2 pos, VFXParameterController parameterController, VFXGroupNodeController groupNode)
         {
+            if( parameterController.isOutput && parameterController.nodeCount > 0)
+            {
+                return parameterController.nodes.First();
+            }
             int id = parameterController.model.AddNode(pos);
 
             LightApplyChanges();
