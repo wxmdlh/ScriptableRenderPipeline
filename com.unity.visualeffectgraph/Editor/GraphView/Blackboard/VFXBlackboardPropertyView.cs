@@ -152,7 +152,7 @@ namespace  UnityEditor.VFX.UI
             int insertIndex = 0;
 
 
-            bool isOutputParameter = controller.viewController.isSubgraph || controller.model.category != "output";
+            bool isOutputParameter = controller.isOutput;
 
             if (!isOutputParameter)
             {
@@ -275,6 +275,11 @@ namespace  UnityEditor.VFX.UI
             }
             else
             {
+                m_Property = null;
+                m_ExposedProperty = null;
+                m_MinProperty = null;
+                m_MaxProperty = null;
+                m_RangeProperty = null;
                 if (m_TooltipProperty == null)
                 {
                     m_TooltipProperty = new StringPropertyRM(new SimplePropertyRMProvider<string>("Tooltip", () => controller.model.tooltip, t => controller.model.tooltip = t), 55);
