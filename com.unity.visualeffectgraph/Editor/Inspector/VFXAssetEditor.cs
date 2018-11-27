@@ -155,13 +155,6 @@ public class VisualEffectAssetEditor : Editor
             VFXViewWindow.GetWindow<VFXViewWindow>().LoadAsset(obj as VisualEffectAsset, null);
             return true;
         }
-        else if (obj is VisualEffectSubgraph)
-        {
-            VisualEffectResource resource = VisualEffectResource.GetResourceAtPath(AssetDatabase.GetAssetPath(obj));
-
-            VFXViewWindow.GetWindow<VFXViewWindow>().LoadResource(resource, null);
-            return true;
-        }
         else if (obj is Shader || obj is ComputeShader)
         {
             string path = AssetDatabase.GetAssetPath(instanceID);

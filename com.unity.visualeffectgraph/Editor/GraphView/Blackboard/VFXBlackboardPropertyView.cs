@@ -211,13 +211,8 @@ namespace  UnityEditor.VFX.UI
                 }
                 else
                 {
-                insertIndex += 1 + m_SubProperties.Count + 1; //main property + subproperties + tooltip
+                    insertIndex += 1 + m_SubProperties.Count + 1; //main property + subproperties + tooltip
                 }
-            }
-            else
-            {
-                insertIndex += 1 + m_SubProperties.Count + 1; //main property + subproperties + tooltip
-            }
 
                 if (controller.canHaveRange)
                 {
