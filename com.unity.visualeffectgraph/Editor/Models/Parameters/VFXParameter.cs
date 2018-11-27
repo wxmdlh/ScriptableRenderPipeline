@@ -308,7 +308,7 @@ namespace UnityEditor.VFX
         protected override IEnumerable<VFXPropertyWithValue> outputProperties { 
             get
             {
-                if (isOutput)
+                if (!isOutput)
                     return PropertiesFromSlotsOrDefaultFromClass(VFXSlot.Direction.kOutput);
                 return Enumerable.Empty<VFXPropertyWithValue>();
             } 
