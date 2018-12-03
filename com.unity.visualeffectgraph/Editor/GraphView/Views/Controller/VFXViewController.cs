@@ -1107,7 +1107,7 @@ namespace UnityEditor.VFX.UI
             return res;
         }
 
-        private void AddVFXModel(Vector2 pos, VFXModel model)
+        public void AddVFXModel(Vector2 pos, VFXModel model)
         {
             model.position = pos;
             this.graph.AddChild(model);

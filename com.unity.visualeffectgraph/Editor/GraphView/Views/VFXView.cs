@@ -1641,6 +1641,16 @@ namespace UnityEditor.VFX.UI
                 DragAndDrop.visualMode = DragAndDropVisualMode.Link;
                 e.StopPropagation();
             }
+            else
+            {
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>();
+
+                if( references.Count() > 0 && references.First() != controller.model.asset) //TODO test cyclic proper dependency
+                {
+                    DragAndDrop.visualMode = DragAndDropVisualMode.Link;
+                    e.StopPropagation();
+                }
+            }
         }
 
         void OnDragPerform(DragPerformEvent e)
@@ -1650,10 +1660,31 @@ namespace UnityEditor.VFX.UI
             var rows = selection.OfType<BlackboardField>().Select(t => t.GetFirstAncestorOfType<VFXBlackboardRow>()).Where(t => t != null).ToArray();
             if (rows.Length > 0)
             {
+                DragAndDrop.AcceptDrag();
                 Vector2 mousePosition = contentViewContainer.WorldToLocal(e.mousePosition);
                 foreach (var row in rows)
                 {
                     AddVFXParameter(mousePosition - new Vector2(50, 20), row.controller, groupNode);
+                }
+                e.StopPropagation();
+            }
+            else
+            {
+                DragAndDrop.AcceptDrag();
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>();
+
+                if (references.Count() > 0 && references.First() != controller.model.asset) //TODO test cyclic proper dependency
+                {
+
+                    Vector2 mPos = contentViewContainer.WorldToLocal(e.mousePosition);
+
+                    var newOperator = VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>();
+                    controller.AddVFXModel(e.mousePosition, newOperator);
+
+                    newOperator.SetSettingValue("m_SubAsset",references.First());
+
+                    //TODO add to picked groupnode
+                    e.StopPropagation();
                 }
             }
         }
