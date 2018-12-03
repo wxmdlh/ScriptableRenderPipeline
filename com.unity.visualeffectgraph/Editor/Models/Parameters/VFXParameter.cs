@@ -66,11 +66,18 @@ namespace UnityEditor.VFX
                         RemoveSlot(inputSlots[0]);
                         AddSlot(newSlot);
                         m_ExprSlots = outputSlots[0].GetVFXValueTypeSlots().ToArray();
-                        m_ValueExpr = m_ExprSlots.Select(t => t.DefaultExpression(valueMode)).ToArray();
+                        ResetOutputValueExpression();
                     }
                 }
 
             }
+        }
+
+
+        public void ResetOutputValueExpression()
+        {
+            if (!m_IsOutput)
+                m_ValueExpr = m_ExprSlots.Select(t => t.DefaultExpression(valueMode)).ToArray();
         }
 
         public bool canHaveRange
