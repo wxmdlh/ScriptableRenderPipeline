@@ -20,11 +20,7 @@ namespace UnityEditor.VFX
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
-                if (m_SubAsset == null)
-                    yield break;
-                VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
-
-                foreach ( var param in graph.children.OfType<VFXParameter>().Where(t=>t.exposed && !t.isOutput).OrderBy(t=> t.order))
+                foreach ( var param in GetParameters(t=> InputPredicate(t)))
                 {
                     yield return new VFXPropertyWithValue(new VFXProperty(param.type, param.exposedName));
                 }
@@ -33,16 +29,30 @@ namespace UnityEditor.VFX
         protected override IEnumerable<VFXPropertyWithValue> outputProperties
         {
             get {
-
-                if (m_SubAsset == null)
-                    yield break;
-                VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
-
-                foreach (var param in graph.children.OfType<VFXParameter>().Where(t => t.isOutput).OrderBy(t => t.order))
+                foreach (var param in GetParameters(t => OutputPredicate(t)))
                 {
                     yield return new VFXPropertyWithValue(new VFXProperty(param.type, param.exposedName));
                 }
             }
+        }
+
+        static bool InputPredicate(VFXParameter param)
+        {
+            return param.exposed && !param.isOutput;
+        }
+
+        static bool OutputPredicate(VFXParameter param)
+        {
+            return param.isOutput;
+        }
+
+        IEnumerable<VFXParameter> GetParameters(Func<VFXParameter,bool> predicate)
+        {
+
+            if (m_SubAsset == null)
+                return Enumerable.Empty<VFXParameter>();
+            VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
+            return graph.children.OfType<VFXParameter>().Where(t => predicate(t)).OrderBy(t => t.order);
         }
 
         protected override VFXExpression[] BuildExpression(VFXExpression[] inputExpression)
@@ -53,7 +63,7 @@ namespace UnityEditor.VFX
             int cptSlot = 0;
 
             // Change all the inputExpressions of the parameters.
-            foreach (var param in graph.children.OfType<VFXParameter>().Where(t => t.exposed && !t.isOutput).OrderBy(t => t.order))
+            foreach (var param in GetParameters(t => InputPredicate(t)))
             {
                 VFXSlot[] inputSlots = param.outputSlots[0].GetVFXValueTypeSlots().ToArray();
                 for(int i = 0; i < inputSlots.Length; ++i)
@@ -65,12 +75,12 @@ namespace UnityEditor.VFX
             }
 
             List<VFXExpression> outputExpressions = new List<VFXExpression>();
-            foreach (var param in graph.children.OfType<VFXParameter>().Where(t => t.isOutput).OrderBy(t => t.order))
+            foreach (var param in GetParameters(t => OutputPredicate(t)))
             {
                 outputExpressions.AddRange(param.inputSlots[0].GetVFXValueTypeSlots().Select(t => t.GetExpression()));
             }
 
-            foreach (var param in graph.children.OfType<VFXParameter>().Where(t => t.exposed && !t.isOutput).OrderBy(t => t.order))
+            foreach (var param in GetParameters(t => InputPredicate(t)))
             {
                 param.ResetOutputValueExpression();
             }
