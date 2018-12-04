@@ -92,14 +92,14 @@ namespace UnityEditor.VFX.UI
             public FlowEdge[] flowEdges;
 
 
-            public void CollectDependencies(HashSet<ScriptableObject> objects)
+            public void CollectDependencies(HashSet<ScriptableObject> objects, bool compileOnly = false)
             {
                 if (contexts != null)
                 {
                     foreach (var context in contexts)
                     {
                         objects.Add(context);
-                        context.CollectDependencies(objects);
+                        context.CollectDependencies(objects,compileOnly);
                     }
                 }
                 if (slotContainers != null)
@@ -107,7 +107,7 @@ namespace UnityEditor.VFX.UI
                     foreach (var slotContainer in slotContainers)
                     {
                         objects.Add(slotContainer);
-                        slotContainer.CollectDependencies(objects);
+                        slotContainer.CollectDependencies(objects,compileOnly);
                     }
                 }
                 if (blocks != null)
@@ -115,7 +115,7 @@ namespace UnityEditor.VFX.UI
                     foreach (var block in blocks)
                     {
                         objects.Add(block);
-                        block.CollectDependencies(objects);
+                        block.CollectDependencies(objects,compileOnly);
                     }
                 }
             }

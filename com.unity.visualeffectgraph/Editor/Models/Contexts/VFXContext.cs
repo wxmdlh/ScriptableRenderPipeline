@@ -136,13 +136,13 @@ namespace UnityEditor.VFX
             hasBeenCompiled = compiled;
         }
 
-        public override void CollectDependencies(HashSet<ScriptableObject> objs)
+        public override void CollectDependencies(HashSet<ScriptableObject> objs, bool compileOnly = false)
         {
-            base.CollectDependencies(objs);
+            base.CollectDependencies(objs,compileOnly);
             if (m_Data != null)
             {
                 objs.Add(m_Data);
-                m_Data.CollectDependencies(objs);
+                m_Data.CollectDependencies(objs,compileOnly);
             }
         }
 
