@@ -11,6 +11,11 @@ namespace UnityEditor.VFX
         [VFXSetting,SerializeField]
         protected VisualEffectAsset m_SubAsset;
 
+        public VisualEffectAsset subAsset
+        {
+            get { return m_SubAsset; }
+        }
+
         public VFXSubgraphOperator()
         {
         }
@@ -53,6 +58,16 @@ namespace UnityEditor.VFX
                 return Enumerable.Empty<VFXParameter>();
             VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
             return graph.children.OfType<VFXParameter>().Where(t => predicate(t)).OrderBy(t => t.order);
+        }
+
+        public override void CollectDependencies(HashSet<ScriptableObject> objs,bool compileOnly = false)
+        {
+            base.CollectDependencies(objs,compileOnly);
+
+            if (!compileOnly || m_SubAsset == null)
+                return;
+
+            m_SubAsset.GetResource().GetOrCreateGraph().CollectDependencies(objs,true);
         }
 
         protected override VFXExpression[] BuildExpression(VFXExpression[] inputExpression)

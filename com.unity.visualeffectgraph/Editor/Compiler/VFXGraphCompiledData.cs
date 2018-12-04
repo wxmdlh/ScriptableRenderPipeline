@@ -593,6 +593,18 @@ namespace UnityEditor.VFX
             return null;
         }
 
+        IEnumerable<VFXContext> RecurseFindCompilableContexts(VFXGraph graph)
+        {
+            var contexts = graph.children.OfType<VFXContext>().Where(c => c.CanBeCompiled());
+
+            foreach ( var subGraph in graph.children.OfType<VFXSubgraphOperator>().Where(t => t.subAsset != null).Select(t => t.subAsset.GetResource().GetOrCreateGraph()))
+            {
+                contexts = contexts.Concat(RecurseFindCompilableContexts(graph));
+            }
+
+            return contexts;
+        }
+
         public void Compile(VFXCompilationMode compilationMode, bool forceShaderValidation)
         {
             // Prevent doing anything ( and especially showing progesses ) in an empty graph.
@@ -616,13 +628,14 @@ namespace UnityEditor.VFX
 
                 EditorUtility.DisplayProgressBar(progressBarTitle, "Collecting dependencies", 0 / nbSteps);
                 var models = new HashSet<ScriptableObject>();
-                m_Graph.CollectDependencies(models);
+                m_Graph.CollectDependencies(models,true);
 
                 var contexts = models.OfType<VFXContext>().ToArray();
 
                 foreach (var c in contexts) // Unflag all contexts
                     c.MarkAsCompiled(false);
 
+                //TODO make a recursive version
                 var compilableContexts = models.OfType<VFXContext>().Where(c => c.CanBeCompiled());
                 var compilableData = models.OfType<VFXData>().Where(d => d.CanBeCompiled());
 

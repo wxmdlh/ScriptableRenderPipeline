@@ -249,14 +249,14 @@ namespace UnityEditor.VFX
             m_ExpressionValuesDirty = true;
         }
 
-        public override void CollectDependencies(HashSet<ScriptableObject> objs)
+        public override void CollectDependencies(HashSet<ScriptableObject> objs, bool compileOnly = false)
         {
             Profiler.BeginSample("VFXEditor.CollectDependencies");
             try
             {
                 if (m_UIInfos != null)
                     objs.Add(m_UIInfos);
-                base.CollectDependencies(objs);
+                base.CollectDependencies(objs,compileOnly);
             }
             finally
             {
