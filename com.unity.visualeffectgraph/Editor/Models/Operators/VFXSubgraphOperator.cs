@@ -77,13 +77,18 @@ namespace UnityEditor.VFX
             VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
             int cptSlot = 0;
 
+            var emptyHasSet = new HashSet<VFXSlot>();
+
             // Change all the inputExpressions of the parameters.
             foreach (var param in GetParameters(t => InputPredicate(t)))
             {
                 VFXSlot[] inputSlots = param.outputSlots[0].GetVFXValueTypeSlots().ToArray();
+
+                
                 for(int i = 0; i < inputSlots.Length; ++i)
                 {
-                    inputSlots[i].SetExpression(inputExpression[cptSlot + i]);
+                    inputSlots[i].SetOutExpression(inputExpression[cptSlot + i], emptyHasSet);
+                    emptyHasSet.Clear();
                 }
 
                 cptSlot += inputSlots.Length;
