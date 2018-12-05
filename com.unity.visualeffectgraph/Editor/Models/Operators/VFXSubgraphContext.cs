@@ -86,14 +86,13 @@ namespace UnityEditor.VFX
 
         IEnumerable<VFXParameter> GetParameters(Func<VFXParameter,bool> predicate)
         {
+            if (m_SubChildren == null) return Enumerable.Empty<VFXParameter>();
             return m_SubChildren.OfType<VFXParameter>().Where(t => predicate(t)).OrderBy(t => t.order);
         }
 
         private new void OnEnable()
         {
             base.OnEnable();
-
-            OnInvalidate(this, InvalidationCause.kSettingChanged);
         }
 
         protected override void OnInvalidate(VFXModel model, InvalidationCause cause)
@@ -115,6 +114,9 @@ namespace UnityEditor.VFX
                     graph.CollectDependencies(dependencies, true);
                     m_SubChildren = VFXMemorySerializer.DuplicateObjects(dependencies.ToArray());
                 }
+
+                base.OnInvalidate(model, cause);
+
                 if (m_SubAsset == null) return;
 
                 var toInvalidate = new HashSet<VFXSlot>();
@@ -134,6 +136,7 @@ namespace UnityEditor.VFX
 
                     for (int i = 0; i < inputSlots.Length; ++i)
                     {
+                        if (inputExpressions.Count() <= cptSlot + i) break;
                         inputSlots[i].SetOutExpression(inputExpressions[cptSlot + i], toInvalidate);
                     }
 
@@ -144,13 +147,17 @@ namespace UnityEditor.VFX
                     slot.InvalidateExpressionTree();
                 }
             }
+            else
+            {
+                base.OnInvalidate(model, cause);
+            }
         }
 
         public override void CollectDependencies(HashSet<ScriptableObject> objs,bool compileOnly = false)
         {
             base.CollectDependencies(objs,compileOnly);
 
-            if (!compileOnly || m_SubAsset == null)
+            if (!compileOnly || m_SubChildren == null)
                 return;
 
             foreach (var child in m_SubChildren)

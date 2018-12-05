@@ -130,6 +130,11 @@ namespace UnityEditor.VFX.UI
             }
 
             SyncControllers();
+
+            if (model is VFXSubgraphContext)
+            {
+                model.Invalidate(VFXModel.InvalidationCause.kSettingChanged); // Simulate a settings change in case the subgraph parameters has changed.
+            }
         }
 
         public void AddBlock(int index, VFXBlock block)
