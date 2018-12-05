@@ -1674,28 +1674,28 @@ namespace UnityEditor.VFX.UI
             if (model is VFXOperator)
             {
                 if (model is VFXOperatorNumericCascadedUnified)
-                    newControllers.Add(new VFXCascadedOperatorController(model, this));
+                    newControllers.Add(new VFXCascadedOperatorController(model as VFXOperator, this));
                 else if (model is VFXOperatorNumericUniform)
                 {
-                    newControllers.Add(new VFXNumericUniformOperatorController(model, this));
+                    newControllers.Add(new VFXNumericUniformOperatorController(model as VFXOperator, this));
                 }
                 else if (model is VFXOperatorNumericUnified)
                 {
                     if (model is IVFXOperatorNumericUnifiedConstrained)
-                        newControllers.Add(new VFXUnifiedConstraintOperatorController(model, this));
+                        newControllers.Add(new VFXUnifiedConstraintOperatorController(model as VFXOperator, this));
                     else
-                        newControllers.Add(new VFXUnifiedOperatorController(model, this));
+                        newControllers.Add(new VFXUnifiedOperatorController(model as VFXOperator, this));
                 }
                 else if (model is Branch)
                 {
-                    newControllers.Add(new VFXBranchOperatorController(model, this));
+                    newControllers.Add(new VFXBranchOperatorController(model as VFXOperator, this));
                 }
                 else
-                    newControllers.Add(new VFXOperatorController(model, this));
+                    newControllers.Add(new VFXOperatorController(model as VFXOperator, this));
             }
             else if (model is VFXContext)
             {
-                newControllers.Add(new VFXContextController(model, this));
+                newControllers.Add(new VFXContextController(model as VFXContext, this));
             }
             else if (model is VFXParameter)
             {

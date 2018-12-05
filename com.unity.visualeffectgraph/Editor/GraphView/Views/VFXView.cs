@@ -1676,12 +1676,12 @@ namespace UnityEditor.VFX.UI
                 if (references.Count() > 0 && references.First() != controller.model.asset) //TODO test cyclic proper dependency
                 {
 
-                    Vector2 mPos = contentViewContainer.WorldToLocal(e.mousePosition);
+                    Vector2 mPos = this.ChangeCoordinatesTo(contentViewContainer, e.mousePosition);
+                    VFXModel newModel = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXContext>().Count() > 0 ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel: VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
 
-                    var newOperator = VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>();
-                    controller.AddVFXModel(e.mousePosition, newOperator);
+                    controller.AddVFXModel(e.mousePosition, newModel);
 
-                    newOperator.SetSettingValue("m_SubAsset",references.First());
+                    newModel.SetSettingValue("m_SubAsset",references.First());
 
                     //TODO add to picked groupnode
                     e.StopPropagation();
