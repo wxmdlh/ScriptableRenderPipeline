@@ -103,7 +103,7 @@ namespace UnityEditor.VFX.UI
             base.ModelChanged(obj);
         }
 
-        public VFXContextController(VFXModel model, VFXViewController viewController) : base(model, viewController)
+        public VFXContextController(VFXContext model, VFXViewController viewController) : base(model, viewController)
         {
             UnregisterAnchors();
 

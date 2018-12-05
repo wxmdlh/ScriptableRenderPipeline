@@ -635,14 +635,13 @@ namespace UnityEditor.VFX
                 foreach (var c in contexts) // Unflag all contexts
                     c.MarkAsCompiled(false);
 
-                //TODO make a recursive version
-                var compilableContexts = models.OfType<VFXContext>().Where(c => c.CanBeCompiled());
+                var compilableContexts = models.OfType<VFXContext>().Where(c => c.CanBeCompiled()).ToArray();
                 var compilableData = models.OfType<VFXData>().Where(d => d.CanBeCompiled());
 
                 IEnumerable<VFXContext> implicitContexts = Enumerable.Empty<VFXContext>();
                 foreach (var d in compilableData) // Flag compiled contexts
                     implicitContexts = implicitContexts.Concat(d.InitImplicitContexts());
-                compilableContexts = compilableContexts.Concat(implicitContexts.ToArray());
+                compilableContexts = compilableContexts.Concat(implicitContexts.ToArray()).ToArray();
 
                 foreach (var c in compilableContexts) // Flag compiled contexts
                     c.MarkAsCompiled(true);
