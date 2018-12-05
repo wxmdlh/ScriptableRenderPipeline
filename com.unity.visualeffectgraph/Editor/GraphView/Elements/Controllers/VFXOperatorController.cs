@@ -29,6 +29,10 @@ namespace UnityEditor.VFX.UI
 
         public VFXOperatorController(VFXModel model, VFXViewController viewController) : base(model, viewController)
         {
+            if( model is VFXSubgraphOperator)
+            {
+                model.Invalidate(VFXModel.InvalidationCause.kSettingChanged); // Simulate a settings change in case the subgraph parameters has changed.
+            }
         }
 
         public new VFXOperator model

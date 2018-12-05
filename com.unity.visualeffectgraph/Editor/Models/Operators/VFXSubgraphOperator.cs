@@ -77,7 +77,7 @@ namespace UnityEditor.VFX
             VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
             int cptSlot = 0;
 
-            var emptyHasSet = new HashSet<VFXSlot>();
+            var toInvalidate = new HashSet<VFXSlot>();
 
             // Change all the inputExpressions of the parameters.
             foreach (var param in GetParameters(t => InputPredicate(t)))
@@ -87,11 +87,15 @@ namespace UnityEditor.VFX
                 
                 for(int i = 0; i < inputSlots.Length; ++i)
                 {
-                    inputSlots[i].SetOutExpression(inputExpression[cptSlot + i], emptyHasSet);
-                    emptyHasSet.Clear();
+                    inputSlots[i].SetOutExpression(inputExpression[cptSlot + i], toInvalidate);
+                    
                 }
 
                 cptSlot += inputSlots.Length;
+            }
+            foreach (var slot in toInvalidate)
+            {
+                slot.InvalidateExpressionTree();
             }
 
             List<VFXExpression> outputExpressions = new List<VFXExpression>();
