@@ -79,6 +79,7 @@ namespace UnityEditor.VFX
 
         public override VFXExpressionMapper GetExpressionMapper(VFXDeviceTarget target)
         {
+            PatchInputExpressions();
             return null;
         }
 
@@ -132,13 +133,46 @@ namespace UnityEditor.VFX
 
             var graph = m_SubAsset.GetResource().GetOrCreateGraph();
             HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
-            graph.CollectDependencies(dependencies, true);
+            graph.CollectDependencies(dependencies, false);
             m_SubChildren = VFXMemorySerializer.DuplicateObjects(dependencies.ToArray()).OfType<VFXModel>().Where(t => t is VFXContext || t is VFXOperator || t is VFXParameter).ToArray();
 
             foreach (var child in m_SubChildren)
             {
                 child.onInvalidateDelegate += SubChildrenOnInvalidate;
 
+            }
+        }
+
+        void PatchInputExpressions()
+        {
+            if (m_SubChildren == null) return;
+
+            var toInvalidate = new HashSet<VFXSlot>();
+
+            var inputExpressions = new List<VFXExpression>();
+
+            foreach (var slot in inputSlots.SelectMany(t => t.GetVFXValueTypeSlots()))
+            {
+                inputExpressions.Add(slot.GetExpression());
+            }
+
+            int cptSlot = 0;
+            // Change all the inputExpressions of the parameters.
+            foreach (var param in GetParameters(t => InputPredicate(t)))
+            {
+                VFXSlot[] inputSlots = param.outputSlots[0].GetVFXValueTypeSlots().ToArray();
+
+                for (int i = 0; i < inputSlots.Length; ++i)
+                {
+                    if (inputExpressions.Count() <= cptSlot + i) break;
+                    inputSlots[i].SetOutExpression(inputExpressions[cptSlot + i], toInvalidate);
+                }
+
+                cptSlot += inputSlots.Length;
+            }
+            foreach (var slot in toInvalidate)
+            {
+                slot.InvalidateExpressionTree();
             }
         }
 
@@ -152,36 +186,7 @@ namespace UnityEditor.VFX
                 }
 
                 base.OnInvalidate(model, cause);
-
-                if (m_SubChildren == null) return;
-
-                var toInvalidate = new HashSet<VFXSlot>();
-
-                 var inputExpressions = new List<VFXExpression>();
-
-                 foreach(var slot in inputSlots.SelectMany(t=>t.GetVFXValueTypeSlots()))
-                 {
-                     inputExpressions.Add(slot.GetExpression());
-                 }
-
-                int cptSlot = 0;
-                // Change all the inputExpressions of the parameters.
-                foreach (var param in GetParameters(t => InputPredicate(t)))
-                {
-                    VFXSlot[] inputSlots = param.outputSlots[0].GetVFXValueTypeSlots().ToArray();
-
-                    for (int i = 0; i < inputSlots.Length; ++i)
-                    {
-                        if (inputExpressions.Count() <= cptSlot + i) break;
-                        inputSlots[i].SetOutExpression(inputExpressions[cptSlot + i], toInvalidate);
-                    }
-
-                    cptSlot += inputSlots.Length;
-                }
-                foreach (var slot in toInvalidate)
-                {
-                    slot.InvalidateExpressionTree();
-                }
+                PatchInputExpressions();
             }
             else
             {
