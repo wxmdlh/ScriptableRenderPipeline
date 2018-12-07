@@ -87,11 +87,6 @@ VFXFlowAnchor.port.EdgeConnector.typespawnevent, VFXFlowAnchor.port.EdgeConnecto
 
 /* event */
 
-VFXContextUI.typenone  > #node-border
-{
-    border-color: #27FFA0;
-}
-
 VFXContextUI > #selection-border
 {
     border-radius: 10px;
