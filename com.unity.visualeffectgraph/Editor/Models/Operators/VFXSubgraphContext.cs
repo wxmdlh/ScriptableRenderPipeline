@@ -45,8 +45,8 @@ namespace UnityEditor.VFX
     {
         [VFXSetting,SerializeField]
         protected VisualEffectAsset m_SubAsset;
-
-        ScriptableObject[] m_SubChildren;
+        
+        VFXModel[] m_SubChildren;
 
         public VisualEffectAsset subAsset
         {
@@ -62,6 +62,14 @@ namespace UnityEditor.VFX
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
+                if(m_SubChildren == null && ! m_SubAsset == null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
+                {
+                    foreach (var slot in inputSlots)
+                    {
+                        yield return new VFXPropertyWithValue(slot.property);
+                    }
+                }
+
                 foreach ( var param in GetParameters(t=> InputPredicate(t)))
                 {
                     yield return new VFXPropertyWithValue(new VFXProperty(param.type, param.exposedName));
@@ -93,31 +101,59 @@ namespace UnityEditor.VFX
         private new void OnEnable()
         {
             base.OnEnable();
+            RecreateCopy();
+        }
+
+        void SubChildrenOnInvalidate(VFXModel model, InvalidationCause cause)
+        {
+            Invalidate(this, cause);
+        }
+
+
+        void RecreateCopy()
+        {
+            if (m_SubChildren != null)
+            {
+                foreach (var child in m_SubChildren)
+                {
+                    if (child != null)
+                    {
+                        child.onInvalidateDelegate -= SubChildrenOnInvalidate;
+                        ScriptableObject.DestroyImmediate(child, true);
+                    }
+                }
+            }
+
+            if (m_SubAsset == null)
+            {
+                m_SubChildren = null;
+                return;
+            }
+
+            var graph = m_SubAsset.GetResource().GetOrCreateGraph();
+            HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
+            graph.CollectDependencies(dependencies, true);
+            m_SubChildren = VFXMemorySerializer.DuplicateObjects(dependencies.ToArray()).OfType<VFXModel>().Where(t => t is VFXContext || t is VFXOperator || t is VFXParameter).ToArray();
+
+            foreach (var child in m_SubChildren)
+            {
+                child.onInvalidateDelegate += SubChildrenOnInvalidate;
+
+            }
         }
 
         protected override void OnInvalidate(VFXModel model, InvalidationCause cause)
         {
-            if( cause == InvalidationCause.kSettingChanged || cause == InvalidationCause.kConnectionChanged)
+            if( cause == InvalidationCause.kSettingChanged || cause == InvalidationCause.kExpressionInvalidated)
             {
-                if( cause == InvalidationCause.kSettingChanged )
+                if( cause == InvalidationCause.kSettingChanged && (m_SubAsset != null || object.ReferenceEquals(m_SubAsset,null))) // do not recreate subchildren if the subgraph is not available but is not null
                 {
-                    if (m_SubChildren != null)
-                    {
-                        foreach (var context in m_SubChildren)
-                            ScriptableObject.DestroyImmediate(context);
-                    }
-
-                    if (m_SubAsset == null) return;
-
-                    var graph = m_SubAsset.GetResource().GetOrCreateGraph();
-                    HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
-                    graph.CollectDependencies(dependencies, true);
-                    m_SubChildren = VFXMemorySerializer.DuplicateObjects(dependencies.ToArray());
+                    RecreateCopy();
                 }
 
                 base.OnInvalidate(model, cause);
 
-                if (m_SubAsset == null) return;
+                if (m_SubChildren == null) return;
 
                 var toInvalidate = new HashSet<VFXSlot>();
 
@@ -157,12 +193,12 @@ namespace UnityEditor.VFX
         {
             base.CollectDependencies(objs,compileOnly);
 
-            if (!compileOnly || m_SubChildren == null)
+            if (m_SubChildren == null || ! compileOnly)
                 return;
 
             foreach (var child in m_SubChildren)
             {
-                if( ! (child is VFXParameter))
+                if( ! (child is VFXParameter) )
                 {
                     objs.Add(child);
 
