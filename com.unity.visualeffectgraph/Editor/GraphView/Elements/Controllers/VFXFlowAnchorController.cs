@@ -67,13 +67,17 @@ namespace UnityEditor.VFX.UI
         {
             get
             {
-                if (owner is VFXBasicSpawner)
+                if ( owner is VFXSubgraphContext || owner is VFXBasicSpawner)
                 {
-                    if (slotIndex == 0)
+                    switch(slotIndex)
                     {
-                        return "Start";
+                        case 0:
+                            return "Start";
+                        case 1:
+                            return "Stop";
+                        case 2:
+                            return "Trigger";
                     }
-                    return "Stop";
                 }
                 return "";
             }

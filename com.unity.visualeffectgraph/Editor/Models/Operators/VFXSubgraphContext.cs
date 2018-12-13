@@ -56,6 +56,7 @@ namespace UnityEditor.VFX
         public VFXSubgraphContext():base(VFXContextType.kNone, VFXDataType.kSpawnEvent, VFXDataType.kNone)
         {
         }
+        protected override int inputFlowCount { get { return 3; } }
 
         public sealed override string name { get { return m_SubAsset!= null ? m_SubAsset.name : "Subgraph"; } }
 
