@@ -286,6 +286,22 @@ namespace UnityEditor.VFX
             return data;
         }
 
+        static string GetEventName(int i)
+        {
+            switch (i)
+            {
+                case 1:
+                    return "Stop";
+                case 2:
+                    return "Trigger";
+                default:
+                    return "Play";
+            }
+        }
+
+        
+
+
         private static void FillSpawner(Dictionary<VFXContext, SpawnInfo> outContextSpawnToSpawnInfo, List<VFXCPUBufferDesc> outCpuBufferDescs, List<VFXEditorSystemDesc> outSystemDescs, IEnumerable<VFXContext> contexts, VFXExpressionGraph graph, List<VFXLayoutElementDesc> globalEventAttributeDescs, Dictionary<VFXContext, VFXContextCompiledData> contextToCompiledData)
         {
             var spawners = CollectSpawnersHierarchy(contexts);
@@ -300,6 +316,46 @@ namespace UnityEditor.VFX
                     initialData = ComputeArrayOfStructureInitialData(globalEventAttributeDescs)
                 });
             }
+
+            var subGraphs = contexts.OfType <VFXSubgraphContext>().Where(t=>t.subAsset != null).ToArray(); //TODO remove ToArray
+
+            Dictionary<VFXContext,Dictionary<int, List<VFXContextLink>>> additionalLinksFromSubgraphs = new Dictionary<VFXContext, Dictionary<int, List<VFXContextLink>>>();
+            Action<VFXContext, int, VFXContextLink> InsertAdditionnal = (VFXContext context, int indexSlot, VFXContextLink link) =>
+              {
+                  Dictionary<int, List<VFXContextLink>> slotDict = null;
+                  if (!additionalLinksFromSubgraphs.TryGetValue(context, out slotDict))
+                  {
+                      slotDict = new Dictionary<int, List<VFXContextLink>>();
+                      additionalLinksFromSubgraphs.Add(context, slotDict);
+                  }
+
+                  List<VFXContextLink> links = null;
+                  if (!slotDict.TryGetValue(indexSlot, out links))
+                  {
+                      links = new List<VFXContextLink>();
+                      if( ! links.Contains(link))
+                        slotDict.Add(indexSlot, links);
+                  }
+
+                  links.Add(link);
+              };
+
+            foreach (var subGraph in subGraphs)
+            {
+                var subSpawners = CollectSpawnersHierarchy(subGraph.subAsset.GetResource().GetOrCreateGraph().children.OfType<VFXContext>());
+
+                for(int indexSlot = 1; indexSlot < 3; ++indexSlot)
+                {
+                    foreach(var input in subGraph.inputFlowSlot[indexSlot].link)
+                    {                        
+                        var linkedSubSpawners = (indexSlot == 2 ? Enumerable.Empty<VFXContext>() : subSpawners.Where(t => t.inputFlowSlot[indexSlot].link.Count() == 0)).Concat(subSpawners.Where(t => t.inputFlowSlot[indexSlot].link.Any(u=> u.context is VFXBasicEvent && (u.context as VFXBasicEvent).eventName == GetEventName(indexSlot))));
+
+                        foreach (var linkedSubSpawner in linkedSubSpawners)
+                            InsertAdditionnal(linkedSubSpawner, indexSlot, input);
+                    }
+                }
+            }
+
             foreach (var spawnContext in spawners)
             {
                 var buffers = new List<VFXMapping>();
@@ -311,7 +367,9 @@ namespace UnityEditor.VFX
 
                 for (int indexSlot = 0; indexSlot < 2; ++indexSlot)
                 {
-                    foreach (var input in spawnContext.inputFlowSlot[indexSlot].link)
+                    var additionnal = additionalLinksFromSubgraphs.Where(t=>t.Key == spawnContext).SelectMany(t => t.Value.Where(u => u.Key == indexSlot).SelectMany(u=>u.Value) );
+                    
+                    foreach (var input in spawnContext.inputFlowSlot[indexSlot].link.Concat(additionnal))
                     {
                         var inputContext = input.context as VFXContext;
                         if (outContextSpawnToSpawnInfo.ContainsKey(inputContext))
