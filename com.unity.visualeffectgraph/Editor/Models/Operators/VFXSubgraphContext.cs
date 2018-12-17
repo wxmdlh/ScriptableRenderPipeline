@@ -63,7 +63,7 @@ namespace UnityEditor.VFX
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
-                if(m_SubChildren == null && ! m_SubAsset == null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
+                if(m_SubChildren == null && m_SubAsset != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
                 {
                     foreach (var slot in inputSlots)
                     {
@@ -193,6 +193,11 @@ namespace UnityEditor.VFX
             {
                 base.OnInvalidate(model, cause);
             }
+        }
+
+        public VFXModel[] subChildren
+        {
+            get { return m_SubChildren; }
         }
 
         public override void CollectDependencies(HashSet<ScriptableObject> objs,bool compileOnly = false)
