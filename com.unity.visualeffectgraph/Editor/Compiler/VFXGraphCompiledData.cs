@@ -304,7 +304,7 @@ namespace UnityEditor.VFX
         {
             foreach(var subSubgraph in subGraph.subChildren.OfType<VFXSubgraphContext>())
             {
-                subGraphs.Add(subGraph);
+                subGraphs.Add(subSubgraph);
                 parents[subSubgraph] = subGraph;
 
                 RecursePutSubgraphParent(parents,subGraphs, subSubgraph);
@@ -515,41 +515,36 @@ namespace UnityEditor.VFX
                     foreach (var path in defaultEventPaths)
                     {
                         int currentFlowIndex = path.Last();
-                        if (currentFlowIndex > 2)
-                        {
-                            newEventPaths.Add(path);
-                        }
-                        else
-                        {
-                            var eventSlot = sg.inputFlowSlot[currentFlowIndex];
-                            var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
+                        var eventSlot = sg.inputFlowSlot[currentFlowIndex!=-1? currentFlowIndex:2]; // -1 in path is Trigger therefore 2 in subGraph input
+                        var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
 
-                            if (eventSlotEvents.Any())
+                        if (eventSlotEvents.Any())
+                        {
+                            foreach (var evt in eventSlotEvents)
                             {
-                                foreach (var evt in eventSlotEvents)
+                                var eventName = (evt.context as VFXBasicEvent).eventName;
+                                var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
+                                if (eventIndex == -1 && eventName != "Trigger")
                                 {
-                                    var eventName = (evt.context as VFXBasicEvent).eventName;
-                                    var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                                    if (eventIndex == -1 && eventName != "Trigger")
+                                    eventIndex = eventDescTemp.Count;
+                                    eventDescTemp.Add(new EventLinks
                                     {
-                                        eventIndex = eventDescTemp.Count;
-                                        eventDescTemp.Add(new EventLinks
-                                        {
-                                            eventName = eventName,
-                                            playSystems = new List<uint>(),
-                                            stopSystems = new List<uint>(),
-                                        });
-                                    }
-                                    newEventPaths.Add(path.Concat(new int[] { (int)eventIndex }).ToList());
+                                        eventName = eventName,
+                                        playSystems = new List<uint>(),
+                                        stopSystems = new List<uint>(),
+                                    });
                                 }
+                                newEventPaths.Add(path.Concat(new int[] {eventIndex }).ToList());
                             }
-                            else if (!eventSlot.link.Any())
-                            {
-                                newEventPaths.Add(path);
-                            }
+                        }
+                        else if (!eventSlot.link.Any())
+                        {
+                            newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
                         }
                     }
-                    defaultEventPaths = newEventPaths;
+                    defaultEventPaths.Clear();
+                    defaultEventPaths.AddRange(newEventPaths);
+                    newEventPaths.Clear();
                 }
 
                 var spawnerIndex = (uint)spawner.Value.systemIndex;
