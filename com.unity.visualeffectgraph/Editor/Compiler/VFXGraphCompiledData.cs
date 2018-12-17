@@ -429,7 +429,7 @@ namespace UnityEditor.VFX
         {
 
 
-
+            /*
             var allPlayNotLinked = contextSpawnToSpawnInfo.Where(o => !o.Key.inputFlowSlot[0].link.Any()).Select(o => (uint)o.Value.systemIndex).ToList();
             var allStopNotLinked = contextSpawnToSpawnInfo.Where(o => !o.Key.inputFlowSlot[1].link.Any()).Select(o => (uint)o.Value.systemIndex).ToList();
 
@@ -437,9 +437,9 @@ namespace UnityEditor.VFX
             {
                 new EventLinks{ eventName = "OnPlay", playSystems = allPlayNotLinked, stopSystems = new List<uint>() },
                 new EventLinks{ eventName = "OnStop", playSystems = new List<uint>(), stopSystems = allStopNotLinked },
-            }.ToList();
+            }.ToList();*/
 
-            /*
+            
             var eventDescTemp = new EventLinks[]
             {
                 new EventLinks{ eventName = "OnPlay", playSystems = new List<uint>(), stopSystems = new List<uint>() },
@@ -475,41 +475,7 @@ namespace UnityEditor.VFX
 
             SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, subGraphParents, contextSubGraphs, 0);
             SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, subGraphParents, contextSubGraphs, 1);
-            */
-            
-            var events = contexts.Where(o => o.contextType == VFXContextType.kEvent);
-            foreach (var evt in events)
-            {
-                var eventName = (evt as VFXBasicEvent).eventName;
-                foreach (var link in evt.outputFlowSlot[0].link)
-                {
-                    if (contextSpawnToSpawnInfo.ContainsKey(link.context))
-                    {
-                        var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                        if (eventIndex == -1)
-                        {
-                            eventIndex = eventDescTemp.Count;
-                            eventDescTemp.Add(new EventLinks
-                            {
-                                eventName = eventName,
-                                playSystems = new List<uint>(),
-                                stopSystems = new List<uint>(),
-                            });
-                        }
 
-                        var startSystem = link.slotIndex == 0;
-                        var spawnerIndex = (uint)contextSpawnToSpawnInfo[link.context].systemIndex;
-                        if (startSystem)
-                        {
-                            eventDescTemp[eventIndex].playSystems.Add(spawnerIndex);
-                        }
-                        else
-                        {
-                            eventDescTemp[eventIndex].stopSystems.Add(spawnerIndex);
-                        }
-                    }
-                }
-            }
             outEventDesc.Clear();
             outEventDesc.AddRange(eventDescTemp.Select(o => new VFXEventDesc() { name = o.eventName, startSystems = o.playSystems.ToArray(), stopSystems = o.stopSystems.ToArray() }));
         }
@@ -520,7 +486,7 @@ namespace UnityEditor.VFX
             return !slot.link.Any() || slot.link.Any(t => (t.context is VFXBasicEvent) && (t.context as VFXBasicEvent).eventName == "OnPlay");
         }
 
-        private static void SearchEvent(Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo, List<EventLinks> eventDescTemp, Dictionary<VFXSubgraphContext, VFXSubgraphContext> subGraphParents, Dictionary<VFXContext, VFXSubgraphContext> contextSubGraphs, uint flowSlotIndex)
+        private static void SearchEvent(Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo, List<EventLinks> eventDescTemp, Dictionary<VFXSubgraphContext, VFXSubgraphContext> subGraphParents, Dictionary<VFXContext, VFXSubgraphContext> contextSubGraphs, int flowSlotIndex)
         {
             foreach (var spawner in contextSpawnToSpawnInfo)
             {
@@ -538,55 +504,33 @@ namespace UnityEditor.VFX
                     }
                 }
 
-                List<List<uint>> defaultEventPaths = new List<List<uint>>();
+                List<List<int>> defaultEventPaths = new List<List<int>>();
 
-                defaultEventPaths.Add(new List<uint>(new uint[]{flowSlotIndex}));
+                defaultEventPaths.Add(new List<int>(new int[]{flowSlotIndex}));
 
-                List<List<uint>> newEventPaths = new List<List<uint>>();
+                List<List<int>> newEventPaths = new List<List<int>>();
 
                 foreach (var sg in subGraphAncestors)
                 {
                     foreach (var path in defaultEventPaths)
                     {
-                        uint currentFlowIndex = path.Last();
-                        var eventSlot = sg.inputFlowSlot[currentFlowIndex];
-                        var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
-
-                        if (eventSlotEvents.Any())
+                        int currentFlowIndex = path.Last();
+                        if (currentFlowIndex > 2)
                         {
-                            if (eventSlotEvents.Any(t => (t.context as VFXBasicEvent).eventName == "OnPlay"))
-                                newEventPaths.Add(path.Concat(new uint[] { 0 }).ToList());
-                            else if (eventSlotEvents.Any(t => (t.context as VFXBasicEvent).eventName == "OnStop"))
-                                newEventPaths.Add(path.Concat(new uint[] { 1 }).ToList());
-
-                            else if (eventSlotEvents.Any(t => (t.context as VFXBasicEvent).eventName == "Trigger"))
-                                newEventPaths.Add(path.Concat(new uint[] { 2 }).ToList());
+                            newEventPaths.Add(path);
                         }
-                    }
-                    defaultEventPaths = newEventPaths;
-                }
-
-                var spawnerIndex = (uint)spawner.Value.systemIndex;
-
-                List<List<uint>> browsedPath = new List<List<uint>>();
-                List<uint> currentPath = new List<uint>();
-                foreach ( var path in defaultEventPaths)
-                {
-                    currentPath.Clear();
-                    for (int i = 0; i < path.Count; ++i)
-                    {
-                        currentPath.Add(path[i]);
-
-                        if( !browsedPath.Contains(currentPath) )
+                        else
                         {
-                            foreach( var link in spawner.Key.inputFlowSlot[flowSlotIndex].link.Where(t=>t.context is VFXBasicEvent) )
-                            {
-                                var eventName = (link.context as VFXBasicEvent).eventName;
+                            var eventSlot = sg.inputFlowSlot[currentFlowIndex];
+                            var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
 
-                                if( 0 == path.Count -1 || (eventName != "OnStart" && eventName != "OnEnd" && eventName != "Trigger"))
+                            if (eventSlotEvents.Any())
+                            {
+                                foreach (var evt in eventSlotEvents)
                                 {
+                                    var eventName = (evt.context as VFXBasicEvent).eventName;
                                     var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                                    if (eventIndex == -1)
+                                    if (eventIndex == -1 && eventName != "Trigger")
                                     {
                                         eventIndex = eventDescTemp.Count;
                                         eventDescTemp.Add(new EventLinks
@@ -596,76 +540,30 @@ namespace UnityEditor.VFX
                                             stopSystems = new List<uint>(),
                                         });
                                     }
-
-                                    var startSystem = flowSlotIndex == 0;
-                                    if (startSystem)
-                                    {
-                                        eventDescTemp[eventIndex].playSystems.Add(spawnerIndex);
-                                    }
-                                    else
-                                    {
-                                        eventDescTemp[eventIndex].stopSystems.Add(spawnerIndex);
-                                    }
+                                    newEventPaths.Add(path.Concat(new int[] { (int)eventIndex }).ToList());
                                 }
                             }
-                            if( !spawner.Key.inputFlowSlot[flowSlotIndex].link.Any() && 0 == path.Count - 1)
+                            else if (!eventSlot.link.Any())
                             {
-                                var startSystem = flowSlotIndex == 0;
-                                if (startSystem)
-                                {
-                                    eventDescTemp[0].playSystems.Add(spawnerIndex);
-                                }
-                                else
-                                {
-                                    eventDescTemp[1].stopSystems.Add(spawnerIndex);
-                                }
-                            }
-
-                            for (int j = 1; j < i; ++j)
-                            {
-                                foreach (var link in subGraphAncestors[j - 1].inputFlowSlot[path[j]].link.Where(t => t.context is VFXBasicEvent))
-                                {
-                                    var eventName = (link.context as VFXBasicEvent).eventName;
-
-                                    if (j == path.Count - 1 || (eventName != "OnStart" && eventName != "OnEnd" && eventName != "Trigger"))
-                                    {
-                                        var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                                        if (eventIndex == -1)
-                                        {
-                                            eventIndex = eventDescTemp.Count;
-                                            eventDescTemp.Add(new EventLinks
-                                            {
-                                                eventName = eventName,
-                                                playSystems = new List<uint>(),
-                                                stopSystems = new List<uint>(),
-                                            });
-                                        }
-
-                                        var startSystem = flowSlotIndex == 0;
-                                        if (startSystem)
-                                        {
-                                            eventDescTemp[eventIndex].playSystems.Add(spawnerIndex);
-                                        }
-                                        else
-                                        {
-                                            eventDescTemp[eventIndex].stopSystems.Add(spawnerIndex);
-                                        }
-                                    }
-                                    if (!subGraphAncestors[j - 1].inputFlowSlot[path[j]].link.Any() && j == path.Count - 1)
-                                    {
-                                        var startSystem = flowSlotIndex == 0;
-                                        if (startSystem)
-                                        {
-                                            eventDescTemp[0].playSystems.Add(spawnerIndex);
-                                        }
-                                        else
-                                        {
-                                            eventDescTemp[1].stopSystems.Add(spawnerIndex);
-                                        }
-                                    }
-                                }
+                                newEventPaths.Add(path);
                             }
                         }
+                    }
+                    defaultEventPaths = newEventPaths;
+                }
+
+                var spawnerIndex = (uint)spawner.Value.systemIndex;
+
+                List<List<uint>> browsedPath = new List<List<uint>>();
+                List<uint> currentPath = new List<uint>();
+                foreach (var path in defaultEventPaths)
+                {
+                    if (path[path.Count - 1] != -1)
+                    {
+                        if (flowSlotIndex == 0)
+                            eventDescTemp[path[path.Count - 1]].playSystems.Add(spawnerIndex);
+                        else
+                            eventDescTemp[path[path.Count - 1]].stopSystems.Add(spawnerIndex);
                     }
                 }
             }
