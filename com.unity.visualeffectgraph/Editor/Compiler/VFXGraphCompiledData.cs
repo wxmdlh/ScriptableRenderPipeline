@@ -311,7 +311,7 @@ namespace UnityEditor.VFX
             }
         }
 
-        private void FillSpawner(Dictionary<VFXContext, SpawnInfo> outContextSpawnToSpawnInfo, List<VFXCPUBufferDesc> outCpuBufferDescs, List<VFXEditorSystemDesc> outSystemDescs, IEnumerable<VFXContext> contexts, List<VFXSubgraphContext> subGraphs, VFXExpressionGraph graph, List<VFXLayoutElementDesc> globalEventAttributeDescs, Dictionary<VFXContext, VFXContextCompiledData> contextToCompiledData)
+        private static void FillSpawner(Dictionary<VFXContext, SpawnInfo> outContextSpawnToSpawnInfo, List<VFXCPUBufferDesc> outCpuBufferDescs, List<VFXEditorSystemDesc> outSystemDescs, IEnumerable<VFXContext> contexts, VFXExpressionGraph graph, List<VFXLayoutElementDesc> globalEventAttributeDescs, Dictionary<VFXContext, VFXContextCompiledData> contextToCompiledData)
         {
             var spawners = CollectSpawnersHierarchy(contexts);
             foreach (var it in spawners.Select((spawner, index) => new { spawner, index }))
@@ -337,8 +337,6 @@ namespace UnityEditor.VFX
 
                 for (int indexSlot = 0; indexSlot < 2; ++indexSlot)
                 {
-                    //var additionnal = additionalLinksFromSubgraphs.Where(t=>t.Key == spawnContext).SelectMany(t => t.Value.Where(u => u.Key == indexSlot).SelectMany(u=>u.Value) );
-                    
                     foreach (var input in spawnContext.inputFlowSlot[indexSlot].link)
                     {
                         var inputContext = input.context as VFXContext;
@@ -425,53 +423,17 @@ namespace UnityEditor.VFX
             public List<uint> stopSystems;
         }
 
-        private void FillEvent(List<VFXEventDesc> outEventDesc, Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo, IEnumerable<VFXContext> contexts)
+        private static void FillEvent(List<VFXEventDesc> outEventDesc,
+            Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo,
+            List<VFXSubgraphContext> subGraphs,
+            Dictionary<VFXSubgraphContext, VFXSubgraphContext> subGraphParents,
+            Dictionary<VFXContext, VFXSubgraphContext> contextSubGraphs)
         {
-
-
-            /*
-            var allPlayNotLinked = contextSpawnToSpawnInfo.Where(o => !o.Key.inputFlowSlot[0].link.Any()).Select(o => (uint)o.Value.systemIndex).ToList();
-            var allStopNotLinked = contextSpawnToSpawnInfo.Where(o => !o.Key.inputFlowSlot[1].link.Any()).Select(o => (uint)o.Value.systemIndex).ToList();
-
-            var eventDescTemp = new EventLinks[]
-            {
-                new EventLinks{ eventName = "OnPlay", playSystems = allPlayNotLinked, stopSystems = new List<uint>() },
-                new EventLinks{ eventName = "OnStop", playSystems = new List<uint>(), stopSystems = allStopNotLinked },
-            }.ToList();*/
-
-            
             var eventDescTemp = new EventLinks[]
             {
                 new EventLinks{ eventName = "OnPlay", playSystems = new List<uint>(), stopSystems = new List<uint>() },
                 new EventLinks{ eventName = "OnStop", playSystems = new List<uint>(), stopSystems = new List<uint>() },
             }.ToList();
-
-            Dictionary<VFXSubgraphContext, VFXSubgraphContext> subGraphParents = new Dictionary<VFXSubgraphContext, VFXSubgraphContext>();
-
-            List<VFXSubgraphContext> subGraphs = new List<VFXSubgraphContext>();
-
-            foreach (var subGraph in m_Graph.children.OfType<VFXSubgraphContext>())
-            {
-                subGraphs.Add(subGraph);
-                RecursePutSubgraphParent(subGraphParents, subGraphs, subGraph);
-            }
-
-            Dictionary<VFXContext, VFXSubgraphContext> contextSubGraphs = new Dictionary<VFXContext, VFXSubgraphContext>();
-
-            foreach (var subGraph in subGraphs)
-            {
-                var subSpawners = CollectSpawnersHierarchy(subGraph.subChildren.OfType<VFXContext>());
-                foreach (var spawner in subSpawners)
-                {
-                    contextSubGraphs.Add(spawner, subGraph);
-                    Debug.Log("spawner " + spawner.name + "is in subGraph " + subGraph.name);
-                    VFXSubgraphContext parent = subGraph;
-                    while (subGraphParents.TryGetValue(parent, out parent))
-                    {
-                        Debug.Log("--- in subGraph" + parent.name);
-                    }
-                }
-            }
 
             SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, subGraphParents, contextSubGraphs, 0);
             SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, subGraphParents, contextSubGraphs, 1);
@@ -764,7 +726,6 @@ namespace UnityEditor.VFX
                     c.MarkAsCompiled(false);
 
                 var compilableContexts = models.OfType<VFXContext>().Where(c => c.CanBeCompiled()).ToArray();
-                var subgraphContexts = models.OfType<VFXSubgraphContext>().ToList();
 
                 var compilableData = models.OfType<VFXData>().Where(d => d.CanBeCompiled());
 
@@ -840,11 +801,31 @@ namespace UnityEditor.VFX
                     stride = globalEventAttributeDescs.First().offset.structure,
                     initialData = ComputeArrayOfStructureInitialData(globalEventAttributeDescs)
                 });
+
+                Dictionary<VFXSubgraphContext, VFXSubgraphContext> subGraphParents = new Dictionary<VFXSubgraphContext, VFXSubgraphContext>();
+
+                List<VFXSubgraphContext> subGraphs = new List<VFXSubgraphContext>();
+
+                foreach (var subGraph in m_Graph.children.OfType<VFXSubgraphContext>())
+                {
+                    subGraphs.Add(subGraph);
+                    RecursePutSubgraphParent(subGraphParents, subGraphs, subGraph);
+                }
+
+                Dictionary<VFXContext, VFXSubgraphContext> spawnerSubGraph = new Dictionary<VFXContext, VFXSubgraphContext>();
+
+                foreach (var subGraph in subGraphs)
+                {
+                    var subSpawners = CollectSpawnersHierarchy(subGraph.subChildren.OfType<VFXContext>());
+                    foreach (var spawner in subSpawners)
+                        spawnerSubGraph.Add(spawner, subGraph);
+                }
+
                 var contextSpawnToSpawnInfo = new Dictionary<VFXContext, SpawnInfo>();
-                FillSpawner(contextSpawnToSpawnInfo, cpuBufferDescs, systemDescs, compilableContexts, subgraphContexts, m_ExpressionGraph, globalEventAttributeDescs, contextToCompiledData);
+                FillSpawner(contextSpawnToSpawnInfo, cpuBufferDescs, systemDescs, compilableContexts, m_ExpressionGraph, globalEventAttributeDescs, contextToCompiledData);
 
                 var eventDescs = new List<VFXEventDesc>();
-                FillEvent(eventDescs, contextSpawnToSpawnInfo, compilableContexts);
+                FillEvent(eventDescs, contextSpawnToSpawnInfo,subGraphs,subGraphParents,spawnerSubGraph);
 
                 var attributeBufferDictionnary = new Dictionary<VFXData, int>();
                 var eventGpuBufferDictionnary = new Dictionary<VFXData, int>();
