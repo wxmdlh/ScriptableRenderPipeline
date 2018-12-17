@@ -84,6 +84,11 @@ namespace UnityEditor.VFX
             return null;
         }
 
+        public override bool CanBeCompiled()
+        {
+            return subAsset != null;
+        }
+
         static bool InputPredicate(VFXParameter param)
         {
             return param.exposed && !param.isOutput;
