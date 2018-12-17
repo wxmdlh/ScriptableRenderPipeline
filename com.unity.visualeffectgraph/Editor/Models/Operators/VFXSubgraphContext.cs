@@ -43,6 +43,8 @@ namespace UnityEditor.VFX
     
     class VFXSubgraphContext : VFXContext
     {
+        public const string triggerEventName = "Trigger";
+
         [VFXSetting,SerializeField]
         protected VisualEffectAsset m_SubAsset;
         

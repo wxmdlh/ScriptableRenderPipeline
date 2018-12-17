@@ -285,20 +285,6 @@ namespace UnityEditor.VFX
             }
             return data;
         }
-
-        static string GetEventName(int i)
-        {
-            switch (i)
-            {
-                case 1:
-                    return "Stop";
-                case 2:
-                    return "Trigger";
-                default:
-                    return "Play";
-            }
-        }
-
         
         void RecursePutSubgraphParent(Dictionary<VFXSubgraphContext, VFXSubgraphContext> parents, List<VFXSubgraphContext> subGraphs,VFXSubgraphContext subGraph)
         {
@@ -373,13 +359,13 @@ namespace UnityEditor.VFX
                             string eventName = (evt.context as VFXBasicEvent).eventName;
                             switch(eventName)
                             {
-                                case "OnStart":
+                                case VFXBasicEvent.playEventName:
                                     newEventPaths.Add(path.Concat(new int[] { 0 }).ToList());
                                     break;
-                                case "OnStop":
+                                case VFXBasicEvent.stopEventName:
                                     newEventPaths.Add(path.Concat(new int[] { 1 }).ToList());
                                     break;
-                                case "Trigger":
+                                case VFXSubgraphContext.triggerEventName:
                                     newEventPaths.Add(path.Concat(new int[] { 2 }).ToList());
                                     break;
                             }
@@ -529,8 +515,8 @@ namespace UnityEditor.VFX
         {
             var eventDescTemp = new EventLinks[]
             {
-                new EventLinks{ eventName = "OnPlay", playSystems = new List<uint>(), stopSystems = new List<uint>() },
-                new EventLinks{ eventName = "OnStop", playSystems = new List<uint>(), stopSystems = new List<uint>() },
+                new EventLinks{ eventName = VFXBasicEvent.playEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
+                new EventLinks{ eventName = VFXBasicEvent.stopEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
             }.ToList();
 
             SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, ref subGraphInfos, 0);
@@ -538,12 +524,6 @@ namespace UnityEditor.VFX
 
             outEventDesc.Clear();
             outEventDesc.AddRange(eventDescTemp.Select(o => new VFXEventDesc() { name = o.eventName, startSystems = o.playSystems.ToArray(), stopSystems = o.stopSystems.ToArray() }));
-        }
-
-
-        static bool IsLinkedToStart(VFXContextSlot slot)
-        {
-            return !slot.link.Any() || slot.link.Any(t => (t.context is VFXBasicEvent) && (t.context as VFXBasicEvent).eventName == "OnPlay");
         }
 
         private static void SearchEvent(Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo, List<EventLinks> eventDescTemp, ref SubGraphInfos subGraphInfos, int flowSlotIndex)
@@ -584,7 +564,7 @@ namespace UnityEditor.VFX
                             {
                                 var eventName = (evt.context as VFXBasicEvent).eventName;
                                 var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                                if (eventIndex == -1 && eventName != "Trigger")
+                                if (eventIndex == -1 && eventName != VFXSubgraphContext.triggerEventName)
                                 {
                                     eventIndex = eventDescTemp.Count;
                                     eventDescTemp.Add(new EventLinks

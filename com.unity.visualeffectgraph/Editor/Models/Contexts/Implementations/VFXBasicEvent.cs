@@ -20,8 +20,12 @@ namespace UnityEditor.VFX
     [VFXInfo]
     class VFXBasicEvent : VFXContext
     {
+        public const string playEventName = "OnPlay";
+        public const string stopEventName = "OnStop";
+
+
         [VFXSetting, PushButton(typeof(LaunchEventBehavior), "Send"), Delayed]
-        public string eventName = "OnPlay";
+        public string eventName = playEventName;
 
         public VFXBasicEvent() : base(VFXContextType.kEvent, VFXDataType.kNone, VFXDataType.kSpawnEvent) {}
         public override string name { get { return "Event"; } }
