@@ -6,41 +6,7 @@ using UnityEngine.Experimental.VFX;
 using UnityEditor.Experimental.VFX;
 
 namespace UnityEditor.VFX
-{
-    /*
-    class VFXShadowContext : VFXContext
-    {
-        VFXSubgraphContext m_SubGraph;
-        VFXContext m_Context;
-
-        VFXExpressionMapper m_CPUExpressionMapper;
-        VFXExpressionMapper m_GPUExpressionMapper;
-
-        public VFXShadowContext():base(VFXContextType.kNone,VFXDataType.kNone, VFXDataType.kNone)
-        { }
-
-        public void Create(VFXSubgraphContext subGraph,VFXContext context)
-        {
-            m_SubGraph = subGraph;
-            m_Context = context;
-
-            m_CPUExpressionMapper = m_Context.GetExpressionMapper(VFXDeviceTarget.CPU);
-            m_GPUExpressionMapper = m_Context.GetExpressionMapper(VFXDeviceTarget.GPU);
-        }
-        public override bool CanBeCompiled()
-        {
-            return true;
-        }
-
-        public override VFXExpressionMapper GetExpressionMapper(VFXDeviceTarget target)
-        {
-            if (target == VFXDeviceTarget.GPU)
-                return m_GPUExpressionMapper;
-
-            return m_CPUExpressionMapper;
-        }
-    }*/
-    
+{   
     class VFXSubgraphContext : VFXContext
     {
         public const string triggerEventName = "Trigger";
