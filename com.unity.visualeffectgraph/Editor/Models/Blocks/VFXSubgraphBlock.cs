@@ -215,6 +215,10 @@ namespace UnityEditor.VFX
         {
             get { return m_SubChildren; }
         }
+        public VFXBlock[] subBlocks
+        {
+            get { return m_SubBlocks; }
+        }
         public override VFXContextType compatibleContexts { get { return VFXContextType.kInitAndUpdateAndOutput; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
 

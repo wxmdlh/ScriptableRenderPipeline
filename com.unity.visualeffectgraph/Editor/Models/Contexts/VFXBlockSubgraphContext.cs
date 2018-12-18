@@ -28,6 +28,15 @@ namespace UnityEditor.VFX
         VFXContextType m_CompatibleContextType = VFXContextType.kInitAndUpdateAndOutput;
 
 
+        public VFXContextType compatibleContextType
+        {
+            get
+            {
+                return m_CompatibleContextType;
+            }
+        }
+
+
         protected override void OnInvalidate(VFXModel model, InvalidationCause cause)
         {
             base.OnInvalidate(model, cause);
