@@ -32,9 +32,15 @@ namespace UnityEditor.VFX
         {
             base.OnInvalidate(model, cause);
 
-            if( cause == InvalidationCause.kSettingChanged)
+            if (cause == InvalidationCause.kSettingChanged)
             {
                 //Delete incompatible blocks
+
+                foreach (var block in children.ToList())
+                {
+                    if (!Accept(block))
+                        RemoveChild(block);
+                }
             }
         }
         public override bool Accept(VFXBlock block, int index = -1)
