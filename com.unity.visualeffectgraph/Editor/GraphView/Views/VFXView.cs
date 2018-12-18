@@ -16,7 +16,7 @@ using PositionType = UnityEngine.UIElements.Position;
 
 namespace UnityEditor.VFX.UI
 {
-    class VFXView : GraphView, IDropTarget, IControlledElement<VFXViewController>, IControllerListener
+    class VFXView : GraphView, IControlledElement<VFXViewController>, IControllerListener
     {
         public HashSet<VFXEditableDataAnchor> allDataAnchors = new HashSet<VFXEditableDataAnchor>();
 
@@ -1590,53 +1590,10 @@ namespace UnityEditor.VFX.UI
                 border.controller = controller.systems[m_Systems.Count() - 1];
             }
         }
-        
-
-        bool IDropTarget.CanAcceptDrop(List<ISelectable> selection)
-        {
-            return selection.Any(t => t is BlackboardField && (t as BlackboardField).GetFirstAncestorOfType<VFXBlackboardRow>() != null);
-        }
-
-        bool IDropTarget.DragExited()
-        {
-            return true;
-        }
-
-        bool IDropTarget.DragEnter(DragEnterEvent evt, IEnumerable<ISelectable> selection, IDropTarget enteredTarget, ISelection dragSource)
-        {
-            return true;
-        }
-
-        bool IDropTarget.DragLeave(DragLeaveEvent evt, IEnumerable<ISelectable> selection, IDropTarget leftTarget, ISelection dragSource)
-        {
-            return true;
-        }
-
-        bool IDropTarget.DragPerform(DragPerformEvent evt, IEnumerable<ISelectable> selection, IDropTarget dropTarget, ISelection dragSource)
-        {
-            var rows = selection.OfType<BlackboardField>().Select(t => t.GetFirstAncestorOfType<VFXBlackboardRow>()).Where(t => t != null).ToArray();
-
-            Vector2 mousePosition = contentViewContainer.WorldToLocal(evt.mousePosition);
-
-
-            foreach (var row in rows)
-            {
-                AddVFXParameter(mousePosition - new Vector2(100, 75), row.controller, null);
-            }
-
-            return true;
-        }
-
-        bool IDropTarget.DragUpdated(DragUpdatedEvent evt, IEnumerable<ISelectable> selection, IDropTarget dropTarget, ISelection dragSource)
-        {
-            DragAndDrop.visualMode = DragAndDropVisualMode.Link;
-
-            return true;
-        }
 
         void OnDragUpdated(DragUpdatedEvent e)
         {
-            if (selection.Any(t => t is BlackboardField && (t as BlackboardField).GetFirstAncestorOfType<VFXBlackboardRow>() != null))
+            if (DragAndDrop.GetGenericData("DragSelection") != null && selection.Any(t => t is BlackboardField && (t as BlackboardField).GetFirstAncestorOfType<VFXBlackboardRow>() != null))
             {
                 DragAndDrop.visualMode = DragAndDropVisualMode.Link;
                 e.StopPropagation();
@@ -1657,16 +1614,19 @@ namespace UnityEditor.VFX.UI
         {
             var groupNode = GetPickedGroupNode(e.mousePosition);
 
-            var rows = selection.OfType<BlackboardField>().Select(t => t.GetFirstAncestorOfType<VFXBlackboardRow>()).Where(t => t != null).ToArray();
-            if (rows.Length > 0)
+            if (DragAndDrop.GetGenericData("DragSelection") != null && selection.Any(t => t is BlackboardField && (t as BlackboardField).GetFirstAncestorOfType<VFXBlackboardRow>() != null))
             {
-                DragAndDrop.AcceptDrag();
-                Vector2 mousePosition = contentViewContainer.WorldToLocal(e.mousePosition);
-                foreach (var row in rows)
+                var rows = selection.OfType<BlackboardField>().Select(t => t.GetFirstAncestorOfType<VFXBlackboardRow>()).Where(t => t != null).ToArray();
+                if (rows.Length > 0)
                 {
-                    AddVFXParameter(mousePosition - new Vector2(50, 20), row.controller, groupNode);
+                    DragAndDrop.AcceptDrag();
+                    Vector2 mousePosition = contentViewContainer.WorldToLocal(e.mousePosition);
+                    foreach (var row in rows)
+                    {
+                        AddVFXParameter(mousePosition - new Vector2(50, 20), row.controller, groupNode);
+                    }
+                    e.StopPropagation();
                 }
-                e.StopPropagation();
             }
             else
             {
@@ -1677,11 +1637,11 @@ namespace UnityEditor.VFX.UI
                 {
 
                     Vector2 mPos = this.ChangeCoordinatesTo(contentViewContainer, e.mousePosition);
-                    VFXModel newModel = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXContext>().Count() > 0 ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel: VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
+                    VFXModel newModel = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXContext>().Count() > 0 ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel : VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
 
                     controller.AddVFXModel(e.mousePosition, newModel);
 
-                    newModel.SetSettingValue("m_SubAsset",references.First());
+                    newModel.SetSettingValue("m_SubAsset", references.First());
 
                     //TODO add to picked groupnode
                     e.StopPropagation();

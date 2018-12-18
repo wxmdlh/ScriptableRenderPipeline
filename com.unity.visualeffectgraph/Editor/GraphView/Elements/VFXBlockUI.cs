@@ -48,9 +48,8 @@ namespace UnityEditor.VFX.UI
             titleContainer.Insert(1, m_EnableToggle);
 
             capabilities &= ~Capabilities.Ascendable;
-            capabilities |= Capabilities.Selectable;
-
-            //this.AddManipulator(new TrickleClickSelector());
+            capabilities |= Capabilities.Selectable | Capabilities.Droppable;
+            this.AddManipulator(new SelectionDropper());
 
             Profiler.EndSample();
             style.position = PositionType.Relative;

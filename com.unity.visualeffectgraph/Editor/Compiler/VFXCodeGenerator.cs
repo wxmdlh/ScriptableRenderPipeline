@@ -368,88 +368,10 @@ namespace UnityEditor.VFX
             var expressionToName = context.GetData().GetAttributes().ToDictionary(o => new VFXAttributeExpression(o.attrib) as VFXExpression, o => (new VFXAttributeExpression(o.attrib)).GetCodeString(null));
             expressionToName = expressionToName.Union(contextData.uniformMapper.expressionToCode).ToDictionary(s => s.Key, s => s.Value);
 
-            foreach (var current in context.activeChildrenWithImplicit.Select((v, i) => new { block = v, blockIndex = i }))
+            int cpt = 0;
+            foreach (var current in context.activeChildrenWithImplicit)
             {
-                var block = current.block;
-                var blockIndex = current.blockIndex;
-
-                var parameters = block.mergedAttributes.Select(o =>
-                {
-                    return new VFXShaderWriter.FunctionParameter
-                    {
-                        name = o.attrib.name,
-                        expression = new VFXAttributeExpression(o.attrib) as VFXExpression,
-                        mode = o.mode
-                    };
-                }).ToList();
-
-                foreach (var parameter in block.parameters)
-                {
-                    var expReduced = contextData.gpuMapper.FromNameAndId(parameter.name, blockIndex);
-                    if (VFXExpression.IsTypeValidOnGPU(expReduced.valueType))
-                    {
-                        parameters.Add(new VFXShaderWriter.FunctionParameter
-                        {
-                            name = parameter.name,
-                            expression = expReduced,
-                            mode = VFXAttributeMode.None
-                        });
-                    }
-                }
-
-                string methodName, commentMethod;
-                GetFunctionName(block, out methodName, out commentMethod);
-                if (!blockDeclared.Contains(methodName))
-                {
-                    blockDeclared.Add(methodName);
-                    blockFunction.WriteBlockFunction(contextData.gpuMapper,
-                        methodName,
-                        block.source,
-                        parameters,
-                        commentMethod);
-                }
-
-                //< Parameters (computed and/or extracted from uniform)
-                var expressionToNameLocal = expressionToName;
-                bool needScope = parameters.Any(o => !expressionToNameLocal.ContainsKey(o.expression));
-                if (needScope)
-                {
-                    expressionToNameLocal = new Dictionary<VFXExpression, string>(expressionToNameLocal);
-                    blockCallFunction.EnterScope();
-                    foreach (var exp in parameters.Select(o => o.expression))
-                    {
-                        if (expressionToNameLocal.ContainsKey(exp))
-                        {
-                            continue;
-                        }
-                        blockCallFunction.WriteVariable(exp, expressionToNameLocal);
-                    }
-                }
-
-                var indexEventCount = parameters.FindIndex(o => o.name == VFXAttribute.EventCount.name);
-                if (indexEventCount != -1)
-                {
-                    if ((parameters[indexEventCount].mode & VFXAttributeMode.Read) != 0)
-                        throw new InvalidOperationException(string.Format("{0} isn't expected as read (special case)", VFXAttribute.EventCount.name));
-                    blockCallFunction.WriteLine(string.Format("{0} = 0u;", VFXAttribute.EventCount.name));
-                }
-
-                blockCallFunction.WriteCallFunction(methodName,
-                    parameters,
-                    contextData.gpuMapper,
-                    expressionToNameLocal);
-
-                if (indexEventCount != -1)
-                {
-                    foreach (var outputSlot in block.outputSlots.SelectMany(o => o.LinkedSlots))
-                    {
-                        var eventIndex = linkedEventOut.IndexOf(outputSlot);
-                        if (eventIndex != -1)
-                            blockCallFunction.WriteLineFormat("{0}_{1} += {0};", VFXAttribute.EventCount.name, VFXCodeGeneratorHelper.GeneratePrefix((uint)eventIndex));
-                    }
-                }
-                if (needScope)
-                    blockCallFunction.ExitScope();
+                BuildBlock(contextData, linkedEventOut, blockFunction, blockCallFunction, blockDeclared, expressionToName, current, ref cpt);
             }
 
             //< Final composition
@@ -559,6 +481,99 @@ namespace UnityEditor.VFX
                 Debug.LogFormat("GENERATED_OUTPUT_FILE_FOR : {0}\n{1}", context.ToString(), stringBuilder.ToString());
 
             return stringBuilder;
+        }
+
+        private static void BuildBlock(VFXContextCompiledData contextData, List<VFXSlot> linkedEventOut, VFXShaderWriter blockFunction, VFXShaderWriter blockCallFunction, HashSet<string> blockDeclared, Dictionary<VFXExpression, string> expressionToName, VFXBlock block, ref int blockIndex)
+        {
+            if (block is VFXSubgraphBlock)
+            {
+                foreach(var subBlock in (block as VFXSubgraphBlock).subBlocks)
+                {
+                    BuildBlock(contextData, linkedEventOut, blockFunction, blockCallFunction, blockDeclared, expressionToName, subBlock, ref blockIndex);
+                }
+            }
+            else
+            {
+                var parameters = block.mergedAttributes.Select(o =>
+                {
+                    return new VFXShaderWriter.FunctionParameter
+                    {
+                        name = o.attrib.name,
+                        expression = new VFXAttributeExpression(o.attrib) as VFXExpression,
+                        mode = o.mode
+                    };
+                }).ToList();
+
+                foreach (var parameter in block.parameters)
+                {
+                    var expReduced = contextData.gpuMapper.FromNameAndId(parameter.name, blockIndex);
+                    if (VFXExpression.IsTypeValidOnGPU(expReduced.valueType))
+                    {
+                        parameters.Add(new VFXShaderWriter.FunctionParameter
+                        {
+                            name = parameter.name,
+                            expression = expReduced,
+                            mode = VFXAttributeMode.None
+                        });
+                    }
+                }
+
+                string methodName, commentMethod;
+                GetFunctionName(block, out methodName, out commentMethod);
+                if (!blockDeclared.Contains(methodName))
+                {
+                    blockDeclared.Add(methodName);
+                    blockFunction.WriteBlockFunction(contextData.gpuMapper,
+                        methodName,
+                        block.source,
+                        parameters,
+                        commentMethod);
+                }
+
+                //< Parameters (computed and/or extracted from uniform)
+                var expressionToNameLocal = expressionToName;
+                bool needScope = parameters.Any(o => !expressionToNameLocal.ContainsKey(o.expression));
+                if (needScope)
+                {
+                    expressionToNameLocal = new Dictionary<VFXExpression, string>(expressionToNameLocal);
+                    blockCallFunction.EnterScope();
+                    foreach (var exp in parameters.Select(o => o.expression))
+                    {
+                        if (expressionToNameLocal.ContainsKey(exp))
+                        {
+                            continue;
+                        }
+                        blockCallFunction.WriteVariable(exp, expressionToNameLocal);
+                    }
+                }
+
+                var indexEventCount = parameters.FindIndex(o => o.name == VFXAttribute.EventCount.name);
+                if (indexEventCount != -1)
+                {
+                    if ((parameters[indexEventCount].mode & VFXAttributeMode.Read) != 0)
+                        throw new InvalidOperationException(string.Format("{0} isn't expected as read (special case)", VFXAttribute.EventCount.name));
+                    blockCallFunction.WriteLine(string.Format("{0} = 0u;", VFXAttribute.EventCount.name));
+                }
+
+                blockCallFunction.WriteCallFunction(methodName,
+                    parameters,
+                    contextData.gpuMapper,
+                    expressionToNameLocal);
+
+                if (indexEventCount != -1)
+                {
+                    foreach (var outputSlot in block.outputSlots.SelectMany(o => o.LinkedSlots))
+                    {
+                        var eventIndex = linkedEventOut.IndexOf(outputSlot);
+                        if (eventIndex != -1)
+                            blockCallFunction.WriteLineFormat("{0}_{1} += {0};", VFXAttribute.EventCount.name, VFXCodeGeneratorHelper.GeneratePrefix((uint)eventIndex));
+                    }
+                }
+                if (needScope)
+                    blockCallFunction.ExitScope();
+
+                blockIndex++;
+            }
         }
     }
 }
