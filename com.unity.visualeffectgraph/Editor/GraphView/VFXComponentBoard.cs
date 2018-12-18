@@ -519,6 +519,11 @@ namespace UnityEditor.VFX.UI
         static readonly string[] staticEventNames = new string[] {VFXBasicEvent.playEventName, VFXBasicEvent.stopEventName };
 
 
+        static bool IsDefaultEvent(string evt)
+        {
+            return evt == VFXBasicEvent.playEventName || evt == VFXBasicEvent.stopEventName || evt == VFXSubgraphContext.triggerEventName;
+        }
+
         IEnumerable<String> GetEventNames()
         {
             foreach(var context in controller.contexts.Select(t => t.model).OfType<VFXContext>())
@@ -531,7 +536,8 @@ namespace UnityEditor.VFX.UI
         {
             if (context is VFXBasicEvent)
             {
-                yield return (context as VFXBasicEvent).eventName;
+                if (!IsDefaultEvent(name))
+                    yield return (context as VFXBasicEvent).eventName;
             }
             else if( context is VFXSubgraphContext)
             {
