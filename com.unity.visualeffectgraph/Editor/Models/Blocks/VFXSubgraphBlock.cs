@@ -130,7 +130,7 @@ namespace UnityEditor.VFX
             var graph = m_SubAsset.GetResource().GetOrCreateGraph();
             HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
 
-            VFXContext context = graph.children.OfType<VFXContext>().FirstOrDefault();
+            var context = graph.children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
 
             if( context == null)
             {
