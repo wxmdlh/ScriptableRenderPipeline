@@ -1,3 +1,4 @@
+
 using System;
 using UnityEditor.UIElements;
 using UnityEditor.Experimental.GraphView;
@@ -517,6 +518,31 @@ namespace UnityEditor.VFX.UI
 
         static readonly string[] staticEventNames = new string[] {VFXBasicEvent.playEventName, VFXBasicEvent.stopEventName };
 
+
+        IEnumerable<String> GetEventNames()
+        {
+            foreach(var context in controller.contexts.Select(t => t.model).OfType<VFXContext>())
+            {
+                foreach (var name in RecurseGetEventNames(context))
+                    yield return name;
+            }
+        }
+        IEnumerable<String> RecurseGetEventNames(VFXContext context)
+        {
+            if (context is VFXBasicEvent)
+            {
+                yield return (context as VFXBasicEvent).eventName;
+            }
+            else if( context is VFXSubgraphContext)
+            {
+                foreach( var subContext in (context as VFXSubgraphContext).subChildren.OfType<VFXContext>())
+                {
+                    foreach (var name in RecurseGetEventNames(subContext))
+                        yield return name;
+                }
+            }
+        }
+
         public void UpdateEventList()
         {
             if (m_AttachedComponent == null)
@@ -527,7 +553,7 @@ namespace UnityEditor.VFX.UI
             }
             else
             {
-                var eventNames = controller.contexts.Select(t => t.model).OfType<VFXBasicEvent>().Select(t => t.eventName).Except(staticEventNames).Distinct().OrderBy(t => t).ToArray();
+                var eventNames = GetEventNames().ToArray();
 
                 foreach (var removed in m_Events.Keys.Except(eventNames).ToArray())
                 {
