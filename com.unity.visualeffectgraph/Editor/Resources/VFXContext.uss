@@ -68,7 +68,11 @@ VFXFlowAnchor.port.EdgeConnector.typemesh
 {
     --port-color: #0763eb;
 }
-
+VFXContextUI.inputTypenone.outputTypenone > #node-border
+{
+    --start-color: #777;
+    --end-color: #777;
+}
 /* spawner */
 
 VFXContextUI.inputTypespawnevent  > #node-border,VFXContextUI.inputTypeevent  > #node-border

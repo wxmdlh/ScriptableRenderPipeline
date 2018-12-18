@@ -169,7 +169,7 @@ namespace UnityEditor.VFX
             return Accept(block, index);
         }
 
-        public bool Accept(VFXBlock block, int index = -1)
+        public virtual bool Accept(VFXBlock block, int index = -1)
         {
             var testedType = contextType == VFXContextType.kOutput ? inputType : outputType;
             return ((block.compatibleContexts & contextType) != 0) && ((block.compatibleData & testedType) != 0);

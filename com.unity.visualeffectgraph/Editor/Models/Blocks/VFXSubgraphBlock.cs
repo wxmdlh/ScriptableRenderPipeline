@@ -9,8 +9,6 @@ namespace UnityEditor.VFX
 {   
     class VFXSubgraphBlock : VFXBlock
     {
-        public const string triggerEventName = "Trigger";
-
         [VFXSetting,SerializeField]
         protected VisualEffectAsset m_SubAsset;
         
