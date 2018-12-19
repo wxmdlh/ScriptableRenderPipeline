@@ -1882,8 +1882,8 @@ namespace UnityEditor.VFX.UI
         {
             VFXContext[] contexts = graph.children.OfType<VFXContext>().ToArray();
 
-            HashSet<VFXContext> initializes = new HashSet<VFXContext>(contexts.Where(t => t.contextType == VFXContextType.kInit).ToArray());
-            HashSet<VFXContext> updates = new HashSet<VFXContext>(contexts.Where(t => t.contextType == VFXContextType.kUpdate).ToArray());
+            HashSet<VFXContext> initializes = new HashSet<VFXContext>(contexts.Where(t => t.contextType == VFXContextType.Init).ToArray());
+            HashSet<VFXContext> updates = new HashSet<VFXContext>(contexts.Where(t => t.contextType == VFXContextType.Update).ToArray());
 
             List<Dictionary<VFXContext, int>> systems = new List<Dictionary<VFXContext, int>>();
 
@@ -1922,7 +1922,7 @@ namespace UnityEditor.VFX.UI
                     }
 
                     var allSubChildren = allChildren.SelectMany(t => t.outputFlowSlot.Where(u => u != null).SelectMany(u => u.link.Select(v => v.context).Where(v => v != null)));
-                    var allPreChildren = allChildren.SelectMany(t => t.inputFlowSlot.Where(u => u != null).SelectMany(u => u.link.Select(v => v.context).Where(v => v != null && v.contextType != VFXContextType.kSpawner && v.contextType != VFXContextType.kSpawnerGPU)));
+                    var allPreChildren = allChildren.SelectMany(t => t.inputFlowSlot.Where(u => u != null).SelectMany(u => u.link.Select(v => v.context).Where(v => v != null && v.contextType != VFXContextType.Spawner && v.contextType != VFXContextType.SpawnerGPU)));
 
                     allChildren = allSubChildren.Concat(allPreChildren).Except(system.Keys).ToList();
                 }
@@ -1950,7 +1950,7 @@ namespace UnityEditor.VFX.UI
                 m_Systems[i].contexts = contextToController.Values.ToArray();
                 m_Systems[i].title = graph.UIInfos.GetNameOfSystem(systems[i].Keys);
 
-                VFXContextType type = VFXContextType.kNone;
+                VFXContextType type = VFXContextType.None;
                 VFXContext prevContext = null;
                 var orderedContexts = contextToController.Keys.OrderBy(t => t.contextType).ThenBy(t => systems[i][t]).ThenBy(t => t.position.x).ThenBy(t => t.position.y).ToArray();
 

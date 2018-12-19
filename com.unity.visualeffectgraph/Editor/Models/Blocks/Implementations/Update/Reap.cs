@@ -8,7 +8,7 @@ namespace UnityEditor.VFX.Block
     class Reap : VFXBlock
     {
         public override string name { get { return "Reap"; } }
-        public override VFXContextType compatibleContexts { get { return VFXContextType.kUpdate; } }
+        public override VFXContextType compatibleContexts { get { return VFXContextType.Update; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
         public override IEnumerable<VFXAttributeInfo> attributes
         {

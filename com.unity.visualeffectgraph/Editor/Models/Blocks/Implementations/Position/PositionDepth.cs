@@ -57,7 +57,7 @@ namespace UnityEditor.VFX.Block
         public bool inheritSceneColor = false;
 
         public override string name { get { return "Position (Depth)"; } }
-        public override VFXContextType compatibleContexts { get { return VFXContextType.kInit; } }
+        public override VFXContextType compatibleContexts { get { return VFXContextType.Init; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
         public override IEnumerable<VFXAttributeInfo> attributes
         {

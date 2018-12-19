@@ -708,7 +708,7 @@ namespace UnityEditor.VFX.UI
             if (!(desc.model is VFXAbstractParticleOutput))
                 return false;
 
-            return (desc.model as VFXContext).contextType == VFXContextType.kOutput;
+            return (desc.model as VFXContext).contextType == VFXContextType.Output;
         }
 
         void OnConvertContext(DropdownMenuAction action)
