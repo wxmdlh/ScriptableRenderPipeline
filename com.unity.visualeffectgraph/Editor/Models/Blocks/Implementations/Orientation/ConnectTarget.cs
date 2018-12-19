@@ -20,7 +20,7 @@ namespace UnityEditor.VFX.Block
 
         public override string name { get { return "Connect Target"; } }
 
-        public override VFXContextType compatibleContexts { get { return VFXContextType.kOutput; } }
+        public override VFXContextType compatibleContexts { get { return VFXContextType.Output; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
 
         public class InputProperties

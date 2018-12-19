@@ -27,7 +27,7 @@ namespace UnityEditor.VFX.Block
 
 
         public override string name { get { return "Color / Alpha over Life"; } }
-        public override VFXContextType compatibleContexts { get { return VFXContextType.kUpdateAndOutput; } }
+        public override VFXContextType compatibleContexts { get { return VFXContextType.UpdateAndOutput; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
         public override IEnumerable<VFXAttributeInfo> attributes
         {

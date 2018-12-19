@@ -21,7 +21,7 @@ namespace UnityEditor.VFX
             get { return m_SubAsset; }
         }
 
-        public VFXSubgraphContext():base(VFXContextType.kNone, VFXDataType.kSpawnEvent, VFXDataType.kNone)
+        public VFXSubgraphContext():base(VFXContextType.None, VFXDataType.kSpawnEvent, VFXDataType.kNone)
         {
         }
         protected override int inputFlowCount { get { return 3; } }

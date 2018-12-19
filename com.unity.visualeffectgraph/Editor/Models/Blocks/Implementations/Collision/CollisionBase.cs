@@ -26,7 +26,7 @@ namespace UnityEditor.VFX.Block
         [VFXSetting, Tooltip("Enable random bending of the collision normal to simulate collision with a rough surface.")]
         public bool roughSurface = false;
 
-        public override VFXContextType compatibleContexts { get { return VFXContextType.kUpdate; } }
+        public override VFXContextType compatibleContexts { get { return VFXContextType.Update; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
         public override IEnumerable<VFXAttributeInfo> attributes
         {

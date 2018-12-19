@@ -163,7 +163,7 @@ namespace UnityEditor.VFX
 
         private static void FillEventAttributeDescs(List<VFXLayoutElementDesc> eventAttributeDescs, VFXExpressionGraph graph, IEnumerable<VFXContext> contexts)
         {
-            foreach (var context in contexts.Where(o => o.contextType == VFXContextType.kSpawner))
+            foreach (var context in contexts.Where(o => o.contextType == VFXContextType.Spawner))
             {
                 foreach (var linked in context.outputContexts)
                 {
@@ -219,9 +219,9 @@ namespace UnityEditor.VFX
 
         private static VFXContext[] CollectSpawnersHierarchy(IEnumerable<VFXContext> vfxContext,IEnumerable<VFXSubgraphContext> subGraphContexts)
         {
-            var initContext = vfxContext.Where(o => o.contextType == VFXContextType.kInit).Concat(subGraphContexts.Cast<VFXContext>()).ToList();
+            var initContext = vfxContext.Where(o => o.contextType == VFXContextType.Init).Concat(subGraphContexts.Cast<VFXContext>()).ToList();
             var spawnerList = CollectContextParentRecursively(initContext);
-            return spawnerList.Where(o => o.contextType == VFXContextType.kSpawner).Reverse().ToArray();
+            return spawnerList.Where(o => o.contextType == VFXContextType.Spawner).Reverse().ToArray();
         }
 
         struct SpawnInfo
@@ -714,7 +714,7 @@ namespace UnityEditor.VFX
         {
             private VFXExpressionMapper mapper;
 
-            public VFXImplicitContextOfExposedExpression() : base(VFXContextType.kNone, VFXDataType.kNone, VFXDataType.kNone) {}
+            public VFXImplicitContextOfExposedExpression() : base(VFXContextType.None, VFXDataType.kNone, VFXDataType.kNone) {}
 
             private static void CollectExposedExpression(List<VFXExpression> expressions, VFXSlot slot)
             {

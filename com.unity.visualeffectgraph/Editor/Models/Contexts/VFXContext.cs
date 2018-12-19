@@ -13,19 +13,19 @@ namespace UnityEditor.VFX
     [Flags]
     public enum VFXContextType
     {
-        kNone = 0,
+        None = 0,
 
-        kSpawner = 1 << 0,
-        kInit = 1 << 1,
-        kUpdate = 1 << 2,
-        kOutput = 1 << 3,
-        kEvent = 1 << 4,
-        kSpawnerGPU = 1 << 5,
+        Spawner = 1 << 0,
+        Init = 1 << 1,
+        Update = 1 << 2,
+        Output = 1 << 3,
+        Event = 1 << 4,
+        SpawnerGPU = 1 << 5,
 
-        kInitAndUpdate = kInit | kUpdate,
-        kInitAndUpdateAndOutput = kInit | kUpdate | kOutput,
-        kUpdateAndOutput = kUpdate | kOutput,
-        kAll = kInit | kUpdate | kOutput | kSpawner | kSpawnerGPU,
+        InitAndUpdate = Init | Update,
+        InitAndUpdateAndOutput = Init | Update | Output,
+        UpdateAndOutput = Update | Output,
+        All = Init | Update | Output | Spawner | SpawnerGPU,
     };
 
     [Flags]
@@ -97,7 +97,7 @@ namespace UnityEditor.VFX
             if ((m_ContextType & (m_ContextType - 1)) != 0)
             {
                 var invalidContext = m_ContextType;
-                m_ContextType = VFXContextType.kNone;
+                m_ContextType = VFXContextType.None;
                 throw new ArgumentException(string.Format("Illegal context type: {0}", invalidContext));
             }
 
@@ -119,7 +119,7 @@ namespace UnityEditor.VFX
         public virtual VFXContextType contextType                       { get { return m_ContextType; } }
         public virtual VFXDataType inputType                            { get { return m_InputType; } }
         public virtual VFXDataType outputType                           { get { return m_OutputType; } }
-        public virtual VFXDataType ownedType                            { get { return contextType == VFXContextType.kOutput ? inputType : outputType; } }
+        public virtual VFXDataType ownedType                            { get { return contextType == VFXContextType.Output ? inputType : outputType; } }
         public virtual VFXTaskType taskType                             { get { return VFXTaskType.None; } }
         public virtual IEnumerable<VFXAttributeInfo> attributes         { get { return Enumerable.Empty<VFXAttributeInfo>(); } }
         public virtual IEnumerable<VFXMapping> additionalMappings       { get { return Enumerable.Empty<VFXMapping>(); } }
@@ -171,7 +171,7 @@ namespace UnityEditor.VFX
 
         public virtual bool Accept(VFXBlock block, int index = -1)
         {
-            var testedType = contextType == VFXContextType.kOutput ? inputType : outputType;
+            var testedType = contextType == VFXContextType.Output ? inputType : outputType;
             return ((block.compatibleContexts & contextType) != 0) && ((block.compatibleData & testedType) != 0);
         }
 
@@ -249,22 +249,22 @@ namespace UnityEditor.VFX
 
         private bool CanLinkToMany()
         {
-            return contextType == VFXContextType.kSpawner
-                || contextType == VFXContextType.kEvent;
+            return contextType == VFXContextType.Spawner
+                || contextType == VFXContextType.Event;
         }
 
         private bool CanLinkFromMany()
         {
-            return contextType == VFXContextType.kOutput
-                ||  contextType == VFXContextType.kSpawner
-                ||  contextType == VFXContextType.kInit;
+            return contextType == VFXContextType.Output
+                ||  contextType == VFXContextType.Spawner
+                ||  contextType == VFXContextType.Init;
         }
 
         private static bool IsExclusiveLink(VFXContextType from, VFXContextType to)
         {
             if (from == to)
                 return false;
-            if (from == VFXContextType.kSpawner)
+            if (from == VFXContextType.Spawner)
                 return false;
             return true;
         }

@@ -49,7 +49,7 @@ namespace UnityEditor.VFX.Block
         protected SizeZMode sizeZMode = SizeZMode.SameAsSizeX;
 
         public override string name { get { return "Screen Space Size"; } }
-        public override VFXContextType compatibleContexts { get { return VFXContextType.kOutput; } }
+        public override VFXContextType compatibleContexts { get { return VFXContextType.Output; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties

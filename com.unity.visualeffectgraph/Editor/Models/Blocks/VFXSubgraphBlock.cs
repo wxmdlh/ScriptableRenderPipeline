@@ -219,7 +219,7 @@ namespace UnityEditor.VFX
         {
             get { return m_SubBlocks; }
         }
-        public override VFXContextType compatibleContexts { get { return VFXContextType.kInitAndUpdateAndOutput; } }
+        public override VFXContextType compatibleContexts { get { return VFXContextType.InitAndUpdateAndOutput; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
 
         public override void CollectDependencies(HashSet<ScriptableObject> objs,bool compileOnly = false)

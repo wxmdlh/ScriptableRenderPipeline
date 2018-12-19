@@ -63,7 +63,7 @@ namespace UnityEditor.VFX
             var regex = new Regex(matching);
             var attributesFromContext = context.GetData().GetAttributes().Where(o => regex.IsMatch(o.attrib.name)).ToArray();
             var attributesSource = attributesFromContext.Where(o => (o.mode & VFXAttributeMode.ReadSource) != 0).ToArray();
-            var attributesCurrent = attributesFromContext.Where(o => o.mode != VFXAttributeMode.ReadSource).Where(a => context.GetData().IsAttributeUsed(a.attrib, context) || (context.contextType == VFXContextType.kInit && context.GetData().IsAttributeStored(a.attrib))).ToArray();
+            var attributesCurrent = attributesFromContext.Where(o => o.mode != VFXAttributeMode.ReadSource).Where(a => context.GetData().IsAttributeUsed(a.attrib, context) || (context.contextType == VFXContextType.Init && context.GetData().IsAttributeStored(a.attrib))).ToArray();
 
             //< Current Attribute
             foreach (var attribute in attributesCurrent.Select(o => o.attrib))
@@ -71,7 +71,7 @@ namespace UnityEditor.VFX
                 var name = attribute.name;
                 if (name != VFXAttribute.EventCount.name)
                 {
-                    if (context.contextType != VFXContextType.kInit && context.GetData().IsAttributeStored(attribute))
+                    if (context.contextType != VFXContextType.Init && context.GetData().IsAttributeStored(attribute))
                     {
                         r.WriteVariable(attribute.type, name, context.GetData().GetLoadAttributeCode(attribute, VFXAttributeLocation.Current));
                     }
@@ -96,7 +96,7 @@ namespace UnityEditor.VFX
             foreach (var attribute in attributesSource.Select(o => o.attrib))
             {
                 var name = string.Format("{0}_source", attribute.name);
-                if (context.contextType == VFXContextType.kInit)
+                if (context.contextType == VFXContextType.Init)
                 {
                     r.WriteVariable(attribute.type, name, context.GetData().GetLoadAttributeCode(attribute, VFXAttributeLocation.Source));
                 }
@@ -126,7 +126,7 @@ namespace UnityEditor.VFX
 
             var attributesFromContext = context.GetData().GetAttributes().Where(o => regex.IsMatch(o.attrib.name) &&
                 context.GetData().IsAttributeStored(o.attrib) &&
-                (context.contextType == VFXContextType.kInit || context.GetData().IsCurrentAttributeWritten(o.attrib, context))).ToArray();
+                (context.contextType == VFXContextType.Init || context.GetData().IsCurrentAttributeWritten(o.attrib, context))).ToArray();
 
             foreach (var attribute in attributesFromContext.Select(o => o.attrib))
             {
@@ -387,7 +387,7 @@ namespace UnityEditor.VFX
 
             var globalIncludeContent = new VFXShaderWriter();
             globalIncludeContent.WriteLine("#define NB_THREADS_PER_GROUP 64");
-            foreach (var attribute in context.GetData().GetAttributes().Where(a => (context.contextType == VFXContextType.kInit && context.GetData().IsAttributeStored(a.attrib)) || (context.GetData().IsAttributeUsed(a.attrib, context))))
+            foreach (var attribute in context.GetData().GetAttributes().Where(a => (context.contextType == VFXContextType.Init && context.GetData().IsAttributeStored(a.attrib)) || (context.GetData().IsAttributeUsed(a.attrib, context))))
                 globalIncludeContent.WriteLineFormat("#define VFX_USE_{0}_{1} 1", attribute.attrib.name.ToUpper(), "CURRENT");
             foreach (var attribute in context.GetData().GetAttributes().Where(a => context.GetData().IsSourceAttributeUsed(a.attrib, context)))
                 globalIncludeContent.WriteLineFormat("#define VFX_USE_{0}_{1} 1", attribute.attrib.name.ToUpper(), "SOURCE");

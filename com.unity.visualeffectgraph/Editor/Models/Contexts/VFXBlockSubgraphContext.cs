@@ -10,7 +10,7 @@ namespace UnityEditor.VFX
     [VFXInfo]
     class VFXBlockSubgraphContext : VFXContext
     {
-        public VFXBlockSubgraphContext():base(VFXContextType.kNone, VFXDataType.kNone, VFXDataType.kNone)
+        public VFXBlockSubgraphContext():base(VFXContextType.None, VFXDataType.kNone, VFXDataType.kNone)
         {
         }
         protected override int inputFlowCount { get { return 0; } }
@@ -25,14 +25,14 @@ namespace UnityEditor.VFX
         }
 
         [VFXSetting]
-        VFXContextType m_CompatibleContextType = VFXContextType.kInitAndUpdateAndOutput;
+        VFXContextType m_SuitableContexts = VFXContextType.InitAndUpdateAndOutput;
 
 
         public VFXContextType compatibleContextType
         {
             get
             {
-                return m_CompatibleContextType;
+                return m_SuitableContexts;
             }
         }
 
@@ -54,7 +54,7 @@ namespace UnityEditor.VFX
         }
         public override bool Accept(VFXBlock block, int index = -1)
         {
-            return ((block.compatibleContexts & m_CompatibleContextType) == m_CompatibleContextType);
+            return ((block.compatibleContexts & m_SuitableContexts) == m_SuitableContexts);
         }
 
         public override bool CanBeCompiled()

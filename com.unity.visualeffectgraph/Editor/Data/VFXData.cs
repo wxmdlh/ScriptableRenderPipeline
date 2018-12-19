@@ -275,8 +275,8 @@ namespace UnityEditor.VFX
                 InitImplicitContexts();
 
             m_DependenciesIn = new HashSet<VFXData>(
-                m_Contexts.Where(c => c.contextType == VFXContextType.kInit)
-                    .SelectMany(c => c.inputContexts.Where(i => i.contextType == VFXContextType.kSpawnerGPU))
+                m_Contexts.Where(c => c.contextType == VFXContextType.Init)
+                    .SelectMany(c => c.inputContexts.Where(i => i.contextType == VFXContextType.SpawnerGPU))
                     .SelectMany(c => c.allLinkedInputSlot)
                     .Where(s =>
                     {
@@ -432,7 +432,7 @@ namespace UnityEditor.VFX
                 foreach (var kvp2 in kvp.Value)
                 {
                     var context = kvp2.Key;
-                    if (context.contextType == VFXContextType.kInit
+                    if (context.contextType == VFXContextType.Init
                         &&  (kvp2.Value & VFXAttributeMode.ReadSource) != 0)
                     {
                         readSourceInInit = true;
@@ -448,11 +448,11 @@ namespace UnityEditor.VFX
                         continue;
                     }
 
-                    if (context.contextType != VFXContextType.kInit)
+                    if (context.contextType != VFXContextType.Init)
                         onlyInit = false;
-                    if (context.contextType != VFXContextType.kOutput)
+                    if (context.contextType != VFXContextType.Output)
                         onlyOutput = false;
-                    if (context.contextType != VFXContextType.kUpdate)
+                    if (context.contextType != VFXContextType.Update)
                     {
                         onlyUpdateRead = false;
                         onlyUpdateWrite = false;
@@ -465,13 +465,13 @@ namespace UnityEditor.VFX
                             onlyUpdateRead = false;
                     }
 
-                    if (context.contextType != VFXContextType.kInit) // Init isnt taken into account for key computation
+                    if (context.contextType != VFXContextType.Init) // Init isnt taken into account for key computation
                     {
                         int shift = m_Contexts.IndexOf(context) << 1;
                         int value = 0;
                         if ((kvp2.Value & VFXAttributeMode.Read) != 0)
                             value |= 0x01;
-                        if (((kvp2.Value & VFXAttributeMode.Write) != 0) && context.contextType == VFXContextType.kUpdate)
+                        if (((kvp2.Value & VFXAttributeMode.Write) != 0) && context.contextType == VFXContextType.Update)
                             value |= 0x02;
                         key |= (value << shift);
                     }
