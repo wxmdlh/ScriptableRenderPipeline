@@ -11,7 +11,7 @@ namespace UnityEditor.VFX
     {
         public Shader shader;
 
-        public override VFXDataType type { get { return VFXDataType.kMesh; } }
+        public override VFXDataType type { get { return VFXDataType.Mesh; } }
 
         public override void OnEnable()
         {

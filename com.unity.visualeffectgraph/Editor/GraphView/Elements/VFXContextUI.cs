@@ -47,12 +47,12 @@ namespace UnityEditor.VFX.UI
 
         public static string ContextEnumToClassName(string name)
         {
-            if (name[0] != 'k')
+            if (name[0] == 'k')
             {
-                Debug.LogError("Fix this since k has been removed from enums");
+                Debug.LogError("Fix this since k should have been removed from enums");
             }
 
-            return name.Substring(1).ToLower();
+            return name.ToLower();
         }
 
         protected override void SelfChange()
@@ -95,7 +95,7 @@ namespace UnityEditor.VFX.UI
             AddToClassList(ContextEnumToClassName(contextType.ToString()));
 
             var inputType = controller.model.inputType;
-            if (inputType == VFXDataType.kNone)
+            if (inputType == VFXDataType.None)
             {
                 inputType = controller.model.ownedType;
             }
@@ -132,7 +132,7 @@ namespace UnityEditor.VFX.UI
                 m_HeaderSpace.AddToClassList("space" + (controller.model.space).ToString());
 
             Profiler.EndSample();
-            if (controller.model.outputType == VFXDataType.kNone)
+            if (controller.model.outputType == VFXDataType.None)
             {
                 if (m_Footer.parent != null)
                     m_Footer.RemoveFromHierarchy();
@@ -573,9 +573,9 @@ namespace UnityEditor.VFX.UI
         {
             switch (type)
             {
-                case VFXDataType.kNone:
+                case VFXDataType.None:
                     return Resources.Load<Texture2D>("VFX/Execution");
-                case VFXDataType.kParticle:
+                case VFXDataType.Particle:
                     return Resources.Load<Texture2D>("VFX/Particles");
             }
             return null;

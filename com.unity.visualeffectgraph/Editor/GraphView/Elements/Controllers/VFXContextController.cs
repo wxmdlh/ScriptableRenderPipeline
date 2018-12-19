@@ -107,7 +107,7 @@ namespace UnityEditor.VFX.UI
         {
             UnregisterAnchors();
 
-            if (this.model.inputType != VFXDataType.kNone)
+            if (this.model.inputType != VFXDataType.None)
             {
                 for (int slot = 0; slot < this.model.inputFlowSlot.Length; ++slot)
                 {
@@ -118,7 +118,7 @@ namespace UnityEditor.VFX.UI
                 }
             }
 
-            if (this.model.outputType != VFXDataType.kNone)
+            if (this.model.outputType != VFXDataType.None)
             {
                 for (int slot = 0; slot < this.model.outputFlowSlot.Length; ++slot)
                 {

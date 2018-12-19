@@ -7,6 +7,6 @@ namespace UnityEditor.VFX.Block.Test
     {
         public override string name                         { get { return "Init Block"; }}
         public override VFXContextType compatibleContexts   { get { return VFXContextType.Init; } }
-        public override VFXDataType compatibleData          { get { return VFXDataType.kParticle; } }
+        public override VFXDataType compatibleData          { get { return VFXDataType.Particle; } }
     }
 }

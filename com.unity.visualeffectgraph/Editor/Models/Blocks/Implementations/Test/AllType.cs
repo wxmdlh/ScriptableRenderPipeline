@@ -8,7 +8,7 @@ namespace UnityEditor.VFX.Block.Test
     {
         public override string name                         { get { return "Test"; } }
         public override VFXContextType compatibleContexts   { get { return VFXContextType.All; } }
-        public override VFXDataType compatibleData          { get { return VFXDataType.kParticle | VFXDataType.kSpawnEvent; } }
+        public override VFXDataType compatibleData          { get { return VFXDataType.Particle | VFXDataType.SpawnEvent; } }
 
         public class InputProperties
         {

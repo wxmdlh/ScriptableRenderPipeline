@@ -134,7 +134,7 @@ namespace UnityEditor.VFX.Test
             {
                 get
                 {
-                    return VFXDataType.kParticle;
+                    return VFXDataType.Particle;
                 }
             }
 

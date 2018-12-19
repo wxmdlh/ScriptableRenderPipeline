@@ -192,7 +192,7 @@ namespace UnityEditor.VFX
 
     class VFXDataParticle : VFXData, ISpaceable
     {
-        public override VFXDataType type { get { return VFXDataType.kParticle; } }
+        public override VFXDataType type { get { return VFXDataType.Particle; } }
 
         public uint capacity
         {

@@ -38,7 +38,7 @@ namespace UnityEditor.VFX
             }
         }
 
-        protected VFXStaticMeshOutput() : base(VFXContextType.Output, VFXDataType.kMesh, VFXDataType.kNone) {}
+        protected VFXStaticMeshOutput() : base(VFXContextType.Output, VFXDataType.Mesh, VFXDataType.None) {}
 
         public override void OnEnable()
         {

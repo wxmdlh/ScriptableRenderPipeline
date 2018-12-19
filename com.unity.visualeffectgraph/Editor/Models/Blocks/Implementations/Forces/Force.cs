@@ -13,7 +13,7 @@ namespace UnityEditor.VFX.Block
 
         public override string name { get { return "Force"; } }
         public override VFXContextType compatibleContexts { get { return VFXContextType.Update; } }
-        public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
+        public override VFXDataType compatibleData { get { return VFXDataType.Particle; } }
 
         public class AbsoluteProperties
         {

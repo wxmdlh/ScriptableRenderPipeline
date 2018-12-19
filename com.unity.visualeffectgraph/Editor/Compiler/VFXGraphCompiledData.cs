@@ -714,7 +714,7 @@ namespace UnityEditor.VFX
         {
             private VFXExpressionMapper mapper;
 
-            public VFXImplicitContextOfExposedExpression() : base(VFXContextType.None, VFXDataType.kNone, VFXDataType.kNone) {}
+            public VFXImplicitContextOfExposedExpression() : base(VFXContextType.None, VFXDataType.None, VFXDataType.None) {}
 
             private static void CollectExposedExpression(List<VFXExpression> expressions, VFXSlot slot)
             {

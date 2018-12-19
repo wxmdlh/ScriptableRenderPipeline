@@ -9,7 +9,7 @@ namespace UnityEditor.VFX.Block.Test
     {
         public override string name { get { return "Trigger Event Always"; } }
         public override VFXContextType compatibleContexts { get { return VFXContextType.Update; } }
-        public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
+        public override VFXDataType compatibleData { get { return VFXDataType.Particle; } }
 
         public override IEnumerable<VFXAttributeInfo> attributes
         {
