@@ -413,6 +413,87 @@ namespace UnityEditor.VFX
             m_ExpressionValuesDirty = true;
         }
 
+        void BuildSubGraphDependencies()
+        {
+            if (m_SubgraphDependencies == null)
+                m_SubgraphDependencies = new List<VisualEffectAsset>();
+            m_SubgraphDependencies.Clear();
+
+            HashSet<VisualEffectAsset> explored = new HashSet<VisualEffectAsset>();
+            RecurseBuildDependencies(explored,children);
+        }
+
+        void RecurseBuildDependencies(HashSet<VisualEffectAsset> explored,IEnumerable<VFXModel> models)
+        {
+            foreach(var subGraphContext in models.OfType<VFXSubgraphContext>())
+            {
+                if(subGraphContext.subAsset != null && !explored.Contains(subGraphContext.subAsset))
+                {
+                    explored.Add(subGraphContext.subAsset);
+                    m_SubgraphDependencies.Add(subGraphContext.subAsset);
+                    RecurseBuildDependencies(explored,subGraphContext.subAsset.GetResource().GetOrCreateGraph().children);
+                }
+            }
+        }
+
+        bool RecurseSubgraphDirty(VisualEffectAsset asset,VFXGraph graph)
+        {
+            bool oneFound = false;
+            foreach (var child in graph.children.OfType<VFXContext>())
+            {
+                if (child is VFXSubgraphContext)
+                {
+                    var subgraphContext = child as VFXSubgraphContext;
+                    if (subgraphContext.subAsset == asset)
+                    {
+                        subgraphContext.RecreateCopy();
+                        oneFound = true;
+                    }
+                    else
+                    {
+                        if (RecurseSubgraphDirty(asset, subgraphContext.subAsset.GetResource().GetOrCreateGraph()))
+                            subgraphContext.RecreateCopy();
+                    }
+                }
+                else
+                {
+                    foreach( var block in child.children)
+                    {
+                        if( block is VFXSubgraphBlock)
+                        {
+
+                            var subgraphBlock = block as VFXSubgraphBlock;
+                            if (subgraphBlock.subAsset == asset)
+                            {
+                                subgraphBlock.RecreateCopy();
+                                oneFound = true;
+                            }
+                            else
+                            {
+                                if (RecurseSubgraphDirty(asset, subgraphBlock.subAsset.GetResource().GetOrCreateGraph()))
+                                    subgraphBlock.RecreateCopy();
+                            }
+                        }
+                    }
+                }
+            }
+
+            return oneFound;
+        }
+
+        void SubgraphDirty(VisualEffectAsset asset)
+        {
+            if (m_SubgraphDependencies != null && m_SubgraphDependencies.Contains(asset))
+            {
+                RecurseSubgraphDirty(asset,this);
+
+                compiledData.Compile(m_CompilationMode, m_ForceShaderValidation);
+                
+                m_ExpressionGraphDirty = false;
+                m_ExpressionValuesDirty = false;
+            }
+        }
+
         public void RecompileIfNeeded(bool preventRecompilation = false)
         {
             SanitizeGraph();
@@ -420,7 +501,22 @@ namespace UnityEditor.VFX
             bool considerGraphDirty = m_ExpressionGraphDirty && !preventRecompilation;
             if (considerGraphDirty)
             {
+                BuildSubGraphDependencies();
+
                 compiledData.Compile(m_CompilationMode, m_ForceShaderValidation);
+
+                var guids = AssetDatabase.FindAssets("t:"+nameof(VisualEffectAsset));
+
+                foreach(var assetPath in guids.Select(t=> AssetDatabase.GUIDToAssetPath(t)))
+                {
+                    var asset = AssetDatabase.LoadAssetAtPath<VisualEffectAsset>(assetPath);
+                    if (asset != null)
+                    {
+                        var graph = asset.GetResource().GetOrCreateGraph();
+
+                        graph.SubgraphDirty(GetResource().asset);
+                    }
+                }
             }
             else if (m_ExpressionValuesDirty && !m_ExpressionGraphDirty)
             {
@@ -462,6 +558,9 @@ namespace UnityEditor.VFX
         protected bool m_saved = false;
 
         public bool saved { get { return m_saved; } }
+
+        [SerializeField]
+        private List<VisualEffectAsset> m_SubgraphDependencies = new List<VisualEffectAsset>();
 
         private VisualEffectResource m_Owner;
     }

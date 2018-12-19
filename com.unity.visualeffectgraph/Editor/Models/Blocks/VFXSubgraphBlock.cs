@@ -106,7 +106,7 @@ namespace UnityEditor.VFX
         }
 
 
-        void RecreateCopy()
+        public void RecreateCopy()
         {
             if (m_SubChildren != null)
             {
