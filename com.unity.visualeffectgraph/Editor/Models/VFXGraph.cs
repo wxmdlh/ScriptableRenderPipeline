@@ -425,13 +425,46 @@ namespace UnityEditor.VFX
 
         void RecurseBuildDependencies(HashSet<VisualEffectAsset> explored,IEnumerable<VFXModel> models)
         {
-            foreach(var subGraphContext in models.OfType<VFXSubgraphContext>())
+            foreach(var model in models)
             {
-                if(subGraphContext.subAsset != null && !explored.Contains(subGraphContext.subAsset))
+                if( model is VFXSubgraphContext)
                 {
-                    explored.Add(subGraphContext.subAsset);
-                    m_SubgraphDependencies.Add(subGraphContext.subAsset);
-                    RecurseBuildDependencies(explored,subGraphContext.subAsset.GetResource().GetOrCreateGraph().children);
+                    var subgraphContext = model as VFXSubgraphContext;
+
+                    if (subgraphContext.subAsset != null && !explored.Contains(subgraphContext.subAsset))
+                    {
+                        explored.Add(subgraphContext.subAsset);
+                        m_SubgraphDependencies.Add(subgraphContext.subAsset);
+                        RecurseBuildDependencies(explored, subgraphContext.subAsset.GetResource().GetOrCreateGraph().children);
+                    }
+                }
+                else if( model is VFXSubgraphOperator)
+                {
+                    var subgraphOperator = model as VFXSubgraphOperator;
+
+                    if (subgraphOperator.subAsset != null && !explored.Contains(subgraphOperator.subAsset))
+                    {
+                        explored.Add(subgraphOperator.subAsset);
+                        m_SubgraphDependencies.Add(subgraphOperator.subAsset);
+                        RecurseBuildDependencies(explored, subgraphOperator.subAsset.GetResource().GetOrCreateGraph().children);
+                    }
+                }
+                else if( model is VFXContext)
+                {
+                    foreach( var block in (model as VFXContext).children)
+                    {
+                        if( block is VFXSubgraphBlock)
+                        {
+                            var subgraphBlock = model as VFXSubgraphBlock;
+
+                            if (subgraphBlock.subAsset != null && !explored.Contains(subgraphBlock.subAsset))
+                            {
+                                explored.Add(subgraphBlock.subAsset);
+                                m_SubgraphDependencies.Add(subgraphBlock.subAsset);
+                                RecurseBuildDependencies(explored, subgraphBlock.subAsset.GetResource().GetOrCreateGraph().children);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -439,7 +472,7 @@ namespace UnityEditor.VFX
         bool RecurseSubgraphDirty(VisualEffectAsset asset,VFXGraph graph)
         {
             bool oneFound = false;
-            foreach (var child in graph.children.OfType<VFXContext>())
+            foreach (var child in graph.children)
             {
                 if (child is VFXSubgraphContext)
                 {
@@ -455,7 +488,17 @@ namespace UnityEditor.VFX
                             subgraphContext.RecreateCopy();
                     }
                 }
-                else
+                else if( child is VFXSubgraphOperator)
+                {
+                    var subgraphOperator = child as VFXSubgraphOperator;
+                    if (subgraphOperator.subAsset == asset)
+                    {
+                        oneFound = true;
+                    }
+                    else
+                        RecurseSubgraphDirty(asset, subgraphOperator.subAsset.GetResource().GetOrCreateGraph());
+                }
+                else if(child is VFXContext)
                 {
                     foreach( var block in child.children)
                     {
