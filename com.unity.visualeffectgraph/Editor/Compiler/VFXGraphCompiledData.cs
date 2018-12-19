@@ -413,7 +413,7 @@ namespace UnityEditor.VFX
                     name = "spawner_output"
                 });
 
-                for (int indexSlot = 0; indexSlot < 2; ++indexSlot)
+                for (int indexSlot = 0; indexSlot < 2 && indexSlot < spawnContext.inputFlowSlot.Length; ++indexSlot)
                 {
                     foreach (var input in SearchSpawnerLinks(spawnContext,indexSlot,subGraphInfos,outContextSpawnToSpawnInfo))
                     {
@@ -552,6 +552,8 @@ namespace UnityEditor.VFX
 
                 foreach (var sg in subGraphAncestors)
                 {
+                    if (sg.inputFlowSlot.Length <= flowSlotIndex)
+                        continue;
                     foreach (var path in defaultEventPaths)
                     {
                         int currentFlowIndex = path.Last();
