@@ -546,42 +546,73 @@ namespace UnityEditor.VFX
 
                 List<List<int>> defaultEventPaths = new List<List<int>>();
 
-                defaultEventPaths.Add(new List<int>(new int[]{flowSlotIndex}));
+                // First step withoutsubgraph
+                {
+                    var eventSlot = spawner.Key.inputFlowSlot[flowSlotIndex]; // -1 in path is Trigger therefore 2 in subGraph input
+                    var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
+
+                    if (eventSlotEvents.Any())
+                    {
+                        foreach (var evt in eventSlotEvents)
+                        {
+                            var eventName = (evt.context as VFXBasicEvent).eventName;
+                            var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
+                            if (eventIndex == -1 && eventName != VFXSubgraphContext.triggerEventName)
+                            {
+                                eventIndex = eventDescTemp.Count;
+                                eventDescTemp.Add(new EventLinks
+                                {
+                                    eventName = eventName,
+                                    playSystems = new List<uint>(),
+                                    stopSystems = new List<uint>(),
+                                });
+                            }
+                            defaultEventPaths.Add(new int[] { eventIndex }.ToList());
+                        }
+                    }
+                    else if (!eventSlot.link.Any())
+                    {
+                        defaultEventPaths.Add((new int[] { flowSlotIndex }).ToList());
+                    }
+                }
 
                 List<List<int>> newEventPaths = new List<List<int>>();
 
                 foreach (var sg in subGraphAncestors)
                 {
                     if (sg.inputFlowSlot.Length <= flowSlotIndex)
-                        continue;
+                        break;
                     foreach (var path in defaultEventPaths)
                     {
                         int currentFlowIndex = path.Last();
-                        var eventSlot = sg.inputFlowSlot[currentFlowIndex!=-1? currentFlowIndex:2]; // -1 in path is Trigger therefore 2 in subGraph input
-                        var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
+                        if (currentFlowIndex < 2) // only take into account paths that do not end with a custom event
+                        {
+                            var eventSlot = sg.inputFlowSlot[currentFlowIndex != -1 ? currentFlowIndex : 2]; // -1 in path is Trigger therefore 2 in subGraph input
+                            var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
 
-                        if (eventSlotEvents.Any())
-                        {
-                            foreach (var evt in eventSlotEvents)
+                            if (eventSlotEvents.Any())
                             {
-                                var eventName = (evt.context as VFXBasicEvent).eventName;
-                                var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                                if (eventIndex == -1 && eventName != VFXSubgraphContext.triggerEventName)
+                                foreach (var evt in eventSlotEvents)
                                 {
-                                    eventIndex = eventDescTemp.Count;
-                                    eventDescTemp.Add(new EventLinks
+                                    var eventName = (evt.context as VFXBasicEvent).eventName;
+                                    var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
+                                    if (eventIndex == -1 && eventName != VFXSubgraphContext.triggerEventName)
                                     {
-                                        eventName = eventName,
-                                        playSystems = new List<uint>(),
-                                        stopSystems = new List<uint>(),
-                                    });
+                                        eventIndex = eventDescTemp.Count;
+                                        eventDescTemp.Add(new EventLinks
+                                        {
+                                            eventName = eventName,
+                                            playSystems = new List<uint>(),
+                                            stopSystems = new List<uint>(),
+                                        });
+                                    }
+                                    newEventPaths.Add(path.Concat(new int[] { eventIndex }).ToList());
                                 }
-                                newEventPaths.Add(path.Concat(new int[] {eventIndex }).ToList());
                             }
-                        }
-                        else if (!eventSlot.link.Any())
-                        {
-                            newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
+                            else if (!eventSlot.link.Any())
+                            {
+                                newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
+                            }
                         }
                     }
                     defaultEventPaths.Clear();
