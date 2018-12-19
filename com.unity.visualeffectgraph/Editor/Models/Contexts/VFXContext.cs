@@ -31,10 +31,10 @@ namespace UnityEditor.VFX
     [Flags]
     public enum VFXDataType
     {
-        kNone =         0,
-        kSpawnEvent =   1 << 0,
-        kParticle =     1 << 1,
-        kMesh =         1 << 2,
+        None =         0,
+        SpawnEvent =   1 << 0,
+        Particle =     1 << 1,
+        Mesh =         1 << 2,
     };
 
     [Serializable]
@@ -78,7 +78,7 @@ namespace UnityEditor.VFX
             m_OutputType = outputType;
         }
 
-        public VFXContext(VFXContextType contextType) : this(contextType, VFXDataType.kNone, VFXDataType.kNone)
+        public VFXContext(VFXContextType contextType) : this(contextType, VFXDataType.None, VFXDataType.None)
         {}
 
         // Called by VFXData
@@ -194,7 +194,7 @@ namespace UnityEditor.VFX
             if (from == to || from == null || to == null)
                 return false;
 
-            if (from.outputType == VFXDataType.kNone || to.inputType == VFXDataType.kNone || from.outputType != to.inputType)
+            if (from.outputType == VFXDataType.None || to.inputType == VFXDataType.None || from.outputType != to.inputType)
                 return false;
 
             if (fromIndex >= from.outputFlowSlot.Length || toIndex >= to.inputFlowSlot.Length)

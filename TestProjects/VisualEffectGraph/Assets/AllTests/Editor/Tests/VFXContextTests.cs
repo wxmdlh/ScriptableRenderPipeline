@@ -43,12 +43,12 @@ namespace UnityEditor.VFX.Test
 
         private class ContextTestIn : VFXContext
         {
-            public ContextTestIn() : base(VFXContextType.Init, VFXDataType.kNone, VFXDataType.kParticle) {}
+            public ContextTestIn() : base(VFXContextType.Init, VFXDataType.None, VFXDataType.Particle) {}
         }
 
         private class ContextTestOut : VFXContext
         {
-            public ContextTestOut() : base(VFXContextType.Output, VFXDataType.kParticle, VFXDataType.kNone) {}
+            public ContextTestOut() : base(VFXContextType.Output, VFXDataType.Particle, VFXDataType.None) {}
         }
 
         private void CheckContext(VFXContext context, VFXContextType expectedType)

@@ -90,10 +90,10 @@ namespace UnityEditor.VFX
             VFXData newVFXData;
             switch (type)
             {
-                case VFXDataType.kParticle:
+                case VFXDataType.Particle:
                     newVFXData = ScriptableObject.CreateInstance<VFXDataParticle>();
                     break;
-                case VFXDataType.kMesh:
+                case VFXDataType.Mesh:
                     newVFXData = ScriptableObject.CreateInstance<VFXDataMesh>();
                     break;
                 default:                        return null;
@@ -406,7 +406,7 @@ namespace UnityEditor.VFX
             m_StoredCurrentAttributes.Clear();
             m_LocalCurrentAttributes.Clear();
             m_ReadSourceAttributes.Clear();
-            if (type == VFXDataType.kParticle)
+            if (type == VFXDataType.Particle)
             {
                 m_ReadSourceAttributes.Add(new VFXAttribute("spawnCount", VFXValueType.Float)); // TODO dirty
             }

@@ -32,7 +32,7 @@ namespace UnityEditor.VFX.Block
         public SpawnMode spawnMode;
 
         public override VFXContextType compatibleContexts { get { return VFXContextType.InitAndUpdateAndOutput; } }
-        public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
+        public override VFXDataType compatibleData { get { return VFXDataType.Particle; } }
 
         protected virtual bool needDirectionWrite { get { return false; } }
 

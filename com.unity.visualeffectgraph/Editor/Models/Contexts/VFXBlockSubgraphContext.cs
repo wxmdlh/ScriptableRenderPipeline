@@ -10,7 +10,7 @@ namespace UnityEditor.VFX
     [VFXInfo]
     class VFXBlockSubgraphContext : VFXContext
     {
-        public VFXBlockSubgraphContext():base(VFXContextType.None, VFXDataType.kNone, VFXDataType.kNone)
+        public VFXBlockSubgraphContext():base(VFXContextType.None, VFXDataType.None, VFXDataType.None)
         {
         }
         protected override int inputFlowCount { get { return 0; } }

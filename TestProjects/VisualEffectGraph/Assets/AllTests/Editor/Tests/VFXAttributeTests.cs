@@ -15,7 +15,7 @@ namespace UnityEditor.VFX.Test
     {
         private abstract class ContextTest : VFXContext
         {
-            protected ContextTest(VFXContextType type) : base(type, VFXDataType.kParticle, VFXDataType.kParticle)
+            protected ContextTest(VFXContextType type) : base(type, VFXDataType.Particle, VFXDataType.Particle)
             {}
 
             public override IEnumerable<VFXAttributeInfo> attributes
@@ -92,7 +92,7 @@ namespace UnityEditor.VFX.Test
         private class BlockTest : VFXBlock
         {
             public override VFXContextType compatibleContexts { get { return VFXContextType.None; } }
-            public override VFXDataType compatibleData { get { return VFXDataType.kNone; } }
+            public override VFXDataType compatibleData { get { return VFXDataType.None; } }
 
             public override IEnumerable<VFXAttributeInfo> attributes
             {

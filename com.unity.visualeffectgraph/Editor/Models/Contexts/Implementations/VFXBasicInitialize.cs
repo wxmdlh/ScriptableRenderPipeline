@@ -11,7 +11,7 @@ namespace UnityEditor.VFX
         [VFXSetting, Delayed]
         private uint capacity = 0; // not serialized here but in VFXDataParticle
 
-        public VFXBasicInitialize() : base(VFXContextType.Init, VFXDataType.kSpawnEvent, VFXDataType.kParticle) {}
+        public VFXBasicInitialize() : base(VFXContextType.Init, VFXDataType.SpawnEvent, VFXDataType.Particle) {}
         public override string name { get { return "Initialize"; } }
         public override string codeGeneratorTemplate { get { return VisualEffectGraphPackageInfo.assetPackagePath + "/Shaders/VFXInit"; } }
         public override bool codeGeneratorCompute { get { return true; } }
