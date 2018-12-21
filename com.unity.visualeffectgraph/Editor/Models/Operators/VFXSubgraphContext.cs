@@ -85,7 +85,45 @@ namespace UnityEditor.VFX
         }
 
 
+        private void OnDisable()
+        {
+            DetachFromOriginal();
+        }
+
+
         public void RecreateCopy()
+        {
+            DetachFromOriginal();
+
+            if (m_SubGraph == null)
+            {
+                m_SubChildren = null;
+                return;
+            }
+
+            var graph = m_SubGraph.GetResource().GetOrCreateGraph();
+            HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
+            graph.CollectDependencies(dependencies, false);
+
+            var duplicated = VFXMemorySerializer.DuplicateObjects(dependencies.ToArray());
+            m_SubChildren = duplicated.OfType<VFXModel>().Where(t => t is VFXContext || t is VFXOperator || t is VFXParameter).ToArray();
+
+            foreach (var child in duplicated.Zip(dependencies, (a, b) => new { copy = a, original = b }))
+            {
+                if (child.copy is VFXSlot)
+                {
+                    var original = child.original as VFXSlot;
+                    var copy = child.copy as VFXSlot;
+                    if (original.direction == VFXSlot.Direction.kInput || original.owner is VFXParameter)
+                    {
+                        m_OriginalToCopy[original] = copy;
+                        original.onInvalidateDelegate += OnOriginalSlotModified;
+                    }
+                }
+            }
+        }
+
+        private void DetachFromOriginal()
         {
             if (m_SubChildren != null)
             {
@@ -97,25 +135,24 @@ namespace UnityEditor.VFX
                         ScriptableObject.DestroyImmediate(child, true);
                     }
                 }
-            }
 
-            if (m_SubGraph == null)
-            {
-                m_SubChildren = null;
-                return;
-            }
-
-            var graph = m_SubGraph.GetResource().GetOrCreateGraph();
-            HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
-            graph.CollectDependencies(dependencies, false);
-            m_SubChildren = VFXMemorySerializer.DuplicateObjects(dependencies.ToArray()).OfType<VFXModel>().Where(t => t is VFXContext || t is VFXOperator || t is VFXParameter).ToArray();
-
-            foreach (var child in m_SubChildren)
-            {
-                child.onInvalidateDelegate += SubChildrenOnInvalidate;
-
+                foreach (var kv in m_OriginalToCopy)
+                {
+                    kv.Key.onInvalidateDelegate -= OnOriginalSlotModified;
+                }
             }
         }
+
+        public void OnOriginalSlotModified(VFXModel original,InvalidationCause cause)
+        {
+            if (cause == InvalidationCause.kParamChanged)
+            {
+                m_OriginalToCopy[original as VFXSlot].value = (original as VFXSlot).value;
+                Invalidate(InvalidationCause.kParamChanged);
+            }
+        }
+
+        Dictionary<VFXSlot, VFXSlot> m_OriginalToCopy = new Dictionary<VFXSlot, VFXSlot>();
 
         void PatchInputExpressions()
         {
