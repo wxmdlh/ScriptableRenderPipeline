@@ -10,22 +10,22 @@ namespace UnityEditor.VFX
     class VFXSubgraphBlock : VFXBlock
     {
         [VFXSetting,SerializeField]
-        protected VisualEffectAsset m_SubAsset;
+        protected VisualEffectSubgraphBlock m_SubGraph;
         
         VFXModel[] m_SubChildren;
         VFXBlock[] m_SubBlocks;
 
-        public VisualEffectAsset subAsset
+        public VisualEffectSubgraphBlock subGraph
         {
-            get { return m_SubAsset; }
+            get { return m_SubGraph; }
         }
 
-        public sealed override string name { get { return m_SubAsset!= null ? m_SubAsset.name : "Subgraph"; } }
+        public sealed override string name { get { return m_SubGraph!= null ? m_SubGraph.name : "Subgraph"; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
-                if(m_SubChildren == null && m_SubAsset != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
+                if(m_SubChildren == null && m_SubGraph != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
                 {
                     foreach (var slot in inputSlots)
                     {
@@ -120,14 +120,14 @@ namespace UnityEditor.VFX
                 }
             }
 
-            if (m_SubAsset == null)
+            if (m_SubGraph == null)
             {
                 m_SubChildren = null;
                 m_SubBlocks = null;
                 return;
             }
 
-            var graph = m_SubAsset.GetResource().GetOrCreateGraph();
+            var graph = m_SubGraph.GetResource().GetOrCreateGraph();
             HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
 
             var context = graph.children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
@@ -197,7 +197,7 @@ namespace UnityEditor.VFX
         {
             if( cause == InvalidationCause.kSettingChanged || cause == InvalidationCause.kExpressionInvalidated)
             {
-                if( cause == InvalidationCause.kSettingChanged && (m_SubAsset != null || object.ReferenceEquals(m_SubAsset,null))) // do not recreate subchildren if the subgraph is not available but is not null
+                if( cause == InvalidationCause.kSettingChanged && (m_SubGraph != null || object.ReferenceEquals(m_SubGraph,null))) // do not recreate subchildren if the subgraph is not available but is not null
                 {
                     RecreateCopy();
                 }

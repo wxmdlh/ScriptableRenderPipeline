@@ -288,7 +288,7 @@ namespace UnityEditor.VFX
         
         void RecursePutSubgraphParent(Dictionary<VFXSubgraphContext, VFXSubgraphContext> parents, List<VFXSubgraphContext> subgraphs,VFXSubgraphContext subgraph)
         {
-            foreach(var subSubgraph in subgraph.subChildren.OfType<VFXSubgraphContext>())
+            foreach (var subSubgraph in subgraph.subChildren.OfType<VFXSubgraphContext>().Where(t => t.subGraph != null))
             {
                 subgraphs.Add(subSubgraph);
                 parents[subSubgraph] = subgraph;
@@ -798,7 +798,7 @@ namespace UnityEditor.VFX
         {
             var contexts = graph.children.OfType<VFXContext>().Where(c => c.CanBeCompiled());
 
-            foreach ( var subgraph in graph.children.OfType<VFXSubgraphOperator>().Where(t => t.subAsset != null).Select(t => t.subAsset.GetResource().GetOrCreateGraph()))
+            foreach ( var subgraph in graph.children.OfType<VFXSubgraphOperator>().Where(t => t.subGraph != null).Select(t => t.subGraph.GetResource().GetOrCreateGraph()))
             {
                 contexts = contexts.Concat(RecurseFindCompilableContexts(graph));
             }
@@ -918,7 +918,7 @@ namespace UnityEditor.VFX
 
                 subgraphInfos.subgraphs = new List<VFXSubgraphContext>();
 
-                foreach (var subgraph in m_Graph.children.OfType<VFXSubgraphContext>())
+                foreach (var subgraph in m_Graph.children.OfType<VFXSubgraphContext>().Where(t=>t.subGraph != null))
                 {
                     subgraphInfos.subgraphs.Add(subgraph);
                     RecursePutSubgraphParent(subgraphInfos.subgraphParents, subgraphInfos.subgraphs, subgraph);

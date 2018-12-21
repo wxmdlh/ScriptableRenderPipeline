@@ -77,21 +77,55 @@ namespace UnityEditor
             ProjectWindowUtil.CreateAssetWithContent("New VFX.vfx", templateString,EditorGUIUtility.FindTexture(typeof(VisualEffectAsset)));
         }
 
-        internal class DoCreateNewSubgraph : EndNameEditAction
+        internal class DoCreateNewSubgraphContext : EndNameEditAction
         {
             public override void Action(int instanceId, string pathName, string resourceFile)
             {
-                VisualEffectSubgraph sg = VisualEffectResource.CreateNewSubgraph(pathName);
+                var sg = VisualEffectResource.CreateNewSubgraphContext(pathName);
                 ProjectWindowUtil.FrameObjectInProjectWindow(sg.GetInstanceID());
             }
         }
 
-        [MenuItem("Assets/Create/Visual Effects/Visual Effect Subgraph", false, 307)]
-        public static void CreateVisualEffectSubgraph()
+        internal class DoCreateNewSubgraphOperator : EndNameEditAction
         {
-            DoCreateNewSubgraph action = DoCreateNewSubgraph.CreateInstance<DoCreateNewSubgraph>();
+            public override void Action(int instanceId, string pathName, string resourceFile)
+            {
+                var sg = VisualEffectResource.CreateNewSubgraphOperator(pathName);
+                ProjectWindowUtil.FrameObjectInProjectWindow(sg.GetInstanceID());
+            }
+        }
 
-            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, action, "New VFX Subgraph.subvfx", EditorGUIUtility.FindTexture(typeof(VisualEffectSubgraph)), null);
+        internal class DoCreateNewSubgraphBlock : EndNameEditAction
+        {
+            public override void Action(int instanceId, string pathName, string resourceFile)
+            {
+                var sg = VisualEffectResource.CreateNewSubgraphBlock(pathName);
+                ProjectWindowUtil.FrameObjectInProjectWindow(sg.GetInstanceID());
+            }
+        }
+
+        [MenuItem("Assets/Create/Visual Effects/Visual Effect Subgraph Context", false, 307)]
+        public static void CreateVisualEffectSubgraphContext()
+        {
+            var action = DoCreateNewSubgraphContext.CreateInstance<DoCreateNewSubgraphContext>();
+
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, action, "New VFX Subgraph Context.subvfxcontext", EditorGUIUtility.FindTexture(typeof(VisualEffectSubgraphContext)), null);
+        }
+
+        [MenuItem("Assets/Create/Visual Effects/Visual Effect Subgraph Operator", false, 308)]
+        public static void CreateVisualEffectSubgraphOperator()
+        {
+            var action = DoCreateNewSubgraphOperator.CreateInstance<DoCreateNewSubgraphOperator>();
+
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, action, "New VFX Subgraph Operator.subvfxoperator", EditorGUIUtility.FindTexture(typeof(VisualEffectSubgraphOperator)), null);
+        }
+
+        [MenuItem("Assets/Create/Visual Effects/Visual Effect Subgraph Block", false, 309)]
+        public static void CreateVisualEffectSubgraphBlock()
+        {
+            var action = DoCreateNewSubgraphBlock.CreateInstance<DoCreateNewSubgraphBlock>();
+
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, action, "New VFX Subgraph Block.subvfxblock", EditorGUIUtility.FindTexture(typeof(VisualEffectSubgraphBlock)), null);
         }
     }
 }
