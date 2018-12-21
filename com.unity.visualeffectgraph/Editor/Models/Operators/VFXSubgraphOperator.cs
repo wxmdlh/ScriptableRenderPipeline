@@ -1,26 +1,26 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using UnityEditor.Experimental.VFX;
 using UnityEngine;
-using UnityEngine.Experimental.VFX;
 
 namespace UnityEditor.VFX
 {
     class VFXSubgraphOperator : VFXOperator
     {
         [VFXSetting,SerializeField]
-        protected VisualEffectAsset m_SubAsset;
+        protected VisualEffectSubgraphOperator m_SubGraph;
 
-        public VisualEffectAsset subAsset
+        public VisualEffectSubgraphOperator subGraph
         {
-            get { return m_SubAsset; }
+            get { return m_SubGraph; }
         }
 
         public VFXSubgraphOperator()
         {
         }
 
-        public sealed override string name { get { return m_SubAsset!= null ? m_SubAsset.name : "Subgraph"; } }
+        public sealed override string name { get { return m_SubGraph!= null ? m_SubGraph.name : "Subgraph"; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
@@ -54,9 +54,9 @@ namespace UnityEditor.VFX
         IEnumerable<VFXParameter> GetParameters(Func<VFXParameter,bool> predicate)
         {
 
-            if (m_SubAsset == null)
+            if (m_SubGraph == null)
                 return Enumerable.Empty<VFXParameter>();
-            VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
+            VFXGraph graph = m_SubGraph.GetResource().GetOrCreateGraph();
             return graph.children.OfType<VFXParameter>().Where(t => predicate(t)).OrderBy(t => t.order);
         }
 
@@ -64,17 +64,17 @@ namespace UnityEditor.VFX
         {
             base.CollectDependencies(objs,compileOnly);
 
-            if (!compileOnly || m_SubAsset == null)
+            if (!compileOnly || m_SubGraph == null)
                 return;
 
-            m_SubAsset.GetResource().GetOrCreateGraph().CollectDependencies(objs,true);
+            m_SubGraph.GetResource().GetOrCreateGraph().CollectDependencies(objs,true);
         }
 
         protected override VFXExpression[] BuildExpression(VFXExpression[] inputExpression)
         {
-            if (m_SubAsset == null)
+            if (m_SubGraph == null)
                 return new VFXExpression[0];
-            VFXGraph graph = m_SubAsset.GetResource().GetOrCreateGraph();
+            VFXGraph graph = m_SubGraph.GetResource().GetOrCreateGraph();
             int cptSlot = 0;
 
             var toInvalidate = new HashSet<VFXSlot>();

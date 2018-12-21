@@ -155,7 +155,7 @@ public class VisualEffectAssetEditor : Editor
             VFXViewWindow.GetWindow<VFXViewWindow>().LoadAsset(obj as VisualEffectAsset, null);
             return true;
         }
-        else if (obj is VisualEffectSubgraph)
+        else if (obj is VisualEffectSubgraphContext || obj is VisualEffectSubgraphBlock || obj is VisualEffectSubgraphOperator)
         {
             VisualEffectResource resource = VisualEffectResource.GetResourceAtPath(AssetDatabase.GetAssetPath(obj));
 
