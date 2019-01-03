@@ -1,16 +1,10 @@
 using System;
-using UnityEditor.UIElements;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.Experimental.VFX;
 using UnityEngine.UIElements;
-using UnityEditor.VFX;
+using UnityEditor.Experimental.VFX;
 using System.Collections.Generic;
-using UnityEditor;
 using System.Linq;
-using System.Text;
-using UnityEditor.Graphs;
-using UnityEditor.SceneManagement;
 
 using PositionType = UnityEngine.UIElements.Position;
 
@@ -77,10 +71,6 @@ namespace  UnityEditor.VFX.UI
             m_DefaultCategory = new VFXBlackboardCategory() { title = "parameters"};
             Add(m_DefaultCategory);
             m_DefaultCategory.headerVisible = false;
-            m_OutputCategory = new VFXBlackboardCategory() { title = "output" };
-            m_OutputCategory.headerVisible = true;
-            m_OutputCategory.expanded = PlayerPrefs.GetInt("VFX.blackboard.outputexpanded", 0) != 0;
-            Add(m_OutputCategory);
 
             styleSheets.Add(Resources.Load<StyleSheet>("VFXBlackboard"));
 
@@ -416,6 +406,20 @@ namespace  UnityEditor.VFX.UI
                 title = controller.name;
                 return;
             }
+
+             if( controller.model.subgraph is VisualEffectSubgraphOperator && m_OutputCategory == null)
+            {
+                m_OutputCategory = new VFXBlackboardCategory() { title = "output" };
+                m_OutputCategory.headerVisible = true;
+                m_OutputCategory.expanded = PlayerPrefs.GetInt("VFX.blackboard.outputexpanded", 0) != 0;
+                Add(m_OutputCategory);
+            }
+            else if(!(controller.model.subgraph is VisualEffectSubgraphOperator) && m_OutputCategory != null )
+            {
+                Remove(m_OutputCategory);
+                m_OutputCategory = null;
+            }
+
             var actualControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => !t.isOutput && string.IsNullOrEmpty(t.model.category)));
             m_DefaultCategory.SyncParameters(actualControllers);
 
@@ -456,7 +460,8 @@ namespace  UnityEditor.VFX.UI
                     cat.PlaceInFront(prevCat);
                 prevCat = cat;
             }
-            m_OutputCategory.PlaceInFront(prevCat);
+            if(m_OutputCategory != null)
+                m_OutputCategory.PlaceInFront(prevCat);
 
             foreach (var cat in newCategories)
             {
@@ -465,8 +470,12 @@ namespace  UnityEditor.VFX.UI
                 cat.expanded = m_ExpandedStatus[cat.title];
             }
 
-            var outputControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.isOutput));
-            m_OutputCategory.SyncParameters(outputControllers);
+            if (m_OutputCategory != null)
+            {
+                var outputControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.isOutput));
+                m_OutputCategory.SyncParameters(outputControllers);
+            }
+                
         }
 
         public override void UpdatePresenterPosition()

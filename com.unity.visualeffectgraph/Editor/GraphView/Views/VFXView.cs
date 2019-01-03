@@ -111,8 +111,25 @@ namespace UnityEditor.VFX.UI
             elementsRemovedFromGroup = ElementRemovedFromGroupNode;
             groupTitleChanged = GroupNodeTitleChanged;
 
-            m_NodeProvider = new VFXNodeProvider(controller, (d, mPos) => AddNode(d, mPos));
+            m_NodeProvider = new VFXNodeProvider(controller, (d, mPos) => AddNode(d, mPos),null, GetAcceptedTypeNodes());
+
+            //Make sure a subgraph block as a block subgraph  context
+            if (controller.model.isSubgraph && controller.model.subgraph is VisualEffectSubgraphBlock)
+            {
+                if( !controller.graph.children.Any(t=>t is VFXBlockSubgraphContext) )
+                {
+                    controller.graph.AddChild(VFXBlockSubgraphContext.CreateInstance<VFXBlockSubgraphContext>(),0);
+                }
+            }
         }
+
+        IEnumerable<Type> GetAcceptedTypeNodes()
+        {
+            if (!controller.model.isSubgraph || controller.model.subgraph is VisualEffectSubgraphContext)
+                return null;
+            return new Type[] { typeof(VFXOperator) };
+        }
+
 
         public VisualEffect attachedComponent
         {
