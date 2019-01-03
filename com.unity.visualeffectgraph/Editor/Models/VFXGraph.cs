@@ -44,10 +44,19 @@ namespace UnityEditor.VFX
 
     public class VisualEffectAssetModicationProcessor : UnityEditor.AssetModificationProcessor
     {
+
+        public static bool HasVFXExtension(string filePath)
+        {
+            return filePath.EndsWith(".vfx")
+                || filePath.EndsWith(".subvfxcontext")
+                || filePath.EndsWith(".subvfxoperator")
+                || filePath.EndsWith(".subvfxblock");
+        }
+
         static string[] OnWillSaveAssets(string[] paths)
         {
             Profiler.BeginSample("VisualEffectAssetModicationProcessor.OnWillSaveAssets");
-            foreach (string path in paths.Where(t => t.EndsWith(".vfx") || t.EndsWith(".subvfxcontext") || t.EndsWith(".subvfxoperator") || t.EndsWith(".subvfxblock")))
+            foreach (string path in paths.Where(t =>HasVFXExtension(t)))
             {
                 var vfxResource = VisualEffectResource.GetResourceAtPath(path);
                 if (vfxResource != null)
@@ -63,7 +72,7 @@ namespace UnityEditor.VFX
 
         static AssetDeleteResult OnWillDeleteAsset(string assetPath, RemoveAssetOptions option)
         {
-            if (assetPath.EndsWith(".vfx"))
+            if (HasVFXExtension(assetPath))
             {
                 VisualEffectResource.DeleteAtPath(assetPath);
             }
