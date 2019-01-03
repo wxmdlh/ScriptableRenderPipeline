@@ -46,7 +46,8 @@ namespace UnityEditor.VFX.UI
             }
             else
             {
-                CopyNodes(serializableGraph, elements, contexts, nodes, bounds);
+                //Don't copy VFXBlockSubgraphContext because they can't be pasted anywhere.
+                CopyNodes(serializableGraph, elements, contexts.Where(t=>!(t.model is VFXBlockSubgraphContext)), nodes, bounds);
             }
 
             return serializableGraph;
