@@ -465,7 +465,7 @@ namespace UnityEditor.VFX
                     {
                         if( block is VFXSubgraphBlock)
                         {
-                            var subgraphBlock = model as VFXSubgraphBlock;
+                            var subgraphBlock = block as VFXSubgraphBlock;
 
                             if (subgraphBlock.subGraph != null && !explored.Contains(subgraphBlock.subGraph))
                             {
