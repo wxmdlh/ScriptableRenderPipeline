@@ -1,6 +1,7 @@
 //#define USE_SHADER_AS_SUBASSET
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEditor.Experimental.VFX;
 using UnityEngine;
@@ -516,10 +517,10 @@ namespace UnityEditor.VFX
                     compiledData.Compile(m_CompilationMode, m_ForceShaderValidation);
                     m_ExpressionGraphDirty = false;
                 }
-                else
+                /*else // This does not work because dependents graph are in collapsed form as they are not opened in the editor.
                 {
                     compiledData.UpdateValues();
-                }
+                }*/
 
                 m_ExpressionValuesDirty = false;
             }
@@ -616,6 +617,11 @@ namespace UnityEditor.VFX
 
         [SerializeField]
         private List<VisualEffectSubgraph> m_SubgraphDependencies = new List<VisualEffectSubgraph>();
+
+        public ReadOnlyCollection<VisualEffectSubgraph> subgraphDependencies
+        {
+            get { return m_SubgraphDependencies.AsReadOnly(); }
+        }
 
         private VisualEffectResource m_Owner;
     }

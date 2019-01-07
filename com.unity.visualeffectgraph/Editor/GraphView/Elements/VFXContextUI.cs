@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Experimental.VFX;
+using UnityEditor.Experimental.VFX;
 using UnityEngine.UIElements;
 using UnityEngine.Profiling;
 using System.Reflection;
@@ -385,9 +386,9 @@ namespace UnityEditor.VFX.UI
             }
             else
             {
-                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>();
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphBlock>();
 
-                if (references.Count() > 0 && references.First() != controller.viewController.model.asset) //TODO test cyclic proper dependency
+                if (references.Count() > 0 && (!controller.viewController.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.viewController.model.subgraph))))
                 {
                     var context = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
                     if( context != null && (context.compatibleContextType & controller.model.contextType) == controller.model.contextType)
@@ -428,9 +429,9 @@ namespace UnityEditor.VFX.UI
             }
             else
             {
-                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>();
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphBlock>();
 
-                if (references.Count() > 0 && references.First() != controller.viewController.model.asset) //TODO test cyclic proper dependency
+                if (references.Count() > 0 && (!controller.viewController.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.viewController.model.subgraph))))
                 {
                     var context = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
                     if (context != null && (context.compatibleContextType & controller.model.contextType) == controller.model.contextType)
@@ -443,7 +444,7 @@ namespace UnityEditor.VFX.UI
 
                         controller.AddBlock(blockIndex, newModel);
 
-                        newModel.SetSettingValue("m_SubAsset", references.First());
+                        newModel.SetSettingValue("m_SubGraph", references.First());
                     }
 
                     evt.StopPropagation();
