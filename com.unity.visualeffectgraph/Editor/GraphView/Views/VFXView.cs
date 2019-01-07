@@ -1617,15 +1617,16 @@ namespace UnityEditor.VFX.UI
             }
             else
             {
-                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>();
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphContext>().Cast<VisualEffectSubgraph>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
 
-                if( references.Count() > 0 && references.First() != controller.model.asset) //TODO test cyclic proper dependency
+                if( references.Count() > 0 && (! controller.model.isSubgraph || ! references.Any(t=> t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph))) )
                 {
                     DragAndDrop.visualMode = DragAndDropVisualMode.Link;
                     e.StopPropagation();
                 }
             }
         }
+
 
         void OnDragPerform(DragPerformEvent e)
         {
@@ -1648,17 +1649,16 @@ namespace UnityEditor.VFX.UI
             else
             {
                 DragAndDrop.AcceptDrag();
-                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>();
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphContext>().Cast<VisualEffectSubgraph>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
 
-                if (references.Count() > 0 && references.First() != controller.model.asset) //TODO test cyclic proper dependency
+                if (references.Count() > 0 && (!controller.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph))))
                 {
+                    Vector2 mousePosition = contentViewContainer.WorldToLocal(e.mousePosition);
+                    VFXModel newModel = (references.First() is VisualEffectSubgraphContext) ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel : VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
 
-                    Vector2 mPos = this.ChangeCoordinatesTo(contentViewContainer, e.mousePosition);
-                    VFXModel newModel = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXContext>().Count() > 0 ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel : VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
+                    controller.AddVFXModel(mousePosition, newModel);
 
-                    controller.AddVFXModel(e.mousePosition, newModel);
-
-                    newModel.SetSettingValue("m_SubAsset", references.First());
+                    newModel.SetSettingValue("m_SubGraph", references.First());
 
                     //TODO add to picked groupnode
                     e.StopPropagation();
