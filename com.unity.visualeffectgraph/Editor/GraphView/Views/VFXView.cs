@@ -1,3 +1,4 @@
+
 //#define OLD_COPY_PASTE
 using System;
 using System.Linq;
@@ -1619,7 +1620,7 @@ namespace UnityEditor.VFX.UI
             {
                 var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphContext>().Cast<VisualEffectSubgraph>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
 
-                if( references.Count() > 0 && (! controller.model.isSubgraph || ! references.Any(t=> t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph))) )
+                if( references.Count() > 0 && (! controller.model.isSubgraph || ! references.Any(t=> t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model))) 
                 {
                     DragAndDrop.visualMode = DragAndDropVisualMode.Link;
                     e.StopPropagation();
@@ -1651,7 +1652,7 @@ namespace UnityEditor.VFX.UI
                 DragAndDrop.AcceptDrag();
                 var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphContext>().Cast<VisualEffectSubgraph>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
 
-                if (references.Count() > 0 && (!controller.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph))))
+                if (references.Count() > 0 && (!controller.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model)))
                 {
                     Vector2 mousePosition = contentViewContainer.WorldToLocal(e.mousePosition);
                     VFXModel newModel = (references.First() is VisualEffectSubgraphContext) ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel : VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
