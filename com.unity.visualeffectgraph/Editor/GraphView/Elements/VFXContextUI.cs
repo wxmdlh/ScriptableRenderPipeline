@@ -388,7 +388,7 @@ namespace UnityEditor.VFX.UI
             {
                 var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphBlock>();
 
-                if (references.Count() > 0 && (!controller.viewController.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.viewController.model.subgraph))))
+                if (references.Count() > 0 && (!controller.viewController.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.viewController.model.subgraph) || t.GetResource() == controller.viewController.model)))
                 {
                     var context = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
                     if( context != null && (context.compatibleContextType & controller.model.contextType) == controller.model.contextType)
@@ -431,7 +431,7 @@ namespace UnityEditor.VFX.UI
             {
                 var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphBlock>();
 
-                if (references.Count() > 0 && (!controller.viewController.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.viewController.model.subgraph))))
+                if (references.Count() > 0 && (!controller.viewController.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.viewController.model.subgraph) || t.GetResource() == controller.viewController.model)))
                 {
                     var context = references.First().GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
                     if (context != null && (context.compatibleContextType & controller.model.contextType) == controller.model.contextType)
