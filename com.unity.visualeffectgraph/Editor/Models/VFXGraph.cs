@@ -139,6 +139,32 @@ namespace UnityEditor.VFX
         // size refactor
         public static readonly int CurrentVersion = 1;
 
+        string shaderNamePrefix = "Hidden/VFX";
+        public string GetContextShaderName(VFXContext context)
+        {
+            string prefix = shaderNamePrefix;
+            if (context.GetData() != null)
+            {
+                string dataName = context.GetData().fileName;
+                if (!string.IsNullOrEmpty(dataName))
+                    prefix += "/" + dataName;
+            }
+
+            if (context.letter != '\0')
+            {
+                if (string.IsNullOrEmpty(context.label))
+                    return string.Format("{2}/({0}) {1}", context.letter, libraryName, prefix);
+                else
+                    return string.Format("{2}/({0}) {1}", context.letter, context.label, prefix);
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(context.label))
+                    return string.Format("{1}/{0}", libraryName, prefix);
+                else
+                    return string.Format("{1}/{0}", context.label, prefix);
+            }
+        }
         public override void OnEnable()
         {
             base.OnEnable();
@@ -543,6 +569,24 @@ namespace UnityEditor.VFX
             }
         }
 
+        public void ComputeDataIndices()
+        {
+            VFXContext[] directContexts = children.OfType<VFXContext>().ToArray();
+
+            HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
+            CollectDependencies(dependencies, true);
+
+            VFXContext[] allContexts = dependencies.OfType<VFXContext>().ToArray();
+
+            IEnumerable<VFXData> datas = allContexts.Select(t => t.GetData()).Where(t => t != null).Distinct().OrderBy(t => directContexts.Contains(t.owners.First()) ? 0 : 1);
+
+            int cpt = 1;
+            foreach (var data in datas)
+            {
+                data.index = cpt++;
+            }
+        }
+
         public void RecompileIfNeeded(bool preventRecompilation = false)
         {
             SanitizeGraph();
@@ -553,8 +597,10 @@ namespace UnityEditor.VFX
                 if (considerGraphDirty)
                 {
                     BuildSubGraphDependencies();
-
                     RecurseSubgraphRecreateCopy(this);
+
+                    ComputeDataIndices();
+
                     compiledData.Compile(m_CompilationMode, m_ForceShaderValidation);
 
                 }

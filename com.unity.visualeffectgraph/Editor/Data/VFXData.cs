@@ -43,30 +43,7 @@ namespace UnityEditor.VFX
 
         public int index
         {
-            get
-            {
-                if ( m_Parent == null)
-                {
-                    string assetPath = AssetDatabase.GetAssetPath(this);
-                    m_Parent = VisualEffectResource.GetResourceAtPath(assetPath).GetOrCreateGraph();
-                }
-                
-                VFXGraph graph = GetGraph();
-
-                HashSet<VFXData> datas = new HashSet<VFXData>();
-
-                foreach (var child in graph.children.OfType<VFXContext>())
-                {
-                        VFXData data = (child as VFXContext).GetData();
-                        if (data != null)
-                            datas.Add(data);
-                        if (data == this)
-                            return datas.Count();
-                }
-                //throw new InvalidOperationException("Can't determine index of a VFXData without context");
-
-                return 0;
-            }
+            get;set;
         }
 
         public string fileName {
@@ -76,7 +53,7 @@ namespace UnityEditor.VFX
                 int i = this.index;
                 if (i < 0)
                     return string.Empty;
-                return string.IsNullOrEmpty(title)?string.Format("System {0}",index):title;
+                return string.IsNullOrEmpty(title)?string.Format("System {0}",i):title;
             }
         }
 

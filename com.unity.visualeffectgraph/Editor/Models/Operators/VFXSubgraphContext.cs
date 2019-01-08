@@ -127,19 +127,29 @@ namespace UnityEditor.VFX
         {
             if (m_SubChildren != null)
             {
+                HashSet<VFXData> datas = new HashSet<VFXData>();
                 foreach (var child in m_SubChildren)
                 {
                     if (child != null)
                     {
                         child.onInvalidateDelegate -= SubChildrenOnInvalidate;
+                        if (child is VFXContext)
+                        {
+                            datas.Add((child as VFXContext).GetData());
+                        }
                         ScriptableObject.DestroyImmediate(child, true);
                     }
+                }
+                foreach (var data in datas)
+                {
+                    ScriptableObject.DestroyImmediate(data, true);
                 }
 
                 foreach (var kv in m_OriginalToCopy)
                 {
                     kv.Key.onInvalidateDelegate -= OnOriginalSlotModified;
                 }
+                m_OriginalToCopy.Clear();
             }
         }
 
