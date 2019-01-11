@@ -321,25 +321,25 @@ namespace UnityEditor.VFX.UI
         public float GetBlockIndexY(int index, bool middle)
         {
             float y = 0;
-            if (m_BlockContainer.childCount == 0)
+            if (controller.blockControllers.Count == 0)
             {
                 return 0;
             }
-            if (index >= m_BlockContainer.childCount)
+            if (index >= controller.blockControllers.Count)
             {
-                return m_BlockContainer.ElementAt(m_BlockContainer.childCount - 1).layout.yMax;
+                return blocks[controller.blockControllers.Last()].layout.yMax;
             }
             else if (middle)
             {
-                return m_BlockContainer.ElementAt(index).layout.center.y;
+                return blocks[controller.blockControllers[index]].layout.center.y;
             }
             else
             {
-                y = m_BlockContainer.ElementAt(index).layout.yMin;
+                y = blocks[controller.blockControllers[index]].layout.yMin;
 
                 if (index > 0)
                 {
-                    y = (y + m_BlockContainer.ElementAt(index - 1).layout.yMax) * 0.5f;
+                    y = (y + blocks[controller.blockControllers[index-1]].layout.yMax) * 0.5f;
                 }
             }
 
@@ -348,7 +348,7 @@ namespace UnityEditor.VFX.UI
 
         public int GetDragBlockIndex(Vector2 mousePosition)
         {
-            for (int i = 0; i < m_BlockContainer.childCount; ++i)
+            for (int i = 0; i < controller.blockControllers.Count; ++i)
             {
                 float y = GetBlockIndexY(i, true);
 
@@ -358,7 +358,7 @@ namespace UnityEditor.VFX.UI
                 }
             }
 
-            return m_BlockContainer.childCount;
+            return controller.blockControllers.Count;
         }
 
         void OnDragUpdated(DragUpdatedEvent evt)
