@@ -96,10 +96,10 @@ namespace  UnityEditor.VFX.UI
             int cpt = 0;
             foreach (var subController in subControllers)
             {
+                subController.RegisterHandler(this);
                 PropertyRM prop = PropertyRM.Create(subController, 85);
                 if (prop != null)
                 {
-                    subController.RegisterHandler(this);
                     m_SubProperties.Add(prop);
                     Insert(insertIndex++, prop);
                 }
