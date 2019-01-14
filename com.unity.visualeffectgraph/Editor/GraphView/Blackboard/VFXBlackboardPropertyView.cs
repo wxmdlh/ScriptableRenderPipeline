@@ -96,10 +96,10 @@ namespace  UnityEditor.VFX.UI
             int cpt = 0;
             foreach (var subController in subControllers)
             {
-                subController.RegisterHandler(this);
                 PropertyRM prop = PropertyRM.Create(subController, 85);
                 if (prop != null)
                 {
+                    subController.RegisterHandler(this);
                     m_SubProperties.Add(prop);
                     Insert(insertIndex++, prop);
                 }
@@ -163,11 +163,6 @@ namespace  UnityEditor.VFX.UI
                 }
                 else
                 {
-<<<<<<< HEAD
-                    Insert(insertIndex++, m_Property);
-                    RecreateSubproperties(ref insertIndex);
-                    if (m_TooltipProperty == null)
-=======
                     insertIndex++;
                 }
 
@@ -181,20 +176,12 @@ namespace  UnityEditor.VFX.UI
                     if (m_Property != null)
                     {
                         Insert(insertIndex++, m_Property);
-
-                        if (m_SubProperties != null)
-                        {
-                            foreach (var prop in m_SubProperties)
-                            {
-                                prop.RemoveFromHierarchy();
-                            }
-                        }
-                        m_SubProperties = new List<PropertyRM>();
-                        List<int> fieldpath = new List<int>();
                         if (!m_Property.showsEverything)
                         {
-                            CreateSubProperties(ref insertIndex, fieldpath);
+                            RecreateSubproperties(ref insertIndex);
                         }
+                        List<int> fieldpath = new List<int>();
+
                         if (m_TooltipProperty == null)
                         {
                             m_TooltipProperty = new StringPropertyRM(new SimplePropertyRMProvider<string>("Tooltip", () => controller.model.tooltip, t => controller.model.tooltip = t), 55);
@@ -204,14 +191,13 @@ namespace  UnityEditor.VFX.UI
                         Insert(insertIndex++, m_TooltipProperty);
                     }
                     else
->>>>>>> subgraph mode for blackboard.
                     {
                         m_TooltipProperty = null;
                     }
                 }
                 else
                 {
-                    insertIndex += 1 + m_SubProperties.Count + 1; //main property + subproperties + tooltip
+                    insertIndex += 1 + (m_SubProperties!= null ? m_SubProperties.Count : 0)+ 1; //main property + subproperties + tooltip
                 }
 
                 if (controller.canHaveRange)
@@ -272,6 +258,7 @@ namespace  UnityEditor.VFX.UI
             {
                 m_Property = null;
                 m_ExposedProperty = null;
+                m_SubProperties = null;
                 m_MinProperty = null;
                 m_MaxProperty = null;
                 m_RangeProperty = null;
