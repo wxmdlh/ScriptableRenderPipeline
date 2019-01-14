@@ -382,6 +382,7 @@ namespace UnityEditor.VFX
                 return VFXGizmoUtility.NullProperty<T>.defaultProperty;
             }
 
+
             void AddNewValue(List<object> l, object o, SerializedProperty vfxField,string propertyPath,string[] memberPath,int depth)
             {
                 vfxField.InsertArrayElementAtIndex(vfxField.arraySize);
