@@ -1592,8 +1592,19 @@ namespace UnityEditor.VFX.UI
                 evt.menu.InsertSeparator("", 2);
                 evt.menu.InsertAction(3, string.IsNullOrEmpty(context.controller.model.label) ? "Name Context" : "Rename Context", a => context.OnRename(), e => DropdownMenuAction.Status.Normal);
             }
+
+
+            if( ! selection.OfType<VFXNodeUI>().Any(t=> !(t is VFXOperatorUI) && !(t is VFXParameterUI)))
+            {
+                evt.menu.InsertAction(3, "To Subgraph Operator", ToSubgraphOperator, e => DropdownMenuAction.Status.Normal);
+            }
         }
 
+
+        void ToSubgraphOperator(DropdownMenuAction a)
+        {
+            VFXConvertSubgraph.ConvertToSubgraphOperator(this, selection.OfType<IControlledElement>().Select(t => t.controller), GetElementsBounds(selection.Where(t=> !(t is Edge)).Cast<GraphElement>()));
+        }
 
         List<VFXSystemBorder> m_Systems = new List<VFXSystemBorder>();
 

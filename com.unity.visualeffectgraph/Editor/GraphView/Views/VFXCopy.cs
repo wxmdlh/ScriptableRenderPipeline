@@ -20,6 +20,13 @@ namespace UnityEditor.VFX.UI
 
         static VFXCopy s_Instance;
 
+        public static object Copy(IEnumerable<Controller> elements, Rect bounds)
+        {
+            if (s_Instance == null)
+                s_Instance = new VFXCopy();
+            return s_Instance.CreateCopy(elements, bounds);
+        }
+
         public static string SerializeElements(IEnumerable<Controller> elements, Rect bounds)
         {
             if (s_Instance == null)
@@ -29,7 +36,7 @@ namespace UnityEditor.VFX.UI
             return JsonUtility.ToJson(serializableGraph);
         }
 
-        public object CreateCopy(IEnumerable<Controller> elements, Rect bounds)
+        object CreateCopy(IEnumerable<Controller> elements, Rect bounds)
         {
             IEnumerable<VFXContextController> contexts = elements.OfType<VFXContextController>();
             IEnumerable<VFXNodeController> nodes = elements.Where(t => t is VFXOperatorController || t is VFXParameterNodeController).Cast<VFXNodeController>();

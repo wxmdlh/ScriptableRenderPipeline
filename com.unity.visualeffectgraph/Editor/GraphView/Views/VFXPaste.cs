@@ -28,10 +28,17 @@ namespace UnityEditor.VFX.UI
 
             if (s_Instance == null)
                 s_Instance = new VFXPaste();
-            s_Instance.Paste(viewController, center, serializableGraph, view, groupNode);
+            s_Instance.DoPaste(viewController, center, serializableGraph, view, groupNode);
         }
 
-        public void Paste(VFXViewController viewController, Vector2 center, object data, VFXView view, VFXGroupNodeController groupNode)
+        public static void Paste(VFXViewController viewController, Vector2 center, object data, VFXView view, VFXGroupNodeController groupNode)
+        {
+            if (s_Instance == null)
+                s_Instance = new VFXPaste();
+            s_Instance.DoPaste(viewController, center, data, view, groupNode);
+        }
+
+        void DoPaste(VFXViewController viewController, Vector2 center, object data, VFXView view, VFXGroupNodeController groupNode)
         {
             SerializableGraph serializableGraph = (SerializableGraph)data;
 
