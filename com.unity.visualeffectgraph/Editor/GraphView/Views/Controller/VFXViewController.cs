@@ -578,6 +578,12 @@ namespace UnityEditor.VFX.UI
             {
                 return false;
             }
+
+            if( input.sourceNode.viewController != output.sourceNode.viewController)
+            {
+                return false;
+            }
+
             if (!input.CanLink(output))
             {
                 return false;
