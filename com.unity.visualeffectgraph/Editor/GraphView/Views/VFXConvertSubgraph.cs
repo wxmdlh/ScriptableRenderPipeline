@@ -93,10 +93,12 @@ namespace UnityEditor.VFX.UI
                     foreach(var edge in sourceController.dataEdges.Where(
                         t=>
                         {
+                            if (t.output.sourceNode is VFXParameterNodeController || t.input.sourceNode is VFXParameterNodeController)
+                                return false;
                             var inputInControllers = sourceControllers.Contains(t.input.sourceNode);
                             var outputInControllers = sourceControllers.Contains(t.output.sourceNode);
 
-                            return inputInControllers && !outputInControllers && !(t.input.sourceNode is VFXParameterNodeController);
+                            return inputInControllers && !outputInControllers;
                         }
                         ))
                     {
@@ -149,10 +151,12 @@ namespace UnityEditor.VFX.UI
                     foreach (var edge in sourceController.dataEdges.Where(
                         t =>
                         {
+                            if (t.output.sourceNode is VFXParameterNodeController || t.input.sourceNode is VFXParameterNodeController)
+                                return false;
                             var inputInControllers = sourceControllers.Contains(t.input.sourceNode);
                             var outputInControllers = sourceControllers.Contains(t.output.sourceNode);
 
-                            return !inputInControllers && outputInControllers && !(t.output.sourceNode is VFXParameterNodeController);
+                            return !inputInControllers && outputInControllers &&;
                         }
                         ))
                     {
