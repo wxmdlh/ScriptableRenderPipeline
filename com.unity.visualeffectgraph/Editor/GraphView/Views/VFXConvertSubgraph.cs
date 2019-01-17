@@ -44,20 +44,21 @@ namespace UnityEditor.VFX.UI
 
                 VisualEffectSubgraphOperator targetSubgraph = VisualEffectResource.CreateNewSubgraphOperator(targetSubgraphPath);
 
-                VFXViewWindow.currentWindow.LoadResource(targetSubgraph.GetResource());
+                //VFXViewWindow.currentWindow.LoadResource(targetSubgraph.GetResource());
+                //VFXView targetView = VFXViewWindow.currentWindow.graphView;
 
-                VFXView targetView = VFXViewWindow.currentWindow.graphView;
-
+                VFXViewController targetController = VFXViewController.GetController(targetSubgraph.GetResource());
+                targetController.useCount++;
 
                 List<VFXNodeController> targetControllers = new List<VFXNodeController>();
 
-                VFXPaste.Paste(targetView.controller, rect.center, result, targetView, null, targetControllers);
+                VFXPaste.Paste(targetController, rect.center, result, null, null, targetControllers);
 
                 // Change each parameter created by copy paste ( and therefore a parameter copied ) to exposed
 
                 List<VFXParameterController> targetParameters = new List<VFXParameterController>();
 
-                foreach ( var parameter in targetView.controller.parameterControllers)
+                foreach ( var parameter in targetController.parameterControllers)
                 {
                     targetParameters.Add(parameter);
                     parameter.exposed = true;
@@ -82,13 +83,7 @@ namespace UnityEditor.VFX.UI
                     var input = sourceNodeController.inputPorts.First(t => t.model == op.inputSlots[i]);
                     var output = sourceParameters[targetParameters[i].exposedName].outputPorts.First();
 
-                    var inputNode = input.sourceNode;
-                    var outputNode = output.sourceNode;
-
-                    var inputGraph = inputNode.viewController;
-                    var outputGraph = outputNode.viewController;
-
-                    targetView.controller.CreateLink(input, output);
+                    targetController.CreateLink(input, output);
                 }
 
                 {
@@ -119,11 +114,11 @@ namespace UnityEditor.VFX.UI
 
                     for (int i = 0; i < newSourceInputs.Length; ++i)
                     {
-                        VFXParameter newTargetParameter = targetView.controller.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceInputs[i].portType));
+                        VFXParameter newTargetParameter = targetController.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceInputs[i].portType));
 
-                        targetView.controller.LightApplyChanges();
+                        targetController.LightApplyChanges();
 
-                        VFXParameterController newTargetParamController = targetView.controller.GetParameterController(newTargetParameter);
+                        VFXParameterController newTargetParamController = targetController.GetParameterController(newTargetParameter);
                         newTargetParamController.exposed = true;
 
                         var outputs = traversingInEdges[newSourceInputs[i]];
@@ -133,10 +128,10 @@ namespace UnityEditor.VFX.UI
                         VFXNodeController targetNode = targetControllers[sourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
                         VFXDataAnchorController targetAnchor = targetNode.inputPorts.First(t => t.path == newSourceInputs[i].path);
 
-                        VFXNodeController parameterNode = targetView.controller.AddVFXParameter(targetNode.position - new Vector2(200, 0), newTargetParamController, null);
+                        VFXNodeController parameterNode = targetController.AddVFXParameter(targetNode.position - new Vector2(200, 0), newTargetParamController, null);
 
                         // Link the parameternode and the input in the target
-                        targetView.controller.CreateLink(targetAnchor, parameterNode.outputPorts[0]);
+                        targetController.CreateLink(targetAnchor, parameterNode.outputPorts[0]);
 
                         op.ResyncSlots(true);
                         sourceNodeController.ApplyChanges();
@@ -171,18 +166,15 @@ namespace UnityEditor.VFX.UI
                         inputs.Add(edge.input);
                     }
 
-
-
-
                     var newSourceOutputs = traversingOutEdges.Keys.ToArray();
 
                     for (int i = 0; i < newSourceOutputs.Length; ++i)
                     {
-                        VFXParameter newTargetParameter = targetView.controller.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceOutputs[i].portType));
+                        VFXParameter newTargetParameter = targetController.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceOutputs[i].portType));
 
-                        targetView.controller.LightApplyChanges();
+                        targetController.LightApplyChanges();
 
-                        VFXParameterController newTargetParamController = targetView.controller.GetParameterController(newTargetParameter);
+                        VFXParameterController newTargetParamController = targetController.GetParameterController(newTargetParameter);
                         newTargetParamController.exposed = true;
                         newTargetParamController.isOutput = true;
 
@@ -193,10 +185,10 @@ namespace UnityEditor.VFX.UI
                         VFXNodeController targetNode = targetControllers[sourceControllers.IndexOf(newSourceOutputs[i].sourceNode)];
                         VFXDataAnchorController targetAnchor = targetNode.outputPorts.First(t => t.path == newSourceOutputs[i].path);
 
-                        VFXNodeController parameterNode = targetView.controller.AddVFXParameter(targetNode.position + new Vector2(400, 0), newTargetParamController, null);
+                        VFXNodeController parameterNode = targetController.AddVFXParameter(targetNode.position + new Vector2(400, 0), newTargetParamController, null);
 
                         // Link the parameternode and the input in the target
-                        targetView.controller.CreateLink(parameterNode.inputPorts[0],targetAnchor );
+                        targetController.CreateLink(parameterNode.inputPorts[0],targetAnchor );
 
                         op.ResyncSlots(true);
                         sourceNodeController.ApplyChanges();
@@ -206,33 +198,13 @@ namespace UnityEditor.VFX.UI
                             sourceController.CreateLink(input, sourceNodeController.outputPorts.First(t => t.model == op.outputSlots.Last()));
                         }
                     }
-                    /*
-                    for (int i = 0; i < traversingOutEdges.Count; ++i)
-                    {
-                        VFXParameter newTargetParameter = targetView.controller.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == traversingOutEdges[i].output.portType));
 
-                        targetView.controller.LightApplyChanges();
+                }
+                targetController.useCount--;
 
-                        VFXParameterController newTargetParamController = targetView.controller.GetParameterController(newTargetParameter);
-                        newTargetParamController.exposed = true;
-                        newTargetParamController.isOutput = true;
-
-
-                        //first the equivalent of sourceInput in the target
-
-                        VFXNodeController targetNode = targetControllers[sourceControllers.IndexOf(traversingOutEdges[i].output.sourceNode)];
-                        VFXDataAnchorController targetAnchor = targetNode.outputPorts.First(t => t.path == traversingOutEdges[i].output.path);
-
-                        VFXNodeController parameterNode = targetView.controller.AddVFXParameter(targetNode.position + new Vector2(400, 0), newTargetParamController, null);
-
-                        // Link the parameternode and the input in the target
-                        targetView.controller.CreateLink(parameterNode.inputPorts[0], targetAnchor);
-
-                        op.ResyncSlots(true);
-                        sourceNodeController.ApplyChanges();
-                        //Link the input to the matching output of the subgraph
-                        sourceController.CreateLink(traversingOutEdges[i].input, sourceNodeController.outputPorts.First(t => t.model == op.outputSlots.Last()));
-                    }*/
+                foreach ( var element in sourceControllers.Where(t=> !(t is VFXParameterNodeController)))
+                {
+                    sourceController.RemoveElement(element);
                 }
 
             }
