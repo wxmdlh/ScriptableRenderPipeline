@@ -160,7 +160,7 @@ namespace UnityEditor.VFX.UI
             if (nodesInTheSameOrder != null)
             {
                 nodesInTheSameOrder.Clear();
-                nodesInTheSameOrder.AddRange(m_NodesInTheSameOrder.Select(t => viewController.GetNodeController(t.model, t.id)));
+                nodesInTheSameOrder.AddRange(m_NodesInTheSameOrder.Select(t => t.model == null ? null : viewController.GetNodeController(t.model, t.id)));
             }
 
             if (view != null)
