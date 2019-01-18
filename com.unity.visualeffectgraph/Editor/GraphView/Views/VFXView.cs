@@ -126,7 +126,7 @@ namespace UnityEditor.VFX.UI
 
         IEnumerable<Type> GetAcceptedTypeNodes()
         {
-            if (!controller.model.isSubgraph || controller.model.subgraph is VisualEffectSubgraphContext)
+            if (!controller.model.isSubgraph)
                 return null;
             return new Type[] { typeof(VFXOperator) };
         }
@@ -305,6 +305,11 @@ namespace UnityEditor.VFX.UI
 
             button = new Button(OnCompile);
             button.text = "Compile";
+            button.AddToClassList("toolbarItem");
+            m_Toolbar.Add(button);
+
+            button = new Button(OnCompileDependant);
+            button.text = "Compile Dependant";
             button.AddToClassList("toolbarItem");
             m_Toolbar.Add(button);
 
@@ -984,7 +989,13 @@ namespace UnityEditor.VFX.UI
         {
             var graph = controller.graph;
             graph.SetExpressionGraphDirty();
-            graph.RecompileIfNeeded();
+            graph.RecompileIfNeeded(false,true);
+        }
+        void OnCompileDependant()
+        {
+            var graph = controller.graph;
+            graph.SetExpressionGraphDirty();
+            graph.RecompileIfNeeded(true, true);
         }
 
         private bool m_IsRuntimeMode = false;
@@ -1618,7 +1629,7 @@ namespace UnityEditor.VFX.UI
             }
             else
             {
-                var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphContext>().Cast<VisualEffectSubgraph>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>().Cast<VisualEffectObject>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
 
                 if( references.Count() > 0 && (! controller.model.isSubgraph || ! references.Any(t=> t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model))) 
                 {
@@ -1650,12 +1661,12 @@ namespace UnityEditor.VFX.UI
             else
             {
                 DragAndDrop.AcceptDrag();
-                var references = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphContext>().Cast<VisualEffectSubgraph>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
+                var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>().Cast<VisualEffectObject>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
 
                 if (references.Count() > 0 && (!controller.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model)))
                 {
                     Vector2 mousePosition = contentViewContainer.WorldToLocal(e.mousePosition);
-                    VFXModel newModel = (references.First() is VisualEffectSubgraphContext) ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel : VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
+                    VFXModel newModel = (references.First() is VisualEffectAsset) ? VFXSubgraphContext.CreateInstance<VFXSubgraphContext>() as VFXModel : VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
 
                     controller.AddVFXModel(mousePosition, newModel);
 

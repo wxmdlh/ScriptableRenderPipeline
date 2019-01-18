@@ -12,11 +12,11 @@ namespace UnityEditor.VFX
         public const string triggerEventName = "Trigger";
 
         [VFXSetting,SerializeField]
-        protected VisualEffectSubgraphContext m_SubGraph;
+        protected VisualEffectAsset m_SubGraph;
         
         VFXModel[] m_SubChildren;
 
-        public VisualEffectSubgraphContext subGraph
+        public VisualEffectAsset subGraph
         {
             get { return m_SubGraph; }
         }

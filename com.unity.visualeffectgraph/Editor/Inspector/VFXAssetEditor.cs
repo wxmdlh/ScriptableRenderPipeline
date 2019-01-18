@@ -122,7 +122,7 @@ public class VFXExternalShaderProcessor : AssetPostprocessor
             if (resource == null)
                 continue;
             resource.GetOrCreateGraph().SetExpressionGraphDirty();
-            resource.GetOrCreateGraph().RecompileIfNeeded();
+            resource.GetOrCreateGraph().RecompileIfNeeded(false,true);
         }
 
         foreach (var assetPath in vfxToRefresh)
@@ -155,7 +155,7 @@ public class VisualEffectAssetEditor : Editor
             VFXViewWindow.GetWindow<VFXViewWindow>().LoadAsset(obj as VisualEffectAsset, null);
             return true;
         }
-        else if (obj is VisualEffectSubgraphContext || obj is VisualEffectSubgraphBlock || obj is VisualEffectSubgraphOperator)
+        else if (obj is VisualEffectSubgraph)
         {
             VisualEffectResource resource = VisualEffectResource.GetResourceAtPath(AssetDatabase.GetAssetPath(obj));
 

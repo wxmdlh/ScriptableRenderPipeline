@@ -283,6 +283,7 @@ namespace UnityEditor.VFX
             Profiler.EndSample();
             m_ExpressionGraphDirty = true;
             m_ExpressionValuesDirty = true;
+            m_DependentDirty = true;
         }
 
         public override void CollectDependencies(HashSet<ScriptableObject> objs, bool compileOnly = false)
@@ -305,7 +306,7 @@ namespace UnityEditor.VFX
             try
             {
                 EditorUtility.DisplayProgressBar("Saving...", "Rebuild", 0);
-                RecompileIfNeeded();
+                RecompileIfNeeded(false,true);
                 m_saved = true;
             }
             catch (Exception e)
@@ -402,17 +403,19 @@ namespace UnityEditor.VFX
             if (cause == VFXModel.InvalidationCause.kExpressionGraphChanged)
             {
                 m_ExpressionGraphDirty = true;
+                m_DependentDirty = true;
             }
 
             if (cause == VFXModel.InvalidationCause.kParamChanged)
             {
                 m_ExpressionValuesDirty = true;
+                m_DependentDirty = true;
             }
         }
 
         public uint FindReducedExpressionIndexFromSlotCPU(VFXSlot slot)
         {
-            RecompileIfNeeded();
+            RecompileIfNeeded(false,true);
             return compiledData.FindReducedExpressionIndexFromSlotCPU(slot);
         }
 
@@ -422,7 +425,7 @@ namespace UnityEditor.VFX
             {
                 m_CompilationMode = mode;
                 SetExpressionGraphDirty();
-                RecompileIfNeeded();
+                RecompileIfNeeded(false, true);
             }
         }
 
@@ -434,7 +437,7 @@ namespace UnityEditor.VFX
                 if (m_ForceShaderValidation)
                 {
                     SetExpressionGraphDirty();
-                    RecompileIfNeeded();
+                    RecompileIfNeeded(false, true);
                 }
             }
         }
@@ -452,14 +455,14 @@ namespace UnityEditor.VFX
         void BuildSubGraphDependencies()
         {
             if (m_SubgraphDependencies == null)
-                m_SubgraphDependencies = new List<VisualEffectSubgraph>();
+                m_SubgraphDependencies = new List<VisualEffectObject>();
             m_SubgraphDependencies.Clear();
 
-            HashSet<VisualEffectSubgraph> explored = new HashSet<VisualEffectSubgraph>();
+            HashSet<VisualEffectObject> explored = new HashSet<VisualEffectObject>();
             RecurseBuildDependencies(explored,children);
         }
 
-        void RecurseBuildDependencies(HashSet<VisualEffectSubgraph> explored,IEnumerable<VFXModel> models)
+        void RecurseBuildDependencies(HashSet<VisualEffectObject> explored,IEnumerable<VFXModel> models)
         {
             foreach(var model in models)
             {
@@ -587,7 +590,7 @@ namespace UnityEditor.VFX
             }
         }
 
-        public void RecompileIfNeeded(bool preventRecompilation = false)
+        public void RecompileIfNeeded(bool preventRecompilation, bool preventDependencyRecompilation)
         {
             SanitizeGraph();
 
@@ -612,21 +615,17 @@ namespace UnityEditor.VFX
                     m_ExpressionGraphDirty = false;
                 m_ExpressionValuesDirty = false;    
             }
-            else if( !preventRecompilation)
+            if(!preventDependencyRecompilation && m_DependentDirty)
             {
-                bool considerGraphDirty = m_ExpressionGraphDirty && !preventRecompilation;
-                if (considerGraphDirty || m_ExpressionValuesDirty)
+                if (m_DependentDirty)
                 {
                     var subGraph = GetResource().subgraph;
                     foreach (var graph in GetAllGraphs<VisualEffectAsset>())
                     {
-                        graph.SubgraphDirty(subGraph, considerGraphDirty);
+                        graph.SubgraphDirty(subGraph, m_ExpressionGraphDirty);
                     }
-                    m_ExpressionGraphDirty = false;
-
-                    m_ExpressionValuesDirty = false;
+                    m_DependentDirty = false;
                 }
-                   
             }
         }
 
@@ -650,6 +649,8 @@ namespace UnityEditor.VFX
         private bool m_ExpressionGraphDirty = true;
         [NonSerialized]
         private bool m_ExpressionValuesDirty = true;
+        [NonSerialized]
+        private bool m_DependentDirty = true;
 
         [NonSerialized]
         private VFXGraphCompiledData m_CompiledData;
@@ -662,9 +663,9 @@ namespace UnityEditor.VFX
         public bool saved { get { return m_saved; } }
 
         [SerializeField]
-        private List<VisualEffectSubgraph> m_SubgraphDependencies = new List<VisualEffectSubgraph>();
+        private List<VisualEffectObject> m_SubgraphDependencies = new List<VisualEffectObject>();
 
-        public ReadOnlyCollection<VisualEffectSubgraph> subgraphDependencies
+        public ReadOnlyCollection<VisualEffectObject> subgraphDependencies
         {
             get { return m_SubgraphDependencies.AsReadOnly(); }
         }

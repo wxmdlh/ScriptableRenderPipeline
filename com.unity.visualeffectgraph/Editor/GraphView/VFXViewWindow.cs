@@ -199,6 +199,8 @@ namespace  UnityEditor.VFX.UI
 
         public bool autoCompile {get; set; }
 
+        public bool autoCompileDependent { get; set; }
+
         void Update()
         {
             if (graphView == null)
@@ -227,7 +229,7 @@ namespace  UnityEditor.VFX.UI
                         }
 
 
-                        graph.RecompileIfNeeded(!autoCompile);
+                        graph.RecompileIfNeeded(!autoCompile,!autoCompileDependent);
                         controller.RecompileExpressionGraphIfNeeded();
                     }
                 }
