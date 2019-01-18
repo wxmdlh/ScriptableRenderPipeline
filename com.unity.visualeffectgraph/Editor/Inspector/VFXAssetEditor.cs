@@ -25,7 +25,7 @@ public class VFXExternalShaderProcessor : AssetPostprocessor
     {
         if (!allowExternalization)
             return;
-        if (assetPath.EndsWith(".vfx"))
+        if (assetPath.EndsWith(VisualEffectResource.Extension))
         {
             string vfxName = Path.GetFileNameWithoutExtension(assetPath);
             string vfxDirectory = Path.GetDirectoryName(assetPath);
@@ -102,7 +102,7 @@ public class VFXExternalShaderProcessor : AssetPostprocessor
                 if (Path.GetFileName(vfxPath) != k_ShaderDirectory)
                     continue;
 
-                vfxPath = Path.GetDirectoryName(vfxPath) + "/" + vfxName + ".vfx";
+                vfxPath = Path.GetDirectoryName(vfxPath) + "/" + vfxName + VisualEffectResource.Extension;
 
                 if (deletedAssets.Contains(assetPath))
                     vfxToRecompile.Add(vfxPath);
@@ -166,7 +166,7 @@ public class VisualEffectAssetEditor : Editor
         {
             string path = AssetDatabase.GetAssetPath(instanceID);
 
-            if (path.EndsWith(".vfx"))
+            if (path.EndsWith(VisualEffectResource.Extension))
             {
                 var resource = VisualEffectResource.GetResourceAtPath(path);
                 if (resource != null)
