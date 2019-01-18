@@ -31,9 +31,8 @@ namespace UnityEditor
 
 
         public const string templateAssetName = "Simple Particle System.vfx";
-        public const string templateBlockSubgraphAssetName = "Default Subgraph Block.subvfxblock";
-        public const string templateContextSubgraphAssetName = "Default Subgraph Context.subvfxcontext";
-        public const string templateOperatorSubgraphAssetName = "Default Subgraph Operator.subvfxoperator";
+        public const string templateBlockSubgraphAssetName = "Default Subgraph Block.vfxblock";
+        public const string templateOperatorSubgraphAssetName = "Default Subgraph Operator.vfxoperator";
 
         [MenuItem("GameObject/Visual Effects/Visual Effect", false, 10)]
         public static void CreateVisualEffectGameObject(MenuCommand menuCommand)
@@ -101,7 +100,7 @@ namespace UnityEditor
         [MenuItem("Assets/Create/Visual Effects/Visual Effect Subgraph Operator", false, 308)]
         public static void CreateVisualEffectSubgraphOperator()
         {
-            string fileName = "New VFX Subgraph Operator.subvfxoperator";
+            string fileName = "New VFX Subgraph Operator.vfxoperator";
 
             CreateVisualEffectSubgraph<VisualEffectSubgraphOperator, DoCreateNewSubgraphOperator>(fileName, templateOperatorSubgraphAssetName);
         }
@@ -109,7 +108,7 @@ namespace UnityEditor
         [MenuItem("Assets/Create/Visual Effects/Visual Effect Subgraph Block", false, 309)]
         public static void CreateVisualEffectSubgraphBlock()
         {
-            string fileName = "New VFX Subgraph Block.subvfxblock";
+            string fileName = "New VFX Subgraph Block.vfxblock";
 
             CreateVisualEffectSubgraph<VisualEffectSubgraphBlock, DoCreateNewSubgraphBlock>(fileName, templateBlockSubgraphAssetName);
         }

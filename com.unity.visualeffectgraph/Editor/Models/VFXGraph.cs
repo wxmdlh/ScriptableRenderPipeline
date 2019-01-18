@@ -48,10 +48,9 @@ namespace UnityEditor.VFX
 
         public static bool HasVFXExtension(string filePath)
         {
-            return filePath.EndsWith(".vfx")
-                || filePath.EndsWith(".subvfxcontext")
-                || filePath.EndsWith(".subvfxoperator")
-                || filePath.EndsWith(".subvfxblock");
+            return filePath.EndsWith(VisualEffectResource.Extension)
+                || filePath.EndsWith(VisualEffectSubgraphBlock.Extension)
+                || filePath.EndsWith(VisualEffectSubgraphOperator.Extension);
         }
 
         static string[] OnWillSaveAssets(string[] paths)
