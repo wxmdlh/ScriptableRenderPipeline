@@ -995,7 +995,7 @@ namespace UnityEditor.VFX.UI
         {
             var graph = controller.graph;
             graph.SetExpressionGraphDirty();
-            graph.RecompileIfNeeded(true, true);
+            graph.RecompileIfNeeded(true, false);
         }
 
         private bool m_IsRuntimeMode = false;
