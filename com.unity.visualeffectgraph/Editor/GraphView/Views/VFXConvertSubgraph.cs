@@ -35,11 +35,11 @@ namespace UnityEditor.VFX.UI
                 string graphName = Path.GetFileNameWithoutExtension(graphPath);
                 string graphDirPath = Path.GetDirectoryName(graphPath);
 
-                string targetSubgraphPath = string.Format("{0}/{1}_Subgraph.subvfxoperator", graphDirPath, graphName);
+                string targetSubgraphPath = string.Format("{0}/{1}_Subgraph.vfxoperator", graphDirPath, graphName);
                 int cpt = 1;
                 while(File.Exists(targetSubgraphPath))
                 {
-                    targetSubgraphPath = string.Format("{0}/{1}_Subgraph_{2}.subvfxoperator", graphDirPath, graphName,cpt++);
+                    targetSubgraphPath = string.Format("{0}/{1}_Subgraph_{2}.vfxoperator", graphDirPath, graphName,cpt++);
                 }
 
                 VisualEffectSubgraphOperator targetSubgraph = VisualEffectResource.CreateNewSubgraphOperator(targetSubgraphPath);
@@ -156,7 +156,7 @@ namespace UnityEditor.VFX.UI
                             var inputInControllers = sourceControllers.Contains(t.input.sourceNode);
                             var outputInControllers = sourceControllers.Contains(t.output.sourceNode);
 
-                            return !inputInControllers && outputInControllers &&;
+                            return !inputInControllers && outputInControllers;
                         }
                         ))
                     {
