@@ -31,7 +31,7 @@ namespace UnityEditor.VFX.UI
         {
             if( model is VFXSubgraphOperator)
             {
-                model.Invalidate(VFXModel.InvalidationCause.kSettingChanged); // Simulate a settings change in case the subgraph parameters has changed.
+                model.ResyncSlots(false);
             }
         }
 
