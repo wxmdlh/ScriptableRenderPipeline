@@ -95,7 +95,7 @@ namespace UnityEditor.VFX.UI
             var targetController = VFXViewController.GetController(targetSubgraph.GetResource());
             targetController.useCount++;
 
-            try
+            //try
             {
                 List<VFXNodeController> targetControllers = new List<VFXNodeController>();
 
@@ -145,6 +145,9 @@ namespace UnityEditor.VFX.UI
                     targetController.CreateLink(input, output);
                 }
 
+
+                var sourceControllersWithBlocks = sourceControllers.Concat(sourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
+
                 {
                     // Search for links between with inputs in the selected part and the output in other parts of the graph.
                     Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>> traversingInEdges = new Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>>();
@@ -154,8 +157,8 @@ namespace UnityEditor.VFX.UI
                         {
                             if (t.output.sourceNode is VFXParameterNodeController || t.input.sourceNode is VFXParameterNodeController)
                                 return false;
-                            var inputInControllers = sourceControllers.Contains(t.input.sourceNode);
-                            var outputInControllers = sourceControllers.Contains(t.output.sourceNode);
+                            var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
+                            var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
 
                             return inputInControllers && !outputInControllers;
                         }
@@ -186,7 +189,21 @@ namespace UnityEditor.VFX.UI
 
                         //first the equivalent of sourceInput in the target
 
-                        VFXNodeController targetNode = targetControllers[sourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
+                        VFXNodeController targetNode = null;
+
+                        if(newSourceInputs[i].sourceNode is VFXBlockController)
+                        {
+                            var blockController = newSourceInputs[i].sourceNode as VFXBlockController;
+                            
+                            var targetContext = targetControllers[sourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
+
+                            targetNode = targetContext.blockControllers[blockController.index];
+                        }
+                        else
+                        {
+                            targetNode = targetControllers[sourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
+                        }
+
                         VFXDataAnchorController targetAnchor = targetNode.inputPorts.First(t => t.path == newSourceInputs[i].path);
 
                         VFXNodeController parameterNode = targetController.AddVFXParameter(targetNode.position - new Vector2(200, 0), newTargetParamController, null);
@@ -194,8 +211,21 @@ namespace UnityEditor.VFX.UI
                         // Link the parameternode and the input in the target
                         targetController.CreateLink(targetAnchor, parameterNode.outputPorts[0]);
 
-                        if( sourceSlotContainer is VFXOperator)
+                        if (sourceSlotContainer is VFXOperator)
                             (sourceSlotContainer as VFXOperator).ResyncSlots(true);
+                        else if (sourceSlotContainer is VFXSubgraphBlock)
+                        {
+                            VFXSubgraphBlock blk = (sourceSlotContainer as VFXSubgraphBlock);
+                            blk.RecreateCopy();
+                            blk.ResyncSlots(true);
+                        }
+                        else if (sourceSlotContainer is VFXSubgraphContext)
+                        {
+                            VFXSubgraphContext ctx = (sourceSlotContainer as VFXSubgraphContext);
+                            ctx.RecreateCopy();
+                            ctx.ResyncSlots(true);
+                        }
+
                         sourceNodeController.ApplyChanges();
                         //Link all the outputs to the matching input of the subgraph
                         foreach (var output in outputs)
@@ -215,8 +245,8 @@ namespace UnityEditor.VFX.UI
                         {
                             if (t.output.sourceNode is VFXParameterNodeController || t.input.sourceNode is VFXParameterNodeController)
                                 return false;
-                            var inputInControllers = sourceControllers.Contains(t.input.sourceNode);
-                            var outputInControllers = sourceControllers.Contains(t.output.sourceNode);
+                            var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
+                            var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
 
                             return !inputInControllers && outputInControllers;
                         }
@@ -248,7 +278,21 @@ namespace UnityEditor.VFX.UI
 
                         //first the equivalent of sourceInput in the target
 
-                        VFXNodeController targetNode = targetControllers[sourceControllers.IndexOf(newSourceOutputs[i].sourceNode)];
+                        VFXNodeController targetNode = null;
+
+                        if (newSourceOutputs[i].sourceNode is VFXBlockController)
+                        {
+                            var blockController = newSourceOutputs[i].sourceNode as VFXBlockController;
+
+                            var targetContext = targetControllers[sourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
+
+                            targetNode = targetContext.blockControllers[blockController.index];
+                        }
+                        else
+                        {
+                            targetNode = targetControllers[sourceControllers.IndexOf(newSourceOutputs[i].sourceNode)];
+                        }
+
                         VFXDataAnchorController targetAnchor = targetNode.outputPorts.First(t => t.path == newSourceOutputs[i].path);
 
                         VFXNodeController parameterNode = targetController.AddVFXParameter(targetNode.position + new Vector2(400, 0), newTargetParamController, null);
@@ -274,11 +318,11 @@ namespace UnityEditor.VFX.UI
                 }
 
             }
-            catch(System.Exception)
+            /*catch(System.Exception)
             {
                 throw;
-            }
-            finally
+            }*/
+            //finally
             {
                 targetController.useCount--;
                 sourceController.useCount--;
