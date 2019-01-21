@@ -444,11 +444,13 @@ namespace UnityEditor.VFX
         public void SetExpressionGraphDirty()
         {
             m_ExpressionGraphDirty = true;
+            m_DependentDirty = true;
         }
 
         public void SetExpressionValueDirty()
         {
             m_ExpressionValuesDirty = true;
+            m_DependentDirty = true;
         }
 
         void BuildSubGraphDependencies()
