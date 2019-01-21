@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.VFX;
 using UnityEditor.Experimental.VFX;
 using UnityEditor.Experimental.GraphView;
 
@@ -12,50 +13,95 @@ namespace UnityEditor.VFX.UI
 {
     static class VFXConvertSubgraph
     {
+        public static void ConvertToSubgraphContext(VFXView sourceView, IEnumerable<Controller> controllers,Rect rect)
+        {
+            ConvertToSubgraph(sourceView, controllers, rect, Type.Context);
+        }
 
-        public static void ConvertToSubgraphOperator(VFXView sourceView, IEnumerable<Controller> controllers,Rect rect)
+
+        public static void ConvertToSubgraphOperator(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
+        {
+            ConvertToSubgraph(sourceView, controllers, rect, Type.Operator);
+        }
+
+        enum Type
+        {
+            Context,
+            Operator,
+            Block
+        }
+
+        static VisualEffectObject CreateUniquePath(VFXView sourceView, Type type)
+        {
+            string graphPath = AssetDatabase.GetAssetPath(sourceView.controller.model.asset);
+            string graphName = Path.GetFileNameWithoutExtension(graphPath);
+            string graphDirPath = Path.GetDirectoryName(graphPath);
+
+            switch (type)
+            {
+                case Type.Operator:
+                    {
+                        string targetSubgraphPath = string.Format("{0}/{1}_SubgraphOperator.vfxoperator", graphDirPath, graphName);
+                        int cpt = 1;
+                        while (File.Exists(targetSubgraphPath))
+                        {
+                            targetSubgraphPath = string.Format("{0}/{1}_SubgraphOperator_{2}.vfxoperator", graphDirPath, graphName, cpt++);
+                        }
+                        return VisualEffectResource.CreateNewSubgraphOperator(targetSubgraphPath);
+                    }
+                case Type.Context:
+                    {
+                        string targetSubgraphPath = string.Format("{0}/{1}_Subgraph.vfx", graphDirPath, graphName);
+                        int cpt = 1;
+                        while (File.Exists(targetSubgraphPath))
+                        {
+                            targetSubgraphPath = string.Format("{0}/{1}_Subgraph_{2}.vfx", graphDirPath, graphName, cpt++);
+                        }
+                        return VisualEffectResource.CreateNewAsset(targetSubgraphPath);
+                    }
+                case Type.Block:
+                    {
+                        string targetSubgraphPath = string.Format("{0}/{1}_SubgraphBlock.vfxblock", graphDirPath, graphName);
+                        int cpt = 1;
+                        while (File.Exists(targetSubgraphPath))
+                        {
+                            targetSubgraphPath = string.Format("{0}/{1}_SubgraphBlock_{2}.vfxblock", graphDirPath, graphName, cpt++);
+                        }
+                        return VisualEffectResource.CreateNewSubgraphBlock(targetSubgraphPath);
+                    }
+            }
+            return null;
+        }
+
+
+        static void ConvertToSubgraph(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect,Type type)
         {
             List<Controller> sourceControllers = controllers.Concat(sourceView.controller.dataEdges.Where( t => controllers.Contains(t.input.sourceNode) && controllers.Contains(t.output.sourceNode) ) ).Distinct().ToList();
             VFXViewController sourceController = sourceView.controller;
             VFXGraph sourceGraph = sourceController.graph;
             sourceController.useCount++;
+            
+            var sourceParameters = new Dictionary<string, VFXParameterNodeController>();
+
+            foreach (var parameterNode in sourceControllers.OfType<VFXParameterNodeController>())
+            {
+                sourceParameters[parameterNode.exposedName] = parameterNode;
+            }
+
+            object result = VFXCopy.Copy(sourceControllers, rect);
+
+            VisualEffectObject targetSubgraph = CreateUniquePath(sourceView,type);
+
+            var targetController = VFXViewController.GetController(targetSubgraph.GetResource());
+            targetController.useCount++;
+
             try
             {
-
-                var sourceParameters = new Dictionary<string, VFXParameterNodeController>();
-
-                foreach (var parameterNode in sourceControllers.OfType<VFXParameterNodeController>())
-                {
-                    sourceParameters[parameterNode.exposedName] = parameterNode;
-                }
-
-                object result = VFXCopy.Copy(sourceControllers, rect);
-
-                string graphPath = AssetDatabase.GetAssetPath(sourceView.controller.model.asset);
-                string graphName = Path.GetFileNameWithoutExtension(graphPath);
-                string graphDirPath = Path.GetDirectoryName(graphPath);
-
-                string targetSubgraphPath = string.Format("{0}/{1}_Subgraph.vfxoperator", graphDirPath, graphName);
-                int cpt = 1;
-                while(File.Exists(targetSubgraphPath))
-                {
-                    targetSubgraphPath = string.Format("{0}/{1}_Subgraph_{2}.vfxoperator", graphDirPath, graphName,cpt++);
-                }
-
-                VisualEffectSubgraphOperator targetSubgraph = VisualEffectResource.CreateNewSubgraphOperator(targetSubgraphPath);
-
-                //VFXViewWindow.currentWindow.LoadResource(targetSubgraph.GetResource());
-                //VFXView targetView = VFXViewWindow.currentWindow.graphView;
-
-                VFXViewController targetController = VFXViewController.GetController(targetSubgraph.GetResource());
-                targetController.useCount++;
-
                 List<VFXNodeController> targetControllers = new List<VFXNodeController>();
 
                 VFXPaste.Paste(targetController, rect.center, result, null, null, targetControllers);
 
                 // Change each parameter created by copy paste ( and therefore a parameter copied ) to exposed
-
                 List<VFXParameterController> targetParameters = new List<VFXParameterController>();
 
                 foreach ( var parameter in targetController.parameterControllers)
@@ -64,23 +110,36 @@ namespace UnityEditor.VFX.UI
                     parameter.exposed = true;
                 }
 
-                VFXSubgraphOperator op = ScriptableObject.CreateInstance<VFXSubgraphOperator>();
+                VFXModel sourceNode = null;
+                switch( type)
+                {
+                    case Type.Operator:
+                        sourceNode = ScriptableObject.CreateInstance<VFXSubgraphOperator>();
+                        break;
+                    case Type.Context:
+                        sourceNode = ScriptableObject.CreateInstance<VFXSubgraphContext>();
+                        break;
+                    case Type.Block:
+                        sourceNode = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
+                        break;
+                }
 
-                op.SetSettingValue("m_SubGraph", targetSubgraph);
+                sourceNode.SetSettingValue("m_SubGraph", targetSubgraph);
+                var sourceSlotContainer = sourceNode as IVFXSlotContainer;
 
-                op.position = rect.center;
+                sourceNode.position = rect.center;
 
-                sourceController.graph.AddChild(op);
+                sourceController.graph.AddChild(sourceNode); //TODO change this for blocks
 
                 sourceController.LightApplyChanges();
 
-                var sourceNodeController = sourceController.GetRootNodeController(op, 0);
+                var sourceNodeController = sourceController.GetRootNodeController(sourceNode, 0);
 
                 sourceNodeController.ApplyChanges();
 
                 for(int i = 0; i < targetParameters.Count; ++i)
                 {
-                    var input = sourceNodeController.inputPorts.First(t => t.model == op.inputSlots[i]);
+                    var input = sourceNodeController.inputPorts.First(t => t.model == sourceSlotContainer.inputSlots[i]);
                     var output = sourceParameters[targetParameters[i].exposedName].outputPorts.First();
 
                     targetController.CreateLink(input, output);
@@ -135,16 +194,19 @@ namespace UnityEditor.VFX.UI
                         // Link the parameternode and the input in the target
                         targetController.CreateLink(targetAnchor, parameterNode.outputPorts[0]);
 
-                        op.ResyncSlots(true);
+                        if( sourceSlotContainer is VFXOperator)
+                            (sourceSlotContainer as VFXOperator).ResyncSlots(true);
                         sourceNodeController.ApplyChanges();
                         //Link all the outputs to the matching input of the subgraph
                         foreach (var output in outputs)
                         {
-                            sourceController.CreateLink(sourceNodeController.inputPorts.First(t => t.model == op.inputSlots.Last()), output);
+                            sourceController.CreateLink(sourceNodeController.inputPorts.First(t => t.model == sourceSlotContainer.inputSlots.Last()), output);
                         }
                     }
                 }
 
+
+                if(type == Type.Operator)
                 {
                     var traversingOutEdges = new Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>>();
 
@@ -194,17 +256,17 @@ namespace UnityEditor.VFX.UI
                         // Link the parameternode and the input in the target
                         targetController.CreateLink(parameterNode.inputPorts[0],targetAnchor );
 
-                        op.ResyncSlots(true);
+                        if (sourceSlotContainer is VFXOperator)
+                            (sourceSlotContainer as VFXOperator).ResyncSlots(true);
                         sourceNodeController.ApplyChanges();
                         //Link all the outputs to the matching input of the subgraph
                         foreach (var input in inputs)
                         {
-                            sourceController.CreateLink(input, sourceNodeController.outputPorts.First(t => t.model == op.outputSlots.Last()));
+                            sourceController.CreateLink(input, sourceNodeController.outputPorts.First(t => t.model == sourceSlotContainer.outputSlots.Last()));
                         }
                     }
 
                 }
-                targetController.useCount--;
 
                 foreach ( var element in sourceControllers.Where(t=> !(t is VFXParameterNodeController)))
                 {
@@ -218,6 +280,7 @@ namespace UnityEditor.VFX.UI
             }
             finally
             {
+                targetController.useCount--;
                 sourceController.useCount--;
             }
         }
