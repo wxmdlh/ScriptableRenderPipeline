@@ -247,9 +247,9 @@ namespace UnityEditor.VFX.UI
             newInputs.Add(m_UpcommingDataAnchor);
         }
 
-        public override void OnEdgeGoingToBeRemoved(VFXDataAnchorController myInput)
+        public override void OnEdgeFromInputGoingToBeRemoved(VFXDataAnchorController myInput)
         {
-            base.OnEdgeGoingToBeRemoved(myInput);
+            base.OnEdgeFromInputGoingToBeRemoved(myInput);
 
             RemoveOperand(myInput);
         }

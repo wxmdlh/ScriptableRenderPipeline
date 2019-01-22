@@ -274,6 +274,18 @@ namespace UnityEditor.VFX.UI
                 m_GizmoableAnchors.Add(m_ParentController);
             }
         }
+        public override void OnEdgeFromInputGoingToBeRemoved(VFXDataAnchorController myInput)
+        {
+            base.OnEdgeFromInputGoingToBeRemoved(myInput);
+            if(parentController.isOutput)
+                infos.linkedSlots.RemoveAll(t => t.inputSlot == myInput.model);
+        }
+        public override void OnEdgeFromOutputGoingToBeRemoved(VFXDataAnchorController myOutput)
+        {
+            base.OnEdgeFromOutputGoingToBeRemoved(myOutput);
+            if (!parentController.isOutput)
+                infos.linkedSlots.RemoveAll(t => t.outputSlot == myOutput.model);
+        }
 
         public override Bounds GetGizmoBounds(VisualEffect component)
         {
