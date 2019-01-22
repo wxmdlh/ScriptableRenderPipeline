@@ -537,7 +537,7 @@ namespace UnityEditor.VFX.UI
             string candidateName = MakeNameUnique(model.exposedName, allNames);
             if (candidateName != model.exposedName)
             {
-                parameter.SetSettingValue("m_exposedName", candidateName);
+                parameter.SetSettingValue("m_ExposedName", candidateName);
             }
         }
 
@@ -550,7 +550,7 @@ namespace UnityEditor.VFX.UI
                 string candidateName = MakeNameUnique(value);
                 if (candidateName != null && candidateName != parameter.exposedName)
                 {
-                    parameter.SetSettingValue("m_exposedName", candidateName);
+                    parameter.SetSettingValue("m_ExposedName", candidateName);
                 }
             }
         }
@@ -559,7 +559,7 @@ namespace UnityEditor.VFX.UI
             get { return parameter.exposed; }
             set
             {
-                parameter.SetSettingValue("m_exposed", value);
+                parameter.SetSettingValue("m_Exposed", value);
             }
         }
 
@@ -712,8 +712,6 @@ namespace UnityEditor.VFX.UI
                 if (model.isOutput != value)
                 {
                     model.isOutput = value;
-                    if (value)
-                        model.exposed = false;
                     m_Slot = model.isOutput ? model.inputSlots[0] : model.outputSlots[0];
                 }
 
