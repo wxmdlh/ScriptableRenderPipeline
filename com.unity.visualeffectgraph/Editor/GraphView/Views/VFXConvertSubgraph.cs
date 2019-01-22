@@ -77,13 +77,16 @@ namespace UnityEditor.VFX.UI
         static void ConvertToSubgraph(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect,Type type)
         {
             List<Controller> sourceControllers = controllers.Concat(sourceView.controller.dataEdges.Where( t => controllers.Contains(t.input.sourceNode) && controllers.Contains(t.output.sourceNode) ) ).Distinct().ToList();
+            List<VFXParameterNodeController> parameterNodeControllers = sourceControllers.OfType<VFXParameterNodeController>().ToList();
+
+
             VFXViewController sourceController = sourceView.controller;
             VFXGraph sourceGraph = sourceController.graph;
             sourceController.useCount++;
             
             var sourceParameters = new Dictionary<string, VFXParameterNodeController>();
 
-            foreach (var parameterNode in sourceControllers.OfType<VFXParameterNodeController>())
+            foreach (var parameterNode in parameterNodeControllers)
             {
                 sourceParameters[parameterNode.exposedName] = parameterNode;
             }
@@ -314,6 +317,12 @@ namespace UnityEditor.VFX.UI
                 foreach ( var element in sourceControllers.Where(t=> !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController)))
                 {
                     sourceController.RemoveElement(element);
+                }
+
+                foreach( var element in parameterNodeControllers)
+                {
+                    if (element.infos.linkedSlots == null || element.infos.linkedSlots.Count() == 0)
+                        sourceController.RemoveElement(element);
                 }
 
             }
