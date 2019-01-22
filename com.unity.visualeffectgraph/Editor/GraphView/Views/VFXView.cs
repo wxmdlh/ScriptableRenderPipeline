@@ -1598,9 +1598,27 @@ namespace UnityEditor.VFX.UI
             {
                 if (selection.OfType<VFXOperatorUI>().Any() && !selection.OfType<VFXNodeUI>().Any(t => !(t is VFXOperatorUI) && !(t is VFXParameterUI)))
                     evt.menu.InsertAction(3, "To Subgraph Operator", ToSubgraphOperator, e => DropdownMenuAction.Status.Normal);
-                else if(selection.OfType<VFXContextUI>().Any() )
+                else if(SelectionHasCompleteSystems() )
                     evt.menu.InsertAction(3, "To Subgraph", ToSubgraphContext, e => DropdownMenuAction.Status.Normal);
             }
+        }
+
+
+        public bool SelectionHasCompleteSystems()
+        {
+            HashSet<VFXContextUI> selectedContexts = new HashSet<VFXContextUI>(selection.OfType<VFXContextUI>());
+            if (selectedContexts.Count() < 1)
+                return false;
+
+            HashSet<VFXData> usedDatas = new HashSet<VFXData>(selectedContexts.Select(t => t.controller.model.GetData()).Where(t=>t != null));
+
+            foreach( var context in GetAllContexts())
+            {
+                if (usedDatas.Contains(context.controller.model.GetData()) && !selectedContexts.Contains(context))
+                    return false;
+            }
+
+            return true;
         }
 
 
