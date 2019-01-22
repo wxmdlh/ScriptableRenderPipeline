@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Collections.ObjectModel;
+using UnityEngine.Serialization;
 
 namespace UnityEditor.VFX
 {
@@ -10,15 +11,15 @@ namespace UnityEditor.VFX
     {
         protected VFXParameter()
         {
-            m_exposedName = "exposedName";
-            m_exposed = false;
+            m_ExposedName = "exposedName";
+            m_Exposed = false;
             m_UICollapsed = false;
         }
 
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.None), SerializeField]
-        private string m_exposedName;
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
-        private bool m_exposed;
+        [VFXSetting(VFXSettingAttribute.VisibleFlags.None), SerializeField, FormerlySerializedAs("m_exposedName")]
+        private string m_ExposedName;
+        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField, FormerlySerializedAs("m_exposed")]
+        private bool m_Exposed;
         [SerializeField]
         private int m_Order;
         [SerializeField]
@@ -58,6 +59,7 @@ namespace UnityEditor.VFX
                         }
                         m_ExprSlots = null;
                         m_ValueExpr = null;
+                        m_Exposed = false;
                     }
                     else
                     {
@@ -171,7 +173,7 @@ namespace UnityEditor.VFX
         {
             get
             {
-                return m_exposedName;
+                return m_ExposedName;
             }
         }
 
@@ -179,7 +181,7 @@ namespace UnityEditor.VFX
         {
             get
             {
-                return m_exposed;
+                return m_Exposed;
             }
         }
 
