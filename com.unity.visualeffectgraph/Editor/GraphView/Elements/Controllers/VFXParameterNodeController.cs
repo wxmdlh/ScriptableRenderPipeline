@@ -280,11 +280,11 @@ namespace UnityEditor.VFX.UI
             if(parentController.isOutput)
                 infos.linkedSlots.RemoveAll(t => t.inputSlot == myInput.model);
         }
-        public override void OnEdgeFromOutputGoingToBeRemoved(VFXDataAnchorController myOutput)
+        public override void OnEdgeFromOutputGoingToBeRemoved(VFXDataAnchorController myOutput, VFXDataAnchorController otherInput)
         {
-            base.OnEdgeFromOutputGoingToBeRemoved(myOutput);
+            base.OnEdgeFromOutputGoingToBeRemoved(myOutput,otherInput);
             if (!parentController.isOutput)
-                infos.linkedSlots.RemoveAll(t => t.outputSlot == myOutput.model);
+                infos.linkedSlots.RemoveAll(t => t.outputSlot == myOutput.model && t.inputSlot == otherInput.model);
         }
 
         public override Bounds GetGizmoBounds(VisualEffect component)

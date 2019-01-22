@@ -791,7 +791,7 @@ namespace UnityEditor.VFX.UI
         public bool UpdateControllers()
         {
             bool changed = false;
-            var nodes = model.nodes.ToDictionary(t => t.id, t => t);
+            var nodes = model.nodes.GroupBy(t=>t.id).ToDictionary(t => t.Key, t => t.First());
 
             foreach (var removedController in m_Controllers.Where(t => !nodes.ContainsKey(t.Key)).ToArray())
             {
