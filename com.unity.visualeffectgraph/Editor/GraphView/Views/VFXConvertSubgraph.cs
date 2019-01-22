@@ -271,7 +271,6 @@ namespace UnityEditor.VFX.UI
                         targetController.LightApplyChanges();
 
                         VFXParameterController newTargetParamController = targetController.GetParameterController(newTargetParameter);
-                        newTargetParamController.exposed = true;
                         newTargetParamController.isOutput = true;
 
                         var inputs = traversingOutEdges[newSourceOutputs[i]];
@@ -312,7 +311,7 @@ namespace UnityEditor.VFX.UI
 
                 }
 
-                foreach ( var element in sourceControllers.Where(t=> !(t is VFXParameterNodeController)))
+                foreach ( var element in sourceControllers.Where(t=> !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController)))
                 {
                     sourceController.RemoveElement(element);
                 }

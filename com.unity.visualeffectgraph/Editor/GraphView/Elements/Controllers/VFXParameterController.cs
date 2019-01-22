@@ -712,6 +712,8 @@ namespace UnityEditor.VFX.UI
                 if (model.isOutput != value)
                 {
                     model.isOutput = value;
+                    if (value)
+                        model.exposed = false;
                     m_Slot = model.isOutput ? model.inputSlots[0] : model.outputSlots[0];
                 }
 
