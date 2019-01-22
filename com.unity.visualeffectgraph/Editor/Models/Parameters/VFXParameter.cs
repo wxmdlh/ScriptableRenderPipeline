@@ -410,6 +410,22 @@ namespace UnityEditor.VFX
             }
         }
 
+        public override void Sanitize(int version)
+        {
+            base.Sanitize(version);
+
+            HashSet<int> usedIds = new HashSet<int>();
+
+            foreach( var node in m_Nodes)
+            {
+                if( usedIds.Contains(node.id))
+                {
+                    node.ChangeId(m_IDCounter++);
+                }
+                usedIds.Add(node.id);
+            }
+        }
+
         //AddNodeRange will take ownership of the Nodes instead of copying them
         public void AddNodeRange(IEnumerable<Node> infos)
         {
@@ -510,11 +526,23 @@ namespace UnityEditor.VFX
                 // if there are some links in the output slots that are in not found in the infos, find or create a node for them.
                 if (links.Count > 0)
                 {
-                    Node newInfos = nodes.Count > 0? nodes[0]:NewNode();
+                    Node newInfos = null;
+
+                    if(nodes.Count > 0)
+                    {
+                        newInfos = nodes[0];
+                    }
+                    else
+                    {
+                        newInfos = NewNode();
+                        m_Nodes.Add(newInfos);
+                    }
                     newInfos.position = Vector2.zero;
-                    newInfos.linkedSlots = links;
+                    if (newInfos.linkedSlots == null)
+                        newInfos.linkedSlots = new List<NodeLinkedSlot>();
+                    newInfos.linkedSlots.AddRange(links);
                     newInfos.expandedSlots = new List<VFXSlot>();
-                    m_Nodes.Add(newInfos);
+                    
                 }
             }
             position = Vector2.zero; // Set that as a marker that the parameter has been touched by the new code.
