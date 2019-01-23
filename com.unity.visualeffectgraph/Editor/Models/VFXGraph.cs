@@ -116,17 +116,13 @@ namespace UnityEditor.VFX
 
         public static VisualEffectResource GetResource<T>(this T asset) where T : UnityObject
         {
-            VisualEffectResource resource = VisualEffectResource.GetResourceAtPath(AssetDatabase.GetAssetPath(asset));
-
-            if (resource == null)
+            string assetPath = AssetDatabase.GetAssetPath(asset);
+            VisualEffectResource resource = VisualEffectResource.GetResourceAtPath(assetPath);
+            
+            if (resource == null && !string.IsNullOrEmpty(assetPath))
             {
-                string assetPath = AssetDatabase.GetAssetPath(asset);
-                resource = VisualEffectResource.GetResourceAtPath(assetPath);
-                if (resource == null)
-                {
-                    resource = new VisualEffectResource();
-                    resource.SetAssetPath(assetPath);
-                }
+                resource = new VisualEffectResource();
+                resource.SetAssetPath(assetPath);
             }
             return resource;
         }
@@ -537,7 +533,7 @@ namespace UnityEditor.VFX
             }
         }
 
-        void SubgraphDirty(VisualEffectSubgraph subgraph,bool expressionsChanged)
+        void SubgraphDirty(VisualEffectObject subgraph,bool expressionsChanged)
         {
             if (m_SubgraphDependencies != null && m_SubgraphDependencies.Contains(subgraph))
             {
@@ -547,10 +543,6 @@ namespace UnityEditor.VFX
                     compiledData.Compile(m_CompilationMode, m_ForceShaderValidation);
                     m_ExpressionGraphDirty = false;
                 }
-                /*else // This does not work because dependents graph are in collapsed form as they are not opened in the editor.
-                {
-                    compiledData.UpdateValues();
-                }*/
 
                 m_ExpressionValuesDirty = false;
             }
@@ -591,7 +583,7 @@ namespace UnityEditor.VFX
             }
         }
 
-        public void RecompileIfNeeded(bool preventRecompilation, bool preventDependencyRecompilation)
+        public void RecompileIfNeeded(bool preventRecompilation = false, bool preventDependencyRecompilation = false)
         {
             SanitizeGraph();
 
@@ -620,10 +612,10 @@ namespace UnityEditor.VFX
             {
                 if (m_DependentDirty)
                 {
-                    var subGraph = GetResource().subgraph;
+                    var obj = GetResource().visualEffectObject;
                     foreach (var graph in GetAllGraphs<VisualEffectAsset>())
                     {
-                        graph.SubgraphDirty(subGraph, m_ExpressionGraphDirty);
+                        graph.SubgraphDirty(obj, m_ExpressionGraphDirty);
                     }
                     m_DependentDirty = false;
                 }

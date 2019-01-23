@@ -1,4 +1,4 @@
-﻿#if !UNITY_EDITOR_OSX || MAC_FORCE_TESTS
+#if !UNITY_EDITOR_OSX || MAC_FORCE_TESTS
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -294,8 +294,8 @@ namespace UnityEditor.VFX.Test
             Action<VisualEffectAsset> write = delegate(VisualEffectAsset asset)
             {
                 var parameter = VFXLibrary.GetParameters().First(o => o.name == "Vector2").CreateInstance();
-                parameter.SetSettingValue("m_exposed", true);
-                parameter.SetSettingValue("m_exposedName", name);
+                parameter.SetSettingValue("m_Exposed", true);
+                parameter.SetSettingValue("m_ExposedName", name);
                 asset.GetResource().GetOrCreateGraph().AddChild(parameter);
                 Assert.AreEqual(VFXValueType.Float2, parameter.outputSlots[0].GetExpression().valueType);
             };

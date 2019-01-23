@@ -101,7 +101,14 @@ namespace UnityEditor.VFX
                 return;
             }
 
-            var graph = m_SubGraph.GetResource().GetOrCreateGraph();
+            var resource = m_SubGraph.GetResource();
+            if( resource == null)
+            {
+                m_SubChildren = null;
+                return;
+            }
+
+            var graph = resource.GetOrCreateGraph();
             HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
             graph.CollectDependencies(dependencies, false);
 
