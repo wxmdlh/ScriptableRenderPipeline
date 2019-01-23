@@ -416,13 +416,16 @@ namespace UnityEditor.VFX
 
             HashSet<int> usedIds = new HashSet<int>();
 
-            foreach( var node in m_Nodes)
+            if (m_Nodes != null)
             {
-                if( usedIds.Contains(node.id))
+                foreach (var node in m_Nodes)
                 {
-                    node.ChangeId(m_IDCounter++);
+                    if (usedIds.Contains(node.id))
+                    {
+                        node.ChangeId(m_IDCounter++);
+                    }
+                    usedIds.Add(node.id);
                 }
-                usedIds.Add(node.id);
             }
         }
 

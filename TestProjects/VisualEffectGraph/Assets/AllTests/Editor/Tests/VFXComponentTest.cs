@@ -279,8 +279,8 @@ namespace UnityEditor.VFX.Test
 
             if (type != VFXValueType.None)
             {
-                parameter.SetSettingValue("m_exposedName", targetTextureName);
-                parameter.SetSettingValue("m_exposed", true);
+                parameter.SetSettingValue("m_ExposedName", targetTextureName);
+                parameter.SetSettingValue("m_Exposed", true);
                 graph.AddChild(parameter);
             }
 
@@ -930,8 +930,8 @@ namespace UnityEditor.VFX.Test
                 VFXValueType type = types.FirstOrDefault(e => VFXExpression.GetVFXValueTypeFromType(newInstance.type) == e);
                 if (type != VFXValueType.None)
                 {
-                    newInstance.SetSettingValue("m_exposedName", commonBaseName + newInstance.type.UserFriendlyName());
-                    newInstance.SetSettingValue("m_exposed", true);
+                    newInstance.SetSettingValue("m_ExposedName", commonBaseName + newInstance.type.UserFriendlyName());
+                    newInstance.SetSettingValue("m_Exposed", true);
                     var value = GetValue_A_Type(newInstance.type);
                     Assert.IsNotNull(value);
                     newInstance.value = value;
