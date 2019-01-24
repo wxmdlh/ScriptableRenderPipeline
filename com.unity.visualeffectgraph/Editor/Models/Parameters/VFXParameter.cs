@@ -53,7 +53,7 @@ namespace UnityEditor.VFX
                         RemoveSlot(outputSlots[0]);
                         AddSlot(newSlot);
 
-                        if( m_Nodes.Count > 1)
+                        if(m_Nodes != null && m_Nodes.Count > 1)
                         {
                             m_Nodes.RemoveRange(1, m_Nodes.Count - 2);
                         }
