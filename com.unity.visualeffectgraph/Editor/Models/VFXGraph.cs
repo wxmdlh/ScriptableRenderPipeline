@@ -114,7 +114,7 @@ namespace UnityEditor.VFX
             resource.GetOrCreateGraph().UpdateSubAssets();
         }
 
-        public static VisualEffectResource GetResource<T>(this T asset) where T : UnityObject
+        public static VisualEffectResource GetResource<T>(this T asset) where T : VisualEffectObject
         {
             string assetPath = AssetDatabase.GetAssetPath(asset);
             VisualEffectResource resource = VisualEffectResource.GetResourceAtPath(assetPath);
@@ -550,7 +550,7 @@ namespace UnityEditor.VFX
 
 
 
-        IEnumerable<VFXGraph> GetAllGraphs<T>() where T : UnityObject
+        IEnumerable<VFXGraph> GetAllGraphs<T>() where T : VisualEffectObject
         {
             var guids = AssetDatabase.FindAssets("t:" + typeof(T).Name);
 
