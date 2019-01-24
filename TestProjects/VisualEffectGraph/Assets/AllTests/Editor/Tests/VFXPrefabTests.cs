@@ -236,8 +236,8 @@ namespace UnityEditor.VFX.Test
 
             var exposedName = "ghjkl";
             var parameter = parametersVector3Desc.CreateInstance();
-            parameter.SetSettingValue("m_exposedName", exposedName);
-            parameter.SetSettingValue("m_exposed", true);
+            parameter.SetSettingValue("m_ExposedName", exposedName);
+            parameter.SetSettingValue("m_Exposed", true);
             parameter.value = new Vector3(0, 0, 0);
             graph.AddChild(parameter);
             graph.RecompileIfNeeded();

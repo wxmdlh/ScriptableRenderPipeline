@@ -341,15 +341,15 @@ namespace UnityEditor.VFX.Test
 
             var commonExposedName = "vorfji";
             var parameter_A = parametersVector3Desc.CreateInstance();
-            parameter_A.SetSettingValue("m_exposedName", commonExposedName);
-            parameter_A.SetSettingValue("m_exposed", true);
+            parameter_A.SetSettingValue("m_ExposedName", commonExposedName);
+            parameter_A.SetSettingValue("m_Exposed", true);
             parameter_A.value = new Vector3(0, 0, 0);
             graph_A.AddChild(parameter_A);
             graph_A.RecompileIfNeeded();
 
             var parameter_B = parametersVector3Desc.CreateInstance();
-            parameter_B.SetSettingValue("m_exposedName", commonExposedName);
-            parameter_B.SetSettingValue("m_exposed", true);
+            parameter_B.SetSettingValue("m_ExposedName", commonExposedName);
+            parameter_B.SetSettingValue("m_Exposed", true);
             parameter_B.value = new Vector3(0, 0, 0);
             graph_B.AddChild(parameter_B);
             graph_B.RecompileIfNeeded();
@@ -504,8 +504,8 @@ namespace UnityEditor.VFX.Test
 
             var exposedName = "poiuyt";
             var parameter = parametersVector3Desc.CreateInstance();
-            parameter.SetSettingValue("m_exposedName", exposedName);
-            parameter.SetSettingValue("m_exposed", true);
+            parameter.SetSettingValue("m_ExposedName", exposedName);
+            parameter.SetSettingValue("m_Exposed", true);
             parameter.value = new Vector3(0, 0, 0);
             graph.AddChild(parameter);
             graph.RecompileIfNeeded();
@@ -540,8 +540,8 @@ namespace UnityEditor.VFX.Test
 
             var parameter_Other = parametersVector3Desc.CreateInstance();
             var exposedName_Other = "tyuiop";
-            parameter_Other.SetSettingValue("m_exposedName", exposedName_Other);
-            parameter_Other.SetSettingValue("m_exposed", true);
+            parameter_Other.SetSettingValue("m_ExposedName", exposedName_Other);
+            parameter_Other.SetSettingValue("m_Exposed", true);
             parameter_Other.value = new Vector3(6, 6, 6);
             graph.AddChild(parameter_Other);
             parameter.value = new Vector3(5, 5, 5);
