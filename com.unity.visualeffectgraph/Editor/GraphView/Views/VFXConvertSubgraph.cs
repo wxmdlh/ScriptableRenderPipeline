@@ -192,13 +192,9 @@ namespace UnityEditor.VFX.UI
 
                         var linkedParameter = outputs.FirstOrDefault(t => t.sourceNode is VFXParameterNodeController);
                         if( linkedParameter != null)
-                        {
                             newTargetParamController.exposedName = (linkedParameter.sourceNode as VFXParameterNodeController).parentController.exposedName;
-                        }
                         else
-                        {
                             newTargetParamController.exposedName = newSourceInputs[i].name;
-                        }
 
                         //first the equivalent of sourceInput in the target
 
@@ -213,9 +209,7 @@ namespace UnityEditor.VFX.UI
                             targetNode = targetContext.blockControllers[blockController.index];
                         }
                         else
-                        {
                             targetNode = targetControllers[sourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
-                        }
 
                         VFXDataAnchorController targetAnchor = targetNode.inputPorts.First(t => t.path == newSourceInputs[i].path);
 
@@ -287,6 +281,12 @@ namespace UnityEditor.VFX.UI
                         newTargetParamController.isOutput = true;
 
                         var inputs = traversingOutEdges[newSourceOutputs[i]];
+
+                        var linkedParameter = inputs.FirstOrDefault(t => t.sourceNode is VFXParameterNodeController);
+                        if (linkedParameter != null)
+                            newTargetParamController.exposedName = (linkedParameter.sourceNode as VFXParameterNodeController).parentController.exposedName;
+                        else
+                            newTargetParamController.exposedName = newSourceOutputs[i].name;
 
                         //first the equivalent of sourceInput in the target
 
