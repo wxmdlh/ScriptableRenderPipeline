@@ -190,6 +190,16 @@ namespace UnityEditor.VFX.UI
 
                         var outputs = traversingInEdges[newSourceInputs[i]];
 
+                        var linkedParameter = outputs.FirstOrDefault(t => t.sourceNode is VFXParameterNodeController);
+                        if( linkedParameter != null)
+                        {
+                            newTargetParamController.exposedName = (linkedParameter.sourceNode as VFXParameterNodeController).parentController.exposedName;
+                        }
+                        else
+                        {
+                            newTargetParamController.exposedName = newSourceInputs[i].name;
+                        }
+
                         //first the equivalent of sourceInput in the target
 
                         VFXNodeController targetNode = null;
