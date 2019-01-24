@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor.Experimental.VFX;
 
 using NodeID = System.UInt32;
 
@@ -678,6 +679,9 @@ namespace UnityEditor.VFX.UI
                                 p.m_Min = parameter.min;
                                 p.m_Max = parameter.max;
                             }
+                            p.SetSettingValue("m_Exposed", parameter.exposed);
+                            if(viewController.model.visualEffectObject is VisualEffectSubgraphOperator)
+                                p.isOutput = parameter.isOutput;
                             p.SetSettingValue("m_ExposedName", parameter.name); // the controller will take care or name unicity later
                             p.tooltip = parameter.tooltip;
                         }

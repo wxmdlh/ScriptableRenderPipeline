@@ -245,6 +245,7 @@ namespace UnityEditor.VFX.UI
                     name = p.model.exposedName,
                     value = new VFXSerializableObject(p.model.type, p.model.value),
                     exposed = p.model.exposed,
+                    isOutput = p.model.isOutput,
                     range = p.hasRange,
                     min = p.hasRange ? p.model.m_Min : null,
                     max = p.hasRange ? p.model.m_Max : null,
