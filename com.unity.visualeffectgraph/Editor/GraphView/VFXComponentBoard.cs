@@ -195,9 +195,9 @@ namespace UnityEditor.VFX.UI
             m_ParticleCount = this.Query<Label>("particle-count");
 
             Button button = this.Query<Button>("on-play-button");
-            button.clickable.clicked += () => SendEvent(VFXBasicEvent.playEventName);
+            button.clickable.clicked += () => SendEvent(VisualEffectAsset.PlayEventName);
             button = this.Query<Button>("on-stop-button");
-            button.clickable.clicked += () => SendEvent(VFXBasicEvent.stopEventName);
+            button.clickable.clicked += () => SendEvent(VisualEffectAsset.StopEventName);
 
             m_EventsContainer = this.Query("events-container");
 
@@ -516,12 +516,12 @@ namespace UnityEditor.VFX.UI
             UpdateEventList();
         }
 
-        static readonly string[] staticEventNames = new string[] {VFXBasicEvent.playEventName, VFXBasicEvent.stopEventName };
+        static readonly string[] staticEventNames = new string[] { VisualEffectAsset.PlayEventName, VisualEffectAsset.StopEventName };
 
 
         static bool IsDefaultEvent(string evt)
         {
-            return evt == VFXBasicEvent.playEventName || evt == VFXBasicEvent.stopEventName || evt == VFXSubgraphContext.triggerEventName;
+            return evt == VisualEffectAsset.PlayEventName || evt == VisualEffectAsset.StopEventName || evt == VFXSubgraphContext.triggerEventName;
         }
 
         IEnumerable<String> GetEventNames()

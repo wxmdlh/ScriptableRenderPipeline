@@ -359,10 +359,10 @@ namespace UnityEditor.VFX
                             string eventName = (evt.context as VFXBasicEvent).eventName;
                             switch(eventName)
                             {
-                                case VFXBasicEvent.playEventName:
+                                case VisualEffectAsset.PlayEventName:
                                     newEventPaths.Add(path.Concat(new int[] { 0 }).ToList());
                                     break;
-                                case VFXBasicEvent.stopEventName:
+                                case VisualEffectAsset.StopEventName:
                                     newEventPaths.Add(path.Concat(new int[] { 1 }).ToList());
                                     break;
                                 case VFXSubgraphContext.triggerEventName:
@@ -515,8 +515,8 @@ namespace UnityEditor.VFX
         {
             var eventDescTemp = new EventLinks[]
             {
-                new EventLinks{ eventName = VFXBasicEvent.playEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
-                new EventLinks{ eventName = VFXBasicEvent.stopEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
+                new EventLinks{ eventName = VisualEffectAsset.PlayEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
+                new EventLinks{ eventName = VisualEffectAsset.StopEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
             }.ToList();
 
             SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, ref subgraphInfos, 0);
