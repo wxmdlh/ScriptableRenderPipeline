@@ -219,7 +219,7 @@ namespace UnityEditor.VFX
         {
             get { return m_SubBlocks; }
         }
-        public override VFXContextType compatibleContexts { get { return VFXContextType.InitAndUpdateAndOutput; } }
+        public override VFXContextType compatibleContexts { get { return (subGraph != null) ? subGraph.GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First().compatibleContextType:VFXContextType.None; } }
         public override VFXDataType compatibleData { get { return VFXDataType.Particle; } }
 
         public override void CollectDependencies(HashSet<ScriptableObject> objs,bool compileOnly = false)
