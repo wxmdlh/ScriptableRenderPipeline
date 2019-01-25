@@ -446,9 +446,9 @@ namespace UnityEditor.VFX.UI
                         int blockIndex = GetDragBlockIndex(mousePosition);
                         VFXBlock newModel = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
 
-                        controller.AddBlock(blockIndex, newModel);
-
                         newModel.SetSettingValue("m_SubGraph", references.First());
+
+                        controller.AddBlock(blockIndex, newModel);
                     }
 
                     evt.StopPropagation();
