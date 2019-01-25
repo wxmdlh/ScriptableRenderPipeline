@@ -252,6 +252,11 @@ namespace UnityEditor.VFX.UI
             m_TextField.RegisterCallback<ChangeEvent<string>>(OnTitleChange);
             m_TextField.Q(TextField.textInputUssName).RegisterCallback<FocusOutEvent>(OnTitleBlur);
             m_Label.RegisterCallback<GeometryChangedEvent>(OnTitleRelayout);
+
+            RegisterCallback<DragUpdatedEvent>(OnDragUpdated);
+            RegisterCallback<DragPerformEvent>(OnDragPerform);
+            RegisterCallback<DragExitedEvent>(OnDragExited);
+            RegisterCallback<DragLeaveEvent>(OnDragExited);
         }
 
         bool m_CanHaveBlocks = false;
