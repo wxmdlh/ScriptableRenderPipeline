@@ -219,7 +219,7 @@ namespace UnityEditor.VFX
 
         private static VFXContext[] CollectSpawnersHierarchy(IEnumerable<VFXContext> vfxContext,IEnumerable<VFXSubgraphContext> subgraphContexts)
         {
-            var initContext = vfxContext.Where(o => o.contextType == VFXContextType.Init).Concat(subgraphContexts.Cast<VFXContext>()).ToList();
+            var initContext = vfxContext.Where(o => o.contextType == VFXContextType.Init || o.contextType == VFXContextType.Subgraph).ToList();
             var spawnerList = CollectContextParentRecursively(initContext);
             return spawnerList.Where(o => o.contextType == VFXContextType.Spawner).Reverse().ToArray();
         }
@@ -305,10 +305,14 @@ namespace UnityEditor.VFX
 
             subgraphInfos.spawnerSubGraph.TryGetValue(spawner, out parentSubGraph);
 
-            List<VFXSubgraphContext> subgraphAncestors = new List<VFXSubgraphContext>();
+            List<VFXContext> spawnerAncestors = new List<VFXContext>();
+
+            spawnerAncestors.Add(spawner);
+
+
             while (parentSubGraph != null)
             {
-                subgraphAncestors.Add(parentSubGraph);
+                spawnerAncestors.Add(parentSubGraph);
                 if (!subgraphInfos.subgraphParents.TryGetValue(parentSubGraph, out parentSubGraph))
                 {
                     parentSubGraph = null;
@@ -331,7 +335,7 @@ namespace UnityEditor.VFX
                 }
             }
 
-            foreach (var sg in subgraphAncestors)
+            foreach (var sg in spawnerAncestors)
             {
                 foreach (var path in defaultEventPaths)
                 {
