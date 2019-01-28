@@ -323,6 +323,72 @@ namespace UnityEditor.VFX.UI
                     }
 
                 }
+                else if( type == Type.Context)
+                {
+                    var initializeContexts = sourceControllers.OfType<VFXContextController>().Where(t => t.model.contextType == VFXContextType.Init).ToArray();
+
+                    var outputContexts = new Dictionary<VFXContextController, List<VFXFlowAnchorController>>();
+
+                    foreach( var initializeContext in initializeContexts)
+                    {
+                        if( initializeContext.flowInputAnchors[0].connections.Count() > 0)
+                        {
+                            List<VFXFlowAnchorController> inputs = null;
+
+                            var outputContext = initializeContext.flowInputAnchors[0].connections.First().output.context; //output context must be linked through is it is linked with a spawner
+
+                            if (!sourceControllers.Contains(outputContext))
+                            {
+                                if (outputContext.model is VFXBasicSpawner /*||
+                                    ((outputContext.model is VFXBasicEvent) &&
+                                        (new string[] { VisualEffectAsset.PlayEventName, VisualEffectAsset.StopEventName }.Contains((outputContext.model as VFXBasicEvent).eventName) ||
+                                            sourceController.model.isSubgraph && (outputContext.model as VFXBasicEvent).eventName == VFXSubgraphContext.triggerEventName))*/)
+                                {
+                                    if (!outputContexts.TryGetValue(outputContext, out inputs))
+                                    {
+                                        inputs = new List<VFXFlowAnchorController>();
+                                        outputContexts.Add(outputContext, inputs);
+                                    }
+                                    inputs.Add(initializeContext.flowInputAnchors[0]);
+                                }
+                            }
+                        }
+                    }
+                    if (outputContexts.Count() > 1)
+                    {
+                        Debug.LogWarning("More than one spawner is linked to the content if the new subgraph, some links we not be kept");
+                    }
+
+                    var kvContext = outputContexts.First();
+
+                    (sourceNodeController as VFXContextController).model.LinkFrom(kvContext.Key.model,0,2); // linking to trigger
+
+                    var triggerEvent = VFXBasicEvent.CreateInstance<VFXBasicEvent>();
+                    triggerEvent.eventName = VFXSubgraphContext.triggerEventName;
+                    
+
+
+                    targetController.graph.AddChild(triggerEvent);
+
+                    float xMiddle = 0;
+                    float yMin = Mathf.Infinity;
+
+                    foreach( var edge in kvContext.Value)
+                    {
+                        var targetContext = targetControllers[sourceControllers.IndexOf(edge.context)] as VFXContextController;
+
+                        var targetInputLink = edge.slotIndex;
+
+                        triggerEvent.LinkTo(targetContext.model, 0, targetInputLink);
+                        xMiddle += targetContext.position.x;
+
+                        if (targetContext.position.y < yMin)
+                            yMin = targetContext.position.y;
+                    }
+
+                    triggerEvent.position = new Vector2(xMiddle / kvContext.Value.Count, yMin)  - new Vector2(0,200); // place the event above the top center of the linked contexts.
+                }
+
 
                 foreach ( var element in sourceControllers.Where(t=> !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController)))
                 {
