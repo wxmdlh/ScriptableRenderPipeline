@@ -305,14 +305,13 @@ namespace UnityEditor.VFX
 
             subgraphInfos.spawnerSubGraph.TryGetValue(spawner, out parentSubGraph);
 
-            List<VFXContext> spawnerAncestors = new List<VFXContext>();
+            List<VFXContext> subgraphAncestors = new List<VFXContext>();
 
-            spawnerAncestors.Add(spawner);
-
+            subgraphAncestors.Add(spawner);
 
             while (parentSubGraph != null)
             {
-                spawnerAncestors.Add(parentSubGraph);
+                subgraphAncestors.Add(parentSubGraph);
                 if (!subgraphInfos.subgraphParents.TryGetValue(parentSubGraph, out parentSubGraph))
                 {
                     parentSubGraph = null;
@@ -335,7 +334,7 @@ namespace UnityEditor.VFX
                 }
             }
 
-            foreach (var sg in spawnerAncestors)
+            foreach (var sg in subgraphAncestors)
             {
                 foreach (var path in defaultEventPaths)
                 {
