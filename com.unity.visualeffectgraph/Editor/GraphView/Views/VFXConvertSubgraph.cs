@@ -325,68 +325,70 @@ namespace UnityEditor.VFX.UI
                 }
                 else if( type == Type.Context)
                 {
-                    var initializeContexts = sourceControllers.OfType<VFXContextController>().Where(t => t.model.contextType == VFXContextType.Init).ToArray();
+                    var initializeContexts = sourceControllers.OfType<VFXContextController>().Where(t => t.model.contextType == VFXContextType.Init ||
+                                                                                                        t.model.contextType == VFXContextType.Spawner ||
+                                                                                                        t.model.contextType == VFXContextType.Subgraph).ToArray();
 
-                    var outputContexts = new Dictionary<VFXContextController, List<VFXFlowAnchorController>>();
+                    var outputSpawners = new Dictionary<VFXContextController, List<VFXFlowAnchorController>>();
+                    var outputEvents = new Dictionary<string, List<VFXFlowAnchorController>>();
 
-                    foreach( var initializeContext in initializeContexts)
+                    foreach ( var initializeContext in initializeContexts)
                     {
-                        if( initializeContext.flowInputAnchors[0].connections.Count() > 0)
+                        for(int i = 0; i < initializeContext.flowInputAnchors.Count; ++i)
+                        if( initializeContext.flowInputAnchors[i].connections.Count() > 0)
                         {
-                            List<VFXFlowAnchorController> inputs = null;
 
-                            var outputContext = initializeContext.flowInputAnchors[0].connections.First().output.context; //output context must be linked through is it is linked with a spawner
+                            var outputContext = initializeContext.flowInputAnchors[i].connections.First().output.context; //output context must be linked through is it is linked with a spawner
 
                             if (!sourceControllers.Contains(outputContext))
                             {
-                                if (outputContext.model is VFXBasicSpawner /*||
+                                if (outputContext.model.contextType == VFXContextType.Spawner /*||
                                     ((outputContext.model is VFXBasicEvent) &&
                                         (new string[] { VisualEffectAsset.PlayEventName, VisualEffectAsset.StopEventName }.Contains((outputContext.model as VFXBasicEvent).eventName) ||
                                             sourceController.model.isSubgraph && (outputContext.model as VFXBasicEvent).eventName == VFXSubgraphContext.triggerEventName))*/)
                                 {
-                                    if (!outputContexts.TryGetValue(outputContext, out inputs))
+                                    List<VFXFlowAnchorController> inputs = null;
+                                    if (!outputSpawners.TryGetValue(outputContext, out inputs))
                                     {
                                         inputs = new List<VFXFlowAnchorController>();
-                                        outputContexts.Add(outputContext, inputs);
+                                        outputSpawners.Add(outputContext, inputs);
                                     }
-                                    inputs.Add(initializeContext.flowInputAnchors[0]);
+                                    inputs.Add(initializeContext.flowInputAnchors[i]);
+                                }
+                                else if(outputContext.model is VFXBasicEvent)
+                                {
+                                    List<VFXFlowAnchorController> inputs = null;
+                                    var eventName = (outputContext.model as VFXBasicEvent).eventName;
+                                    if (!outputEvents.TryGetValue(eventName, out inputs))
+                                    {
+                                        inputs = new List<VFXFlowAnchorController>();
+                                            outputEvents.Add(eventName, inputs);
+                                    }
+                                    inputs.Add(initializeContext.flowInputAnchors[i]);
                                 }
                             }
                         }
                     }
-                    if (outputContexts.Count() > 1)
+
                     {
-                        Debug.LogWarning("More than one spawner is linked to the content if the new subgraph, some links we not be kept");
+
+                        if (outputSpawners.Count() > 1)
+                        {
+                            Debug.LogWarning("More than one spawner is linked to the content if the new subgraph, some links we not be kept");
+                        }
+
+                        var kvContext = outputSpawners.First();
+
+                        (sourceNodeController as VFXContextController).model.LinkFrom(kvContext.Key.model, 0, 2); // linking to trigger
+                        CreateAndLinkEvent(sourceControllers, targetController, targetControllers, kvContext.Value,VFXSubgraphContext.triggerEventName);
+                    }
+                    { //link named events as if
+                        foreach( var kv in outputEvents)
+                        {
+                            CreateAndLinkEvent(sourceControllers, targetController, targetControllers, kv.Value, kv.Key);
+                        }
                     }
 
-                    var kvContext = outputContexts.First();
-
-                    (sourceNodeController as VFXContextController).model.LinkFrom(kvContext.Key.model,0,2); // linking to trigger
-
-                    var triggerEvent = VFXBasicEvent.CreateInstance<VFXBasicEvent>();
-                    triggerEvent.eventName = VFXSubgraphContext.triggerEventName;
-                    
-
-
-                    targetController.graph.AddChild(triggerEvent);
-
-                    float xMiddle = 0;
-                    float yMin = Mathf.Infinity;
-
-                    foreach( var edge in kvContext.Value)
-                    {
-                        var targetContext = targetControllers[sourceControllers.IndexOf(edge.context)] as VFXContextController;
-
-                        var targetInputLink = edge.slotIndex;
-
-                        triggerEvent.LinkTo(targetContext.model, 0, targetInputLink);
-                        xMiddle += targetContext.position.x;
-
-                        if (targetContext.position.y < yMin)
-                            yMin = targetContext.position.y;
-                    }
-
-                    triggerEvent.position = new Vector2(xMiddle / kvContext.Value.Count, yMin)  - new Vector2(0,200); // place the event above the top center of the linked contexts.
                 }
 
 
@@ -413,5 +415,30 @@ namespace UnityEditor.VFX.UI
             }
         }
 
+        private static void CreateAndLinkEvent(List<Controller> sourceControllers, VFXViewController targetController, List<VFXNodeController> targetControllers, List<VFXFlowAnchorController> inputs, string eventName)
+        {
+            var triggerEvent = VFXBasicEvent.CreateInstance<VFXBasicEvent>();
+            triggerEvent.eventName = eventName;
+
+            targetController.graph.AddChild(triggerEvent);
+
+            float xMiddle = 0;
+            float yMin = Mathf.Infinity;
+
+            foreach (var edge in inputs)
+            {
+                var targetContext = targetControllers[sourceControllers.IndexOf(edge.context)] as VFXContextController;
+
+                var targetInputLink = edge.slotIndex;
+
+                triggerEvent.LinkTo(targetContext.model, 0, targetInputLink);
+                xMiddle += targetContext.position.x;
+
+                if (targetContext.position.y < yMin)
+                    yMin = targetContext.position.y;
+            }
+
+            triggerEvent.position = new Vector2(xMiddle / inputs.Count, yMin) - new Vector2(0, 200); // place the event above the top center of the linked contexts.
+        }
     }
 }
