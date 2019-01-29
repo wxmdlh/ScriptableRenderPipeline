@@ -887,7 +887,7 @@ namespace UnityEditor.VFX
                 }
 
                 var exposedParameterDescs = new List<VFXMapping>();
-                FillExposedDescs(exposedParameterDescs, m_ExpressionGraph, models.OfType<VFXParameter>());
+                FillExposedDescs(exposedParameterDescs, m_ExpressionGraph, m_Graph.children.OfType<VFXParameter>());
                 var globalEventAttributeDescs = new List<VFXLayoutElementDesc>() { new VFXLayoutElementDesc() { name = "spawnCount", type = VFXValueType.Float } };
                 FillEventAttributeDescs(globalEventAttributeDescs, m_ExpressionGraph, compilableContexts);
 
