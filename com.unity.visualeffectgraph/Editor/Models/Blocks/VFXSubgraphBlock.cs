@@ -10,22 +10,22 @@ namespace UnityEditor.VFX
     class VFXSubgraphBlock : VFXBlock
     {
         [VFXSetting,SerializeField]
-        protected VisualEffectSubgraphBlock m_SubGraph;
+        protected VisualEffectSubgraphBlock m_Subgraph;
         
         VFXModel[] m_SubChildren;
         VFXBlock[] m_SubBlocks;
 
-        public VisualEffectSubgraphBlock subGraph
+        public VisualEffectSubgraphBlock subgraph
         {
-            get { return m_SubGraph; }
+            get { return m_Subgraph; }
         }
 
-        public sealed override string name { get { return m_SubGraph!= null ? m_SubGraph.name : "Subgraph"; } }
+        public sealed override string name { get { return m_Subgraph!= null ? m_Subgraph.name : "Subgraph"; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
-                if(m_SubChildren == null && m_SubGraph != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
+                if(m_SubChildren == null && m_Subgraph != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
                 {
                     foreach (var slot in inputSlots)
                     {
@@ -120,14 +120,14 @@ namespace UnityEditor.VFX
                 }
             }
 
-            if (m_SubGraph == null)
+            if (m_Subgraph == null)
             {
                 m_SubChildren = null;
                 m_SubBlocks = null;
                 return;
             }
 
-            var graph = m_SubGraph.GetResource().GetOrCreateGraph();
+            var graph = m_Subgraph.GetResource().GetOrCreateGraph();
             HashSet<ScriptableObject> dependencies = new HashSet<ScriptableObject>();
 
             var context = graph.children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
@@ -197,7 +197,7 @@ namespace UnityEditor.VFX
         {
             if( cause == InvalidationCause.kSettingChanged || cause == InvalidationCause.kExpressionInvalidated)
             {
-                if( cause == InvalidationCause.kSettingChanged && (m_SubGraph != null || object.ReferenceEquals(m_SubGraph,null))) // do not recreate subchildren if the subgraph is not available but is not null
+                if( cause == InvalidationCause.kSettingChanged && (m_Subgraph != null || object.ReferenceEquals(m_Subgraph,null))) // do not recreate subchildren if the subgraph is not available but is not null
                 {
                     RecreateCopy();
                 }
@@ -219,7 +219,7 @@ namespace UnityEditor.VFX
         {
             get { return m_SubBlocks; }
         }
-        public override VFXContextType compatibleContexts { get { return (subGraph != null) ? subGraph.GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First().compatibleContextType:VFXContextType.None; } }
+        public override VFXContextType compatibleContexts { get { return (subgraph != null) ? subgraph.GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First().compatibleContextType:VFXContextType.None; } }
         public override VFXDataType compatibleData { get { return VFXDataType.Particle; } }
 
         public override void CollectDependencies(HashSet<ScriptableObject> objs,bool compileOnly = false)

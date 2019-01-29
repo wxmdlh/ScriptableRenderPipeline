@@ -1706,7 +1706,7 @@ namespace UnityEditor.VFX.UI
 
                     controller.AddVFXModel(mousePosition, newModel);
 
-                    newModel.SetSettingValue("m_SubGraph", references.First());
+                    newModel.SetSettingValue("m_Subgraph", references.First());
 
                     //TODO add to picked groupnode
                     e.StopPropagation();
