@@ -12,13 +12,13 @@ namespace UnityEditor.VFX
         public const string triggerEventName = "Trigger";
 
         [VFXSetting,SerializeField]
-        protected VisualEffectAsset m_SubGraph;
+        protected VisualEffectAsset m_Subgraph;
         
         VFXModel[] m_SubChildren;
 
-        public VisualEffectAsset subGraph
+        public VisualEffectAsset subgraph
         {
-            get { return m_SubGraph; }
+            get { return m_Subgraph; }
         }
 
         public VFXSubgraphContext():base(VFXContextType.Subgraph, VFXDataType.SpawnEvent, VFXDataType.None)
@@ -26,12 +26,12 @@ namespace UnityEditor.VFX
         }
         protected override int inputFlowCount { get { return 3; } }
 
-        public sealed override string name { get { return m_SubGraph!= null ? m_SubGraph.name : "Subgraph"; } }
+        public sealed override string name { get { return m_Subgraph!= null ? m_Subgraph.name : "Subgraph"; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
-                if(m_SubChildren == null && m_SubGraph != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
+                if(m_SubChildren == null && m_Subgraph != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
                 {
                     foreach (var slot in inputSlots)
                     {
@@ -54,7 +54,7 @@ namespace UnityEditor.VFX
 
         public override bool CanBeCompiled()
         {
-            return subGraph != null;
+            return subgraph != null;
         }
 
         static bool InputPredicate(VFXParameter param)
@@ -95,13 +95,13 @@ namespace UnityEditor.VFX
         {
             DetachFromOriginal();
 
-            if (m_SubGraph == null)
+            if (m_Subgraph == null)
             {
                 m_SubChildren = null;
                 return;
             }
 
-            var resource = m_SubGraph.GetResource();
+            var resource = m_Subgraph.GetResource();
             if( resource == null)
             {
                 m_SubChildren = null;
@@ -208,7 +208,7 @@ namespace UnityEditor.VFX
         {
             if( cause == InvalidationCause.kSettingChanged || cause == InvalidationCause.kExpressionInvalidated)
             {
-                if( cause == InvalidationCause.kSettingChanged && (m_SubGraph != null || object.ReferenceEquals(m_SubGraph,null))) // do not recreate subchildren if the subgraph is not available but is not null
+                if( cause == InvalidationCause.kSettingChanged && (m_Subgraph != null || object.ReferenceEquals(m_Subgraph,null))) // do not recreate subchildren if the subgraph is not available but is not null
                 {
                     RecreateCopy();
                 }

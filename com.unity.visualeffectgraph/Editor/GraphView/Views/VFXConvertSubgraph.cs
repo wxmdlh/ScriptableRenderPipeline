@@ -15,13 +15,21 @@ namespace UnityEditor.VFX.UI
     {
         public static void ConvertToSubgraphContext(VFXView sourceView, IEnumerable<Controller> controllers,Rect rect)
         {
-            ConvertToSubgraph(sourceView, controllers, rect, Type.Context);
+            var ctx = new Context();
+            ctx.ConvertToSubgraphContext(sourceView, controllers, rect);
         }
 
 
         public static void ConvertToSubgraphOperator(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
         {
-            ConvertToSubgraph(sourceView, controllers, rect, Type.Operator);
+            var ctx = new Context();
+            ctx.ConvertToSubgraphOperator(sourceView, controllers, rect);
+        }
+
+        public static void ConvertToSubgraphOperator(VFXView sourceView, IEnumerable<Controller> controllers)
+        {
+            var ctx = new Context();
+            ctx.ConvertToSubgraphBlock(sourceView, controllers);
         }
 
         enum Type
@@ -73,279 +81,370 @@ namespace UnityEditor.VFX.UI
             return null;
         }
 
-
-        static void ConvertToSubgraph(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect,Type type)
+        class Context
         {
-            List<Controller> sourceControllers = controllers.Concat(sourceView.controller.dataEdges.Where( t => controllers.Contains(t.input.sourceNode) && controllers.Contains(t.output.sourceNode) ) ).Distinct().ToList();
-            List<VFXParameterNodeController> parameterNodeControllers = sourceControllers.OfType<VFXParameterNodeController>().ToList();
+            List<VFXParameterNodeController> parameterNodeControllers;
+
+            VFXViewController m_SourceController;
+            List<Controller> m_SourceControllers;
+            VFXView m_SourceView;
+            VFXModel m_SourceNode;
+            IVFXSlotContainer m_SourceSlotContainer;
+            VFXNodeController m_SourceNodeController;
+            Dictionary<string, VFXParameterNodeController> m_SourceParameters;
+
+            VFXViewController m_TargetController;
+            List<VFXNodeController> m_TargetControllers;
+            List<VFXParameterController> m_TargetParameters = new List<VFXParameterController>();
+            VisualEffectObject m_TargetSubgraph;
+
+            Rect m_Rect;
 
 
-            VFXViewController sourceController = sourceView.controller;
-            VFXGraph sourceGraph = sourceController.graph;
-            sourceController.useCount++;
-            
-            var sourceParameters = new Dictionary<string, VFXParameterNodeController>();
-
-            foreach (var parameterNode in parameterNodeControllers)
+            void Init(VFXView sourceView, IEnumerable<Controller> controllers)
             {
-                sourceParameters[parameterNode.exposedName] = parameterNode;
+                this.m_SourceView = sourceView;
+
+                m_SourceControllers = controllers.Concat(sourceView.controller.dataEdges.Where(t => controllers.Contains(t.input.sourceNode) && controllers.Contains(t.output.sourceNode))).Distinct().ToList();
+                parameterNodeControllers = m_SourceControllers.OfType<VFXParameterNodeController>().ToList();
+
+
+                m_SourceController = sourceView.controller;
+                VFXGraph sourceGraph = m_SourceController.graph;
+                m_SourceController.useCount++;
+
+                m_SourceParameters = new Dictionary<string, VFXParameterNodeController>();
+
+                foreach (var parameterNode in parameterNodeControllers)
+                {
+                    m_SourceParameters[parameterNode.exposedName] = parameterNode;
+                }
+
             }
 
-            object result = VFXCopy.Copy(sourceControllers, rect);
-
-            VisualEffectObject targetSubgraph = CreateUniquePath(sourceView,type);
-
-            var targetController = VFXViewController.GetController(targetSubgraph.GetResource());
-            targetController.useCount++;
-
-            //try
+            void Uninit()
             {
-                List<VFXNodeController> targetControllers = new List<VFXNodeController>();
+                foreach (var element in m_SourceControllers.Where(t => !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController)))
+                {
+                    m_SourceController.RemoveElement(element);
+                }
 
-                VFXPaste.Paste(targetController, rect.center, result, null, null, targetControllers);
+                foreach (var element in parameterNodeControllers)
+                {
+                    if (element.infos.linkedSlots == null || element.infos.linkedSlots.Count() == 0)
+                        m_SourceController.RemoveElement(element);
+                }
 
-                // Change each parameter created by copy paste ( and therefore a parameter copied ) to exposed
+                m_TargetController.useCount--;
+                m_SourceController.useCount--;
+            }
+
+
+            void CopyPasteNodes()
+            {
+                object result = VFXCopy.Copy(m_SourceControllers, m_Rect);
+
+                VFXPaste.Paste(m_TargetController, m_Rect.center, result, null, null, m_TargetControllers);
                 List<VFXParameterController> targetParameters = new List<VFXParameterController>();
 
-                foreach ( var parameter in targetController.parameterControllers)
+            }
+
+            void SetupTargetParameters()
+            {
+                // Change each parameter created by copy paste ( and therefore a parameter copied ) to exposed
+                foreach (var parameter in m_TargetController.parameterControllers)
                 {
-                    targetParameters.Add(parameter);
+                    m_TargetParameters.Add(parameter);
                     parameter.exposed = true;
                 }
+            }
 
-                VFXModel sourceNode = null;
-                switch( type)
+            public void ConvertToSubgraphContext(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
+            {
+                this.m_Rect = rect;
+                Init(sourceView, controllers);
+                CreateUniqueSubgraph("Subgraph", VisualEffectResource.Extension,VisualEffectResource.CreateNewAsset);
+                CopyPasteNodes();
+                m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphContext>();
+                PostSetupNode();
+                TransferEdges();
+                TransferContextsFlowEdges();
+                Uninit();
+            }
+
+            public void ConvertToSubgraphOperator(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
+            {
+                this.m_Rect = rect;
+                Init(sourceView, controllers);
+                CreateUniqueSubgraph("SubgraphOperator", VisualEffectSubgraphOperator.Extension,VisualEffectResource.CreateNewSubgraphOperator);
+                CopyPasteNodes();
+                m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphOperator>();
+                PostSetupNode();
+                TransferEdges();
+                TransfertOperatorOutputEdges();
+                Uninit();
+            }
+
+            public void ConvertToSubgraphBlock(VFXView sourceView, IEnumerable<Controller> controllers)
+            {
+                Init(sourceView, controllers);
+                CreateUniqueSubgraph("SubgraphBlock", VisualEffectSubgraphBlock.Extension,VisualEffectResource.CreateNewSubgraphBlock);
+                CopyPasteNodes();
+                m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
+                PostSetupNode();
+                TransferEdges();
+                Uninit();
+            }
+
+
+            void CreateUniqueSubgraph(string typeName, string extension, Func<string,VisualEffectObject> createFunc)
+            {
+                string graphPath = AssetDatabase.GetAssetPath(m_SourceView.controller.model.asset);
+                string graphName = Path.GetFileNameWithoutExtension(graphPath);
+                string graphDirPath = Path.GetDirectoryName(graphPath).Replace('\\','/');
+
+                string targetSubgraphPath = string.Format("{0}/{1}{2}{3}", graphDirPath, graphName, typeName, extension);
+                int cpt = 1;
+
+                while (File.Exists(targetSubgraphPath))
                 {
-                    case Type.Operator:
-                        sourceNode = ScriptableObject.CreateInstance<VFXSubgraphOperator>();
-                        break;
-                    case Type.Context:
-                        sourceNode = ScriptableObject.CreateInstance<VFXSubgraphContext>();
-                        break;
-                    case Type.Block:
-                        sourceNode = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
-                        break;
+                    targetSubgraphPath = string.Format("{0}/{1}_{3}_{2}{4}", graphDirPath, graphName, cpt++, typeName, extension);
                 }
+                m_TargetSubgraph = createFunc(targetSubgraphPath);
 
-                sourceNode.SetSettingValue("m_SubGraph", targetSubgraph);
-                var sourceSlotContainer = sourceNode as IVFXSlotContainer;
+                m_TargetController = VFXViewController.GetController(m_TargetSubgraph.GetResource());
+                m_TargetController.useCount++;
+                m_TargetControllers = new List<VFXNodeController>();
+            }
 
-                sourceNode.position = rect.center;
+            void PostSetupNode()
+            {
+                PostSetup();
+                m_SourceNode.position = m_Rect.center;
+                m_SourceController.graph.AddChild(m_SourceNode);
+                m_SourceController.LightApplyChanges();
+                m_SourceNodeController = m_SourceController.GetRootNodeController(m_SourceNode, 0);
+                m_SourceNodeController.ApplyChanges();
+            }
+            void PostSetup()
+            {
+                SetupTargetParameters();
+                m_SourceNode.SetSettingValue("m_Subgraph", m_TargetSubgraph);
+                m_SourceSlotContainer = m_SourceNode as IVFXSlotContainer;
+            }
 
-                sourceController.graph.AddChild(sourceNode); //TODO change this for blocks
-
-                sourceController.LightApplyChanges();
-
-                var sourceNodeController = sourceController.GetRootNodeController(sourceNode, 0);
-
-                sourceNodeController.ApplyChanges();
-
-                for(int i = 0; i < targetParameters.Count; ++i)
+            void TransferEdges()
+            {
+                for (int i = 0; i < m_TargetParameters.Count; ++i)
                 {
-                    var input = sourceNodeController.inputPorts.First(t => t.model == sourceSlotContainer.inputSlots[i]);
-                    var output = sourceParameters[targetParameters[i].exposedName].outputPorts.First();
+                    var input = m_SourceNodeController.inputPorts.First(t => t.model == m_SourceSlotContainer.inputSlots[i]);
+                    var output = m_SourceParameters[m_TargetParameters[i].exposedName].outputPorts.First();
 
-                    targetController.CreateLink(input, output);
+                    m_TargetController.CreateLink(input, output);
                 }
+                TransfertDataEdges();
+            }
 
+            IEnumerable<Controller> sourceControllersWithBlocks;
 
-                var sourceControllersWithBlocks = sourceControllers.Concat(sourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
+            void TransfertDataEdges()
+            {
+                sourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
+                
+                // Search for links between with inputs in the selected part and the output in other parts of the graph.
+                Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>> traversingInEdges = new Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>>();
 
-                {
-                    // Search for links between with inputs in the selected part and the output in other parts of the graph.
-                    Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>> traversingInEdges = new Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>>();
-
-                    foreach(var edge in sourceController.dataEdges.Where(
-                        t=>
-                        {
-                            if (parameterNodeControllers.Contains(t.output.sourceNode))
-                                return false;
-                            var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
-                            var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
-
-                            return inputInControllers && !outputInControllers;
-                        }
-                        ))
+                foreach (var edge in m_SourceController.dataEdges.Where(
+                    t =>
                     {
-                        List<VFXDataAnchorController> outputs = null;
-                        if( ! traversingInEdges.TryGetValue(edge.input,out outputs) )
-                        {
-                            outputs = new List<VFXDataAnchorController>();
-                            traversingInEdges[edge.input] = outputs;
-                        }
+                        if (parameterNodeControllers.Contains(t.output.sourceNode))
+                            return false;
+                        var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
+                        var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
 
-                        outputs.Add(edge.output);
+                        return inputInControllers && !outputInControllers;
+                    }
+                    ))
+                {
+                    List<VFXDataAnchorController> outputs = null;
+                    if (!traversingInEdges.TryGetValue(edge.input, out outputs))
+                    {
+                        outputs = new List<VFXDataAnchorController>();
+                        traversingInEdges[edge.input] = outputs;
                     }
 
-                    var newSourceInputs = traversingInEdges.Keys.ToArray();
-
-                    for (int i = 0; i < newSourceInputs.Length; ++i)
-                    {
-                        VFXParameter newTargetParameter = targetController.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceInputs[i].portType));
-
-                        targetController.LightApplyChanges();
-
-                        VFXParameterController newTargetParamController = targetController.GetParameterController(newTargetParameter);
-                        newTargetParamController.exposed = true;
-
-                        var outputs = traversingInEdges[newSourceInputs[i]];
-
-                        var linkedParameter = outputs.FirstOrDefault(t => t.sourceNode is VFXParameterNodeController);
-                        if( linkedParameter != null)
-                            newTargetParamController.exposedName = (linkedParameter.sourceNode as VFXParameterNodeController).parentController.exposedName;
-                        else
-                            newTargetParamController.exposedName = newSourceInputs[i].name;
-
-                        //first the equivalent of sourceInput in the target
-
-                        VFXNodeController targetNode = null;
-
-                        if(newSourceInputs[i].sourceNode is VFXBlockController)
-                        {
-                            var blockController = newSourceInputs[i].sourceNode as VFXBlockController;
-                            
-                            var targetContext = targetControllers[sourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
-
-                            targetNode = targetContext.blockControllers[blockController.index];
-                        }
-                        else
-                            targetNode = targetControllers[sourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
-
-                        VFXDataAnchorController targetAnchor = targetNode.inputPorts.First(t => t.path == newSourceInputs[i].path);
-
-                        VFXNodeController parameterNode = targetController.AddVFXParameter(targetNode.position - new Vector2(200, 0), newTargetParamController, null);
-
-                        // Link the parameternode and the input in the target
-                        targetController.CreateLink(targetAnchor, parameterNode.outputPorts[0]);
-
-                        if (sourceSlotContainer is VFXOperator)
-                            (sourceSlotContainer as VFXOperator).ResyncSlots(true);
-                        else if (sourceSlotContainer is VFXSubgraphBlock)
-                        {
-                            VFXSubgraphBlock blk = (sourceSlotContainer as VFXSubgraphBlock);
-                            blk.RecreateCopy();
-                            blk.ResyncSlots(true);
-                        }
-                        else if (sourceSlotContainer is VFXSubgraphContext)
-                        {
-                            VFXSubgraphContext ctx = (sourceSlotContainer as VFXSubgraphContext);
-                            ctx.RecreateCopy();
-                            ctx.ResyncSlots(true);
-                        }
-
-                        sourceNodeController.ApplyChanges();
-                        //Link all the outputs to the matching input of the subgraph
-                        foreach (var output in outputs)
-                        {
-                            sourceController.CreateLink(sourceNodeController.inputPorts.First(t => t.model == sourceSlotContainer.inputSlots.Last()), output);
-                        }
-                    }
+                    outputs.Add(edge.output);
                 }
 
+                var newSourceInputs = traversingInEdges.Keys.ToArray();
 
-                if(type == Type.Operator)
+                for (int i = 0; i < newSourceInputs.Length; ++i)
                 {
-                    var traversingOutEdges = new Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>>();
+                    VFXParameter newTargetParameter = m_TargetController.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceInputs[i].portType));
 
-                    foreach (var edge in sourceController.dataEdges.Where(
-                        t =>
-                        {
-                            if (t.output.sourceNode is VFXParameterNodeController || t.input.sourceNode is VFXParameterNodeController)
-                                return false;
-                            var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
-                            var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
+                    m_TargetController.LightApplyChanges();
 
-                            return !inputInControllers && outputInControllers;
-                        }
-                        ))
+                    VFXParameterController newTargetParamController = m_TargetController.GetParameterController(newTargetParameter);
+                    newTargetParamController.exposed = true;
+
+                    var outputs = traversingInEdges[newSourceInputs[i]];
+
+                    var linkedParameter = outputs.FirstOrDefault(t => t.sourceNode is VFXParameterNodeController);
+                    if (linkedParameter != null)
+                        newTargetParamController.exposedName = (linkedParameter.sourceNode as VFXParameterNodeController).parentController.exposedName;
+                    else
+                        newTargetParamController.exposedName = newSourceInputs[i].name;
+
+                    //first the equivalent of sourceInput in the target
+
+                    VFXNodeController targetNode = null;
+
+                    if (newSourceInputs[i].sourceNode is VFXBlockController)
                     {
-                        List<VFXDataAnchorController> inputs = null;
-                        if (!traversingOutEdges.TryGetValue(edge.output, out inputs))
-                        {
-                            inputs = new List<VFXDataAnchorController>();
-                            traversingOutEdges[edge.output] = inputs;
-                        }
+                        var blockController = newSourceInputs[i].sourceNode as VFXBlockController;
 
-                        inputs.Add(edge.input);
+                        var targetContext = m_TargetControllers[m_SourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
+
+                        targetNode = targetContext.blockControllers[blockController.index];
+                    }
+                    else
+                        targetNode = m_TargetControllers[m_SourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
+
+                    VFXDataAnchorController targetAnchor = targetNode.inputPorts.First(t => t.path == newSourceInputs[i].path);
+
+                    VFXNodeController parameterNode = m_TargetController.AddVFXParameter(targetNode.position - new Vector2(200, 0), newTargetParamController, null);
+
+                    // Link the parameternode and the input in the target
+                    m_TargetController.CreateLink(targetAnchor, parameterNode.outputPorts[0]);
+
+                    if (m_SourceSlotContainer is VFXOperator)
+                        (m_SourceSlotContainer as VFXOperator).ResyncSlots(true);
+                    else if (m_SourceSlotContainer is VFXSubgraphBlock)
+                    {
+                        VFXSubgraphBlock blk = (m_SourceSlotContainer as VFXSubgraphBlock);
+                        blk.RecreateCopy();
+                        blk.ResyncSlots(true);
+                    }
+                    else if (m_SourceSlotContainer is VFXSubgraphContext)
+                    {
+                        VFXSubgraphContext ctx = (m_SourceSlotContainer as VFXSubgraphContext);
+                        ctx.RecreateCopy();
+                        ctx.ResyncSlots(true);
                     }
 
-                    var newSourceOutputs = traversingOutEdges.Keys.ToArray();
-
-                    for (int i = 0; i < newSourceOutputs.Length; ++i)
+                    m_SourceNodeController.ApplyChanges();
+                    //Link all the outputs to the matching input of the subgraph
+                    foreach (var output in outputs)
                     {
-                        VFXParameter newTargetParameter = targetController.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceOutputs[i].portType));
-
-                        targetController.LightApplyChanges();
-
-                        VFXParameterController newTargetParamController = targetController.GetParameterController(newTargetParameter);
-                        newTargetParamController.isOutput = true;
-
-                        var inputs = traversingOutEdges[newSourceOutputs[i]];
-
-                        var linkedParameter = inputs.FirstOrDefault(t => t.sourceNode is VFXParameterNodeController);
-                        if (linkedParameter != null)
-                            newTargetParamController.exposedName = (linkedParameter.sourceNode as VFXParameterNodeController).parentController.exposedName;
-                        else
-                            newTargetParamController.exposedName = newSourceOutputs[i].name;
-
-                        //first the equivalent of sourceInput in the target
-
-                        VFXNodeController targetNode = null;
-
-                        if (newSourceOutputs[i].sourceNode is VFXBlockController)
-                        {
-                            var blockController = newSourceOutputs[i].sourceNode as VFXBlockController;
-
-                            var targetContext = targetControllers[sourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
-
-                            targetNode = targetContext.blockControllers[blockController.index];
-                        }
-                        else
-                        {
-                            targetNode = targetControllers[sourceControllers.IndexOf(newSourceOutputs[i].sourceNode)];
-                        }
-
-                        VFXDataAnchorController targetAnchor = targetNode.outputPorts.First(t => t.path == newSourceOutputs[i].path);
-
-                        VFXNodeController parameterNode = targetController.AddVFXParameter(targetNode.position + new Vector2(400, 0), newTargetParamController, null);
-
-                        // Link the parameternode and the input in the target
-                        targetController.CreateLink(parameterNode.inputPorts[0],targetAnchor );
-
-                        if (sourceSlotContainer is VFXOperator)
-                            (sourceSlotContainer as VFXOperator).ResyncSlots(true);
-                        sourceNodeController.ApplyChanges();
-                        //Link all the outputs to the matching input of the subgraph
-                        foreach (var input in inputs)
-                        {
-                            sourceController.CreateLink(input, sourceNodeController.outputPorts.First(t => t.model == sourceSlotContainer.outputSlots.Last()));
-                        }
+                        m_SourceController.CreateLink(m_SourceNodeController.inputPorts.First(t => t.model == m_SourceSlotContainer.inputSlots.Last()), output);
                     }
 
                 }
-                else if( type == Type.Context)
-                {
-                    var initializeContexts = sourceControllers.OfType<VFXContextController>().Where(t => t.model.contextType == VFXContextType.Init ||
-                                                                                                        t.model.contextType == VFXContextType.Spawner ||
-                                                                                                        t.model.contextType == VFXContextType.Subgraph).ToArray();
+            }
 
-                    var outputSpawners = new Dictionary<VFXContextController, List<VFXFlowAnchorController>>();
-                    var outputEvents = new Dictionary<string, List<VFXFlowAnchorController>>();
 
-                    foreach ( var initializeContext in initializeContexts)
+            void TransfertOperatorOutputEdges()
+            {
+                var traversingOutEdges = new Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>>();
+
+                foreach (var edge in m_SourceController.dataEdges.Where(
+                    t =>
                     {
-                        for(int i = 0; i < initializeContext.flowInputAnchors.Count; ++i)
-                        if( initializeContext.flowInputAnchors[i].connections.Count() > 0)
+                        if (t.output.sourceNode is VFXParameterNodeController || t.input.sourceNode is VFXParameterNodeController)
+                            return false;
+                        var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
+                        var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
+
+                        return !inputInControllers && outputInControllers;
+                    }
+                    ))
+                {
+                    List<VFXDataAnchorController> inputs = null;
+                    if (!traversingOutEdges.TryGetValue(edge.output, out inputs))
+                    {
+                        inputs = new List<VFXDataAnchorController>();
+                        traversingOutEdges[edge.output] = inputs;
+                    }
+
+                    inputs.Add(edge.input);
+                }
+
+                var newSourceOutputs = traversingOutEdges.Keys.ToArray();
+
+                for (int i = 0; i < newSourceOutputs.Length; ++i)
+                {
+                    VFXParameter newTargetParameter = m_TargetController.AddVFXParameter(Vector2.zero, VFXLibrary.GetParameters().First(t => t.model.type == newSourceOutputs[i].portType));
+
+                    m_TargetController.LightApplyChanges();
+
+                    VFXParameterController newTargetParamController = m_TargetController.GetParameterController(newTargetParameter);
+                    newTargetParamController.isOutput = true;
+
+                    var inputs = traversingOutEdges[newSourceOutputs[i]];
+
+                    var linkedParameter = inputs.FirstOrDefault(t => t.sourceNode is VFXParameterNodeController);
+                    if (linkedParameter != null)
+                        newTargetParamController.exposedName = (linkedParameter.sourceNode as VFXParameterNodeController).parentController.exposedName;
+                    else
+                        newTargetParamController.exposedName = newSourceOutputs[i].name;
+
+                    //first the equivalent of sourceInput in the target
+
+                    VFXNodeController targetNode = null;
+
+                    if (newSourceOutputs[i].sourceNode is VFXBlockController)
+                    {
+                        var blockController = newSourceOutputs[i].sourceNode as VFXBlockController;
+
+                        var targetContext = m_TargetControllers[m_SourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
+
+                        targetNode = targetContext.blockControllers[blockController.index];
+                    }
+                    else
+                    {
+                        targetNode = m_TargetControllers[m_SourceControllers.IndexOf(newSourceOutputs[i].sourceNode)];
+                    }
+
+                    VFXDataAnchorController targetAnchor = targetNode.outputPorts.First(t => t.path == newSourceOutputs[i].path);
+
+                    VFXNodeController parameterNode = m_TargetController.AddVFXParameter(targetNode.position + new Vector2(400, 0), newTargetParamController, null);
+
+                    // Link the parameternode and the input in the target
+                    m_TargetController.CreateLink(parameterNode.inputPorts[0], targetAnchor);
+
+                    if (m_SourceSlotContainer is VFXOperator)
+                        (m_SourceSlotContainer as VFXOperator).ResyncSlots(true);
+                    m_SourceNodeController.ApplyChanges();
+                    //Link all the outputs to the matching input of the subgraph
+                    foreach (var input in inputs)
+                    {
+                        m_SourceController.CreateLink(input, m_SourceNodeController.outputPorts.First(t => t.model == m_SourceSlotContainer.outputSlots.Last()));
+                    }
+                }
+            }
+            void TransferContextsFlowEdges()
+            {
+                var initializeContexts = m_SourceControllers.OfType<VFXContextController>().Where(t => t.model.contextType == VFXContextType.Init ||
+                                                                                                    t.model.contextType == VFXContextType.Spawner ||
+                                                                                                    t.model.contextType == VFXContextType.Subgraph).ToArray();
+
+                var outputSpawners = new Dictionary<VFXContextController, List<VFXFlowAnchorController>>();
+                var outputEvents = new Dictionary<string, List<VFXFlowAnchorController>>();
+
+                foreach (var initializeContext in initializeContexts)
+                {
+                    for (int i = 0; i < initializeContext.flowInputAnchors.Count; ++i)
+                        if (initializeContext.flowInputAnchors[i].connections.Count() > 0)
                         {
 
                             var outputContext = initializeContext.flowInputAnchors[i].connections.First().output.context; //output context must be linked through is it is linked with a spawner
 
-                            if (!sourceControllers.Contains(outputContext))
+                            if (!m_SourceControllers.Contains(outputContext))
                             {
                                 if (outputContext.model.contextType == VFXContextType.Spawner /*||
-                                    ((outputContext.model is VFXBasicEvent) &&
-                                        (new string[] { VisualEffectAsset.PlayEventName, VisualEffectAsset.StopEventName }.Contains((outputContext.model as VFXBasicEvent).eventName) ||
-                                            sourceController.model.isSubgraph && (outputContext.model as VFXBasicEvent).eventName == VFXSubgraphContext.triggerEventName))*/)
+                            ((outputContext.model is VFXBasicEvent) &&
+                                (new string[] { VisualEffectAsset.PlayEventName, VisualEffectAsset.StopEventName }.Contains((outputContext.model as VFXBasicEvent).eventName) ||
+                                    sourceController.model.isSubgraph && (outputContext.model as VFXBasicEvent).eventName == VFXSubgraphContext.triggerEventName))*/)
                                 {
                                     List<VFXFlowAnchorController> inputs = null;
                                     if (!outputSpawners.TryGetValue(outputContext, out inputs))
@@ -355,66 +454,55 @@ namespace UnityEditor.VFX.UI
                                     }
                                     inputs.Add(initializeContext.flowInputAnchors[i]);
                                 }
-                                else if(outputContext.model is VFXBasicEvent)
+                                else if (outputContext.model is VFXBasicEvent)
                                 {
                                     List<VFXFlowAnchorController> inputs = null;
                                     var eventName = (outputContext.model as VFXBasicEvent).eventName;
                                     if (!outputEvents.TryGetValue(eventName, out inputs))
                                     {
                                         inputs = new List<VFXFlowAnchorController>();
-                                            outputEvents.Add(eventName, inputs);
+                                        outputEvents.Add(eventName, inputs);
                                     }
                                     inputs.Add(initializeContext.flowInputAnchors[i]);
                                 }
                             }
                         }
-                    }
-
-                    {
-
-                        if (outputSpawners.Count() > 1)
-                        {
-                            Debug.LogWarning("More than one spawner is linked to the content if the new subgraph, some links we not be kept");
-                        }
-
-                        if(outputSpawners.Count > 0)
-                        {
-                            var kvContext = outputSpawners.First();
-
-                            (sourceNodeController as VFXContextController).model.LinkFrom(kvContext.Key.model, 0, 2); // linking to trigger
-                            CreateAndLinkEvent(sourceControllers, targetController, targetControllers, kvContext.Value,VFXSubgraphContext.triggerEventName);
-                        }
-                    }
-                    { //link named events as if
-                        foreach( var kv in outputEvents)
-                        {
-                            CreateAndLinkEvent(sourceControllers, targetController, targetControllers, kv.Value, kv.Key);
-                        }
-                    }
-
                 }
 
-
-                foreach ( var element in sourceControllers.Where(t=> !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController)))
                 {
-                    sourceController.RemoveElement(element);
+
+                    if (outputSpawners.Count() > 1)
+                    {
+                        Debug.LogWarning("More than one spawner is linked to the content if the new subgraph, some links we not be kept");
+                    }
+
+                    if (outputSpawners.Count > 0)
+                    {
+                        var kvContext = outputSpawners.First();
+
+                        (m_SourceNodeController as VFXContextController).model.LinkFrom(kvContext.Key.model, 0, 2); // linking to trigger
+                        CreateAndLinkEvent(m_SourceControllers, m_TargetController, m_TargetControllers, kvContext.Value, VFXSubgraphContext.triggerEventName);
+                    }
+                }
+                { //link named events as if
+                    foreach (var kv in outputEvents)
+                    {
+                        CreateAndLinkEvent(m_SourceControllers, m_TargetController, m_TargetControllers, kv.Value, kv.Key);
+                    }
                 }
 
-                foreach( var element in parameterNodeControllers)
+
+
+                foreach (var element in m_SourceControllers.Where(t=> !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController)))
+                {
+                    m_SourceController.RemoveElement(element);
+                }
+
+                foreach(var element in parameterNodeControllers)
                 {
                     if (element.infos.linkedSlots == null || element.infos.linkedSlots.Count() == 0)
-                        sourceController.RemoveElement(element);
+                        m_SourceController.RemoveElement(element);
                 }
-
-            }
-            /*catch(System.Exception)
-            {
-                throw;
-            }*/
-            //finally
-            {
-                targetController.useCount--;
-                sourceController.useCount--;
             }
         }
 
