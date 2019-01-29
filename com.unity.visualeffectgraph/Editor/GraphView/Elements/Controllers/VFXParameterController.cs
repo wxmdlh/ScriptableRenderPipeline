@@ -712,7 +712,10 @@ namespace UnityEditor.VFX.UI
                 if (model.isOutput != value)
                 {
                     model.isOutput = value;
+
+                    viewController.UnRegisterNotification(m_Slot, OnSlotChanged);
                     m_Slot = model.isOutput ? model.inputSlots[0] : model.outputSlots[0];
+                    viewController.RegisterNotification(m_Slot, OnSlotChanged);
                 }
 
             }
@@ -883,6 +886,7 @@ namespace UnityEditor.VFX.UI
             if (!object.ReferenceEquals(m_Slot, null))
             {
                 viewController.UnRegisterNotification(m_Slot, OnSlotChanged);
+                m_Slot = null;
             }
             base.OnDisable();
         }
