@@ -26,10 +26,10 @@ namespace UnityEditor.VFX.UI
             ctx.ConvertToSubgraphOperator(sourceView, controllers, rect);
         }
 
-        public static void ConvertToSubgraphOperator(VFXView sourceView, IEnumerable<Controller> controllers)
+        public static void ConvertToSubgraphBlock(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
         {
             var ctx = new Context();
-            ctx.ConvertToSubgraphBlock(sourceView, controllers);
+            ctx.ConvertToSubgraphBlock(sourceView, controllers, rect);
         }
 
         enum Type
@@ -167,6 +167,7 @@ namespace UnityEditor.VFX.UI
                 CopyPasteNodes();
                 m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphContext>();
                 PostSetupNode();
+                m_SourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
                 TransferEdges();
                 TransferContextsFlowEdges();
                 Uninit();
@@ -180,18 +181,45 @@ namespace UnityEditor.VFX.UI
                 CopyPasteNodes();
                 m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphOperator>();
                 PostSetupNode();
+                m_SourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
                 TransferEdges();
                 TransfertOperatorOutputEdges();
                 Uninit();
             }
 
-            public void ConvertToSubgraphBlock(VFXView sourceView, IEnumerable<Controller> controllers)
+
+            List<VFXBlockController> m_SourceBlockControllers;
+
+            public void ConvertToSubgraphBlock(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
             {
+                this.m_Rect = rect;
                 Init(sourceView, controllers);
                 CreateUniqueSubgraph("SubgraphBlock", VisualEffectSubgraphBlock.Extension,VisualEffectResource.CreateNewSubgraphBlock);
+
+                m_SourceControllers.RemoveAll(t => t is VFXContextController); // Don't copy contexts
                 CopyPasteNodes();
+
+                m_SourceBlockControllers = m_SourceControllers.OfType<VFXBlockController>().ToList();
+
+                VFXContextController sourceContextController = m_SourceBlockControllers.First().contextController;
+
+
+                object copyData = VFXCopy.CopyBlocks(m_SourceBlockControllers);
+
+                var targetContext = m_TargetController.graph.children.OfType<VFXBlockSubgraphContext>().First();
+
+                List<VFXBlock> targetBlocks = new List<VFXBlock>();
+
+                VFXPaste.PasteBlocks(null, copyData, targetContext, 0, targetBlocks);
+
+
+
                 m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
                 PostSetupNode();
+
+                var targetContextController = m_TargetController.GetRootNodeController(targetContext, 0) as VFXContextController;
+
+                m_SourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceBlockControllers);
                 TransferEdges();
                 Uninit();
             }
@@ -245,11 +273,11 @@ namespace UnityEditor.VFX.UI
                 TransfertDataEdges();
             }
 
-            IEnumerable<Controller> sourceControllersWithBlocks;
+            IEnumerable<Controller> m_SourceControllersWithBlocks;
 
             void TransfertDataEdges()
             {
-                sourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
+                m_SourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
                 
                 // Search for links between with inputs in the selected part and the output in other parts of the graph.
                 Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>> traversingInEdges = new Dictionary<VFXDataAnchorController, List<VFXDataAnchorController>>();
@@ -259,8 +287,8 @@ namespace UnityEditor.VFX.UI
                     {
                         if (parameterNodeControllers.Contains(t.output.sourceNode))
                             return false;
-                        var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
-                        var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
+                        var inputInControllers = m_SourceControllersWithBlocks.Contains(t.input.sourceNode);
+                        var outputInControllers = m_SourceControllersWithBlocks.Contains(t.output.sourceNode);
 
                         return inputInControllers && !outputInControllers;
                     }
@@ -352,8 +380,8 @@ namespace UnityEditor.VFX.UI
                     {
                         if (t.output.sourceNode is VFXParameterNodeController || t.input.sourceNode is VFXParameterNodeController)
                             return false;
-                        var inputInControllers = sourceControllersWithBlocks.Contains(t.input.sourceNode);
-                        var outputInControllers = sourceControllersWithBlocks.Contains(t.output.sourceNode);
+                        var inputInControllers = m_SourceControllersWithBlocks.Contains(t.input.sourceNode);
+                        var outputInControllers = m_SourceControllersWithBlocks.Contains(t.output.sourceNode);
 
                         return !inputInControllers && outputInControllers;
                     }

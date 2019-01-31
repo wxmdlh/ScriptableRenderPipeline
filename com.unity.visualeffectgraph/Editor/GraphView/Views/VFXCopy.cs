@@ -39,6 +39,14 @@ namespace UnityEditor.VFX.UI
             return JsonUtility.ToJson(serializableGraph);
         }
 
+
+        public static object CopyBlocks(IEnumerable<VFXBlockController> blocks)
+        {
+            if (s_Instance == null)
+                s_Instance = new VFXCopy();
+            return s_Instance.DoCopyBlocks(blocks);
+        }
+
         object CreateCopy(IEnumerable<Controller> elements, Rect bounds)
         {
             IEnumerable<VFXContextController> contexts = elements.OfType<VFXContextController>();
@@ -314,6 +322,22 @@ namespace UnityEditor.VFX.UI
             node.expandedOutputs = AllSlots((model as IVFXSlotContainer).outputSlots).Where(t => !t.collapsed).Select(t => t.path).ToArray();
 
             return id;
+        }
+        SerializableGraph DoCopyBlocks(IEnumerable<VFXBlockController> blocks)
+        {
+            var newBlocks = new Node[blocks.Count()];
+            uint cpt = 0;
+            foreach( var block in blocks)
+            {
+                CopyNode(ref newBlocks[(int)cpt], block.model, cpt);
+                ++cpt;
+            }
+
+            var graph = new SerializableGraph();
+            graph.blocksOnly = true;
+            graph.operators = newBlocks;
+
+            return graph;
         }
 
         Node[] CopyBlocks(IList<VFXBlockController> blocks, int contextIndex)
