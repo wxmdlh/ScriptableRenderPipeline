@@ -70,7 +70,7 @@ namespace UnityEditor.VFX
 
         public static VFXExpressionMapper FromContext(VFXContext context)
         {
-            var mapper = FromBlocks(context.activeChildrenWithImplicit);
+            var mapper = FromBlocks(context.activeFlattenedChildrenWithImplicit);
             mapper.AddExpressionFromSlotContainer(context, -1);
             return mapper;
         }

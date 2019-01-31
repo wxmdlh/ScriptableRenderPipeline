@@ -164,7 +164,7 @@ namespace UnityEditor.VFX
         {
             if (target == VFXDeviceTarget.GPU)
             {
-                var gpuMapper = VFXExpressionMapper.FromBlocks(activeChildrenWithImplicit);
+                var gpuMapper = VFXExpressionMapper.FromBlocks(activeFlattenedChildrenWithImplicit);
                 gpuMapper.AddExpressions(CollectGPUExpressions(GetExpressionsFromSlots(this)), -1);
                 return gpuMapper;
             }

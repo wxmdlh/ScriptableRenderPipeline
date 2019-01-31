@@ -26,6 +26,9 @@ namespace UnityEditor.VFX
         [VFXSetting]
         VFXContextType m_SuitableContexts = VFXContextType.InitAndUpdateAndOutput;
 
+        [VFXSetting]
+        VFXDataType m_SuitableData = VFXDataType.Particle;
+
 
         public VFXContextType compatibleContextType
         {
@@ -34,7 +37,13 @@ namespace UnityEditor.VFX
                 return m_SuitableContexts;
             }
         }
-
+        public override VFXDataType ownedType
+        {
+            get
+            {
+                return m_SuitableData;
+            }
+        }
 
         protected override void OnInvalidate(VFXModel model, InvalidationCause cause)
         {

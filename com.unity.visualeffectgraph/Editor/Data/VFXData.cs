@@ -300,7 +300,7 @@ namespace UnityEditor.VFX
 
                     var attributes = Enumerable.Empty<VFXAttributeInfo>();
                     attributes = attributes.Concat(context.attributes);
-                    foreach (var block in context.activeChildrenWithImplicit)
+                    foreach (var block in context.activeFlattenedChildrenWithImplicit)
                         attributes = attributes.Concat(block.attributes);
 
                     var mapper = context.GetExpressionMapper(GetCompilationTarget(context));

@@ -439,7 +439,7 @@ namespace UnityEditor.VFX
                     capacity = 0u,
                     flags = VFXSystemFlag.SystemDefault,
                     layer = uint.MaxValue,
-                    tasks = spawnContext.activeChildrenWithImplicit.Select((b, index) =>
+                    tasks = spawnContext.activeFlattenedChildrenWithImplicit.Select((b, index) =>
                     {
                         var spawnerBlock = b as VFXAbstractSpawner;
                         if (spawnerBlock == null)

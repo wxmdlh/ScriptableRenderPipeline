@@ -219,8 +219,17 @@ namespace UnityEditor.VFX
         {
             get { return m_SubBlocks; }
         }
+
+        public IEnumerable<VFXBlock> recusiveSubBlocks
+        {
+            get
+            {
+                return m_SubBlocks.SelectMany(t => t is VFXSubgraphBlock ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Repeat(t, 0));
+            }
+        }
+
         public override VFXContextType compatibleContexts { get { return (subgraph != null) ? subgraph.GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First().compatibleContextType:VFXContextType.All; } }
-        public override VFXDataType compatibleData { get { return VFXDataType.Particle; } }
+        public override VFXDataType compatibleData { get { return (subgraph != null) ? subgraph.GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First().ownedType : VFXDataType.Particle | VFXDataType.SpawnEvent; } }
 
         public override void CollectDependencies(HashSet<ScriptableObject> objs,bool compileOnly = false)
         {
