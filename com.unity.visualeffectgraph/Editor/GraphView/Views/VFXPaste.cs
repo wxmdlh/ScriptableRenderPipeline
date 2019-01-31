@@ -29,7 +29,7 @@ namespace UnityEditor.VFX.UI
 
             if (s_Instance == null)
                 s_Instance = new VFXPaste();
-            s_Instance.DoPaste(viewController, center, serializableGraph, view, groupNode,null);
+            s_Instance.DoPaste(viewController, center, serializableGraph, view, groupNode, null);
         }
 
         public static void Paste(VFXViewController viewController, Vector2 center, object data, VFXView view, VFXGroupNodeController groupNode, List<VFXNodeController> nodesInTheSameOrder = null)
@@ -37,6 +37,15 @@ namespace UnityEditor.VFX.UI
             if (s_Instance == null)
                 s_Instance = new VFXPaste();
             s_Instance.DoPaste(viewController, center, data, view, groupNode, nodesInTheSameOrder);
+        }
+
+
+        public static void PasteBlocks(VFXView view, object data, VFXContext targetModelContext, int targetIndex, List<VFXBlock> blocksInTheSameOrder)
+        {    
+            if (s_Instance == null)
+                s_Instance = new VFXPaste();
+
+            s_Instance.PasteBlocks(view, (data as SerializableGraph).operators, targetModelContext, targetIndex, blocksInTheSameOrder);
         }
 
         void DoPaste(VFXViewController viewController, Vector2 center, object data, VFXView view, VFXGroupNodeController groupNode, List<VFXNodeController> nodesInTheSameOrder)
@@ -89,34 +98,51 @@ namespace UnityEditor.VFX.UI
                 targetIndex = targetModelContext.GetIndex(targetBlock.controller.model) + 1;
             }
 
-            var newBlocks = new HashSet<VFXBlock>();
+            targetIndex = PasteBlocks(view, serializableGraph.operators, targetModelContext, targetIndex);
 
+            targetModelContext.Invalidate(VFXModel.InvalidationCause.kStructureChanged);
+
+            if (view != null)
+            {
+                view.ClearSelection();
+
+                foreach (var uiBlock in targetContext.Query().OfType<VFXBlockUI>().Where(t => m_NodesInTheSameOrder.Any(u=> u.model == t.controller.model)).ToList())
+                    view.AddToSelection(uiBlock);
+            }
+        }
+
+        private int PasteBlocks(VFXView view, Node[] blocks, VFXContext targetModelContext, int targetIndex,List<VFXBlock> blocksInTheSameOrder = null)
+        {
             newControllers.Clear();
-
-            foreach (var block in serializableGraph.operators)
+            m_NodesInTheSameOrder = new VFXNodeID[blocks.Length];
+            int cpt = 0;
+            foreach (var block in blocks)
             {
                 Node blk = block;
                 VFXBlock newBlock = PasteAndInitializeNode<VFXBlock>(view.controller, ref blk);
 
                 if (targetModelContext.AcceptChild(newBlock, targetIndex))
                 {
-                    newBlocks.Add(newBlock);
+                    m_NodesInTheSameOrder[cpt] = new VFXNodeID(newBlock, 0);
                     targetModelContext.AddChild(newBlock, targetIndex, false); // only notify once after all blocks have been added
 
                     targetIndex++;
                 }
+
+                ++cpt;
             }
 
-            targetModelContext.Invalidate(VFXModel.InvalidationCause.kStructureChanged);
 
-            //TODO fill infos.indexToController for when external links will be optionally copied.
-
-            view.ClearSelection();
-
-            foreach (var uiBlock in targetContext.Query().OfType<VFXBlockUI>().Where(t => newBlocks.Contains(t.controller.model)).ToList())
+            if( blocksInTheSameOrder != null)
             {
-                view.AddToSelection(uiBlock);
+                blocksInTheSameOrder.Clear();
+                for (int i = 0; i < m_NodesInTheSameOrder.Length; ++i)
+                {
+                    blocksInTheSameOrder[i] = m_NodesInTheSameOrder[i].model != null ? m_NodesInTheSameOrder[i].model as VFXBlock: null;
+                }
             }
+
+            return targetIndex;
         }
 
         VFXNodeID[] m_NodesInTheSameOrder = null;
@@ -179,7 +205,6 @@ namespace UnityEditor.VFX.UI
                     if (dataEdge.input.targetIndex == InvalidID || dataEdge.output.targetIndex == InvalidID)
                         continue;
 
-                    //TODO: This bypasses viewController.CreateLink, and all its additional checks it shouldn't.
                     VFXModel inputModel = newControllers.ContainsKey(dataEdge.input.targetIndex) ? newControllers[dataEdge.input.targetIndex].model : null;
 
                     VFXNodeController outputController = newControllers.ContainsKey(dataEdge.output.targetIndex) ? newControllers[dataEdge.output.targetIndex] : null;
