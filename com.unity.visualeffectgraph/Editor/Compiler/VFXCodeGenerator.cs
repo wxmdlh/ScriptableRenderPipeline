@@ -369,7 +369,7 @@ namespace UnityEditor.VFX
             expressionToName = expressionToName.Union(contextData.uniformMapper.expressionToCode).ToDictionary(s => s.Key, s => s.Value);
 
             int cpt = 0;
-            foreach (var current in context.activeChildrenWithImplicit)
+            foreach (var current in context.activeFlattenedChildrenWithImplicit)
             {
                 BuildBlock(contextData, linkedEventOut, blockFunction, blockCallFunction, blockDeclared, expressionToName, current, ref cpt);
             }
@@ -411,7 +411,7 @@ namespace UnityEditor.VFX
 
             // Per-block includes
             var includes = Enumerable.Empty<string>();
-            foreach (var block in context.activeChildrenWithImplicit)
+            foreach (var block in context.activeFlattenedChildrenWithImplicit)
                 includes = includes.Concat(block.includes);
             var uniqueIncludes = new HashSet<string>(includes);
             foreach (var includePath in uniqueIncludes)

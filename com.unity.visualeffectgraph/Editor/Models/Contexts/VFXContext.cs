@@ -404,6 +404,13 @@ namespace UnityEditor.VFX
             }
         }
 
+        public IEnumerable<VFXBlock> activeFlattenedChildrenWithImplicit
+        {
+            get{
+                return implicitPreBlock.Concat(children.SelectMany(t => t is VFXSubgraphBlock ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Repeat(t, 0)));
+            }
+        }
+
         private IEnumerable<IVFXSlotContainer> allSlotContainer
         {
             get

@@ -80,7 +80,7 @@ namespace UnityEditor.VFX
         {
             // GPU
             if (target == VFXDeviceTarget.GPU)
-                return VFXExpressionMapper.FromBlocks(activeChildrenWithImplicit);
+                return VFXExpressionMapper.FromBlocks(activeFlattenedChildrenWithImplicit);
 
             // CPU
             var cpuMapper = new VFXExpressionMapper();

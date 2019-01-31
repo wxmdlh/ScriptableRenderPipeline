@@ -204,7 +204,6 @@ namespace UnityEditor.VFX.UI
 
                 VFXContextController sourceContextController = m_SourceBlockControllers.First().contextController;
 
-
                 object copyData = VFXCopy.CopyBlocks(m_SourceBlockControllers);
 
                 var targetContext = m_TargetController.graph.children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
@@ -214,18 +213,34 @@ namespace UnityEditor.VFX.UI
                     m_TargetController.graph.AddChild(targetContext);
                 }
                 m_TargetController.LightApplyChanges();
+                targetContext.position = sourceContextController.position;
                 targetContext.SetSettingValue("m_SuitableContexts", m_SourceBlockControllers.Select(t=>t.model.compatibleContexts).Aggregate((t,s)=> t & s));
+                targetContext.SetSettingValue("m_SuitableData", m_SourceBlockControllers.First().model.compatibleData);
                 m_TargetBlocks = new List<VFXBlockController>();
 
                 VFXPaste.PasteBlocks(m_TargetController, copyData, targetContext, 0, m_TargetBlocks);
 
-                var sourceBlock = ScriptableObject.CreateInstance<VFXSubgraphBlock>();;
+                var otherSourceControllers = m_SourceControllers.OfType<VFXNodeController>().Where(t => !(t is VFXBlockController)).ToList();
+
+                //Create lost links between nodes and blocks
+                foreach(var edge in m_SourceController.dataEdges.Where(t=> otherSourceControllers.Contains(t.output.sourceNode) && m_SourceBlockControllers.Contains(t.input.sourceNode)))
+                {
+                    var outputNode = m_TargetControllers[m_SourceControllers.IndexOf(edge.output.sourceNode)];
+                    var output = outputNode.outputPorts.First(t => t.path == edge.output.path);
+
+                    var inputBlock = m_TargetBlocks[m_SourceBlockControllers.IndexOf(edge.input.sourceNode as VFXBlockController)];
+                    var input = inputBlock.inputPorts.First(t => t.path == edge.input.path);
+
+                    m_TargetController.CreateLink(input, output);
+                }
+
+                var sourceBlock = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
                 m_SourceNode = sourceBlock;
                 sourceContextController.model.AddChild(m_SourceNode);
                 sourceContextController.ApplyChanges();
                 m_SourceNodeController = sourceContextController.blockControllers.First(t=> t.model == m_SourceNode );
-                m_SourceNodeController.ApplyChanges();
                 PostSetup();
+                m_SourceNodeController.ApplyChanges();
 
                 var targetContextController = m_TargetController.GetRootNodeController(targetContext, 0) as VFXContextController;
 
@@ -336,6 +351,7 @@ namespace UnityEditor.VFX.UI
                     //first the equivalent of sourceInput in the target
 
                     VFXNodeController targetNode = null;
+                    Vector2 position;
 
                     if (newSourceInputs[i].sourceNode is VFXBlockController)
                     {
@@ -343,6 +359,7 @@ namespace UnityEditor.VFX.UI
                         if (m_TargetBlocks != null)
                         {
                             targetNode = m_TargetBlocks[m_SourceBlockControllers.IndexOf(blockController)];
+                            position = blockController.contextController.position;
                         }
                         else
                         {
@@ -350,14 +367,21 @@ namespace UnityEditor.VFX.UI
                             var targetContext = m_TargetControllers[m_SourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
 
                             targetNode = targetContext.blockControllers[blockController.index];
+                            position = blockController.contextController.position;
                         }
                     }
                     else
+                    {
                         targetNode = m_TargetControllers[m_SourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
+                        position = targetNode.position;
+                    }
 
                     VFXDataAnchorController targetAnchor = targetNode.inputPorts.First(t => t.path == newSourceInputs[i].path);
 
-                    VFXNodeController parameterNode = m_TargetController.AddVFXParameter(targetNode.position - new Vector2(200, 0), newTargetParamController, null);
+
+                    position.y += targetAnchor.model.owner.inputSlots.IndexOf(targetAnchor.model) * 32;
+
+                    VFXNodeController parameterNode = m_TargetController.AddVFXParameter(position - new Vector2(200, 0), newTargetParamController, null);
 
                     // Link the parameternode and the input in the target
                     m_TargetController.CreateLink(targetAnchor, parameterNode.outputPorts[0]);
