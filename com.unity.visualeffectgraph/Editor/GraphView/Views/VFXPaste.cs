@@ -40,12 +40,12 @@ namespace UnityEditor.VFX.UI
         }
 
 
-        public static void PasteBlocks(VFXView view, object data, VFXContext targetModelContext, int targetIndex, List<VFXBlock> blocksInTheSameOrder)
+        public static void PasteBlocks(VFXViewController viewController, object data, VFXContext targetModelContext, int targetIndex, List<VFXBlockController> blocksInTheSameOrder)
         {    
             if (s_Instance == null)
                 s_Instance = new VFXPaste();
 
-            s_Instance.PasteBlocks(view, (data as SerializableGraph).operators, targetModelContext, targetIndex, blocksInTheSameOrder);
+            s_Instance.PasteBlocks(viewController, (data as SerializableGraph).operators, targetModelContext, targetIndex, blocksInTheSameOrder);
         }
 
         void DoPaste(VFXViewController viewController, Vector2 center, object data, VFXView view, VFXGroupNodeController groupNode, List<VFXNodeController> nodesInTheSameOrder)
@@ -98,7 +98,7 @@ namespace UnityEditor.VFX.UI
                 targetIndex = targetModelContext.GetIndex(targetBlock.controller.model) + 1;
             }
 
-            targetIndex = PasteBlocks(view, serializableGraph.operators, targetModelContext, targetIndex);
+            targetIndex = PasteBlocks(view.controller, serializableGraph.operators, targetModelContext, targetIndex);
 
             targetModelContext.Invalidate(VFXModel.InvalidationCause.kStructureChanged);
 
@@ -111,7 +111,7 @@ namespace UnityEditor.VFX.UI
             }
         }
 
-        private int PasteBlocks(VFXView view, Node[] blocks, VFXContext targetModelContext, int targetIndex,List<VFXBlock> blocksInTheSameOrder = null)
+        private int PasteBlocks(VFXViewController viewController, Node[] blocks, VFXContext targetModelContext, int targetIndex,List<VFXBlockController> blocksInTheSameOrder = null)
         {
             newControllers.Clear();
             m_NodesInTheSameOrder = new VFXNodeID[blocks.Length];
@@ -119,7 +119,7 @@ namespace UnityEditor.VFX.UI
             foreach (var block in blocks)
             {
                 Node blk = block;
-                VFXBlock newBlock = PasteAndInitializeNode<VFXBlock>(view.controller, ref blk);
+                VFXBlock newBlock = PasteAndInitializeNode<VFXBlock>(viewController, ref blk);
 
                 if (targetModelContext.AcceptChild(newBlock, targetIndex))
                 {
@@ -133,12 +133,15 @@ namespace UnityEditor.VFX.UI
             }
 
 
-            if( blocksInTheSameOrder != null)
+            var targetContextController = viewController.GetRootNodeController(targetModelContext, 0)as VFXContextController;
+            targetContextController.ApplyChanges();
+
+            if ( blocksInTheSameOrder != null)
             {
                 blocksInTheSameOrder.Clear();
                 for (int i = 0; i < m_NodesInTheSameOrder.Length; ++i)
                 {
-                    blocksInTheSameOrder[i] = m_NodesInTheSameOrder[i].model != null ? m_NodesInTheSameOrder[i].model as VFXBlock: null;
+                    blocksInTheSameOrder.Add(m_NodesInTheSameOrder[i].model != null ? targetContextController.blockControllers.First(t=>t.model == m_NodesInTheSameOrder[i].model as VFXBlock): null);
                 }
             }
 
