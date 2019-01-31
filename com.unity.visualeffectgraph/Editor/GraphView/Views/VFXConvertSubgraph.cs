@@ -189,6 +189,7 @@ namespace UnityEditor.VFX.UI
 
 
             List<VFXBlockController> m_SourceBlockControllers;
+            List<VFXBlockController> m_TargetBlocks = null;
 
             public void ConvertToSubgraphBlock(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
             {
@@ -206,16 +207,25 @@ namespace UnityEditor.VFX.UI
 
                 object copyData = VFXCopy.CopyBlocks(m_SourceBlockControllers);
 
-                var targetContext = m_TargetController.graph.children.OfType<VFXBlockSubgraphContext>().First();
+                var targetContext = m_TargetController.graph.children.OfType<VFXBlockSubgraphContext>().FirstOrDefault();
+                if (targetContext == null)
+                {
+                    targetContext = ScriptableObject.CreateInstance<VFXBlockSubgraphContext>();
+                    m_TargetController.graph.AddChild(targetContext);
+                }
+                m_TargetController.LightApplyChanges();
+                targetContext.SetSettingValue("m_SuitableContexts", m_SourceBlockControllers.Select(t=>t.model.compatibleContexts).Aggregate((t,s)=> t & s));
+                m_TargetBlocks = new List<VFXBlockController>();
 
-                List<VFXBlock> targetBlocks = new List<VFXBlock>();
+                VFXPaste.PasteBlocks(m_TargetController, copyData, targetContext, 0, m_TargetBlocks);
 
-                VFXPaste.PasteBlocks(null, copyData, targetContext, 0, targetBlocks);
-
-
-
-                m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
-                PostSetupNode();
+                var sourceBlock = ScriptableObject.CreateInstance<VFXSubgraphBlock>();;
+                m_SourceNode = sourceBlock;
+                sourceContextController.model.AddChild(m_SourceNode);
+                sourceContextController.ApplyChanges();
+                m_SourceNodeController = sourceContextController.blockControllers.First(t=> t.model == m_SourceNode );
+                m_SourceNodeController.ApplyChanges();
+                PostSetup();
 
                 var targetContextController = m_TargetController.GetRootNodeController(targetContext, 0) as VFXContextController;
 
@@ -330,10 +340,17 @@ namespace UnityEditor.VFX.UI
                     if (newSourceInputs[i].sourceNode is VFXBlockController)
                     {
                         var blockController = newSourceInputs[i].sourceNode as VFXBlockController;
+                        if (m_TargetBlocks != null)
+                        {
+                            targetNode = m_TargetBlocks[m_SourceBlockControllers.IndexOf(blockController)];
+                        }
+                        else
+                        {
 
-                        var targetContext = m_TargetControllers[m_SourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
+                            var targetContext = m_TargetControllers[m_SourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
 
-                        targetNode = targetContext.blockControllers[blockController.index];
+                            targetNode = targetContext.blockControllers[blockController.index];
+                        }
                     }
                     else
                         targetNode = m_TargetControllers[m_SourceControllers.IndexOf(newSourceInputs[i].sourceNode)];
@@ -423,10 +440,17 @@ namespace UnityEditor.VFX.UI
                     if (newSourceOutputs[i].sourceNode is VFXBlockController)
                     {
                         var blockController = newSourceOutputs[i].sourceNode as VFXBlockController;
+                        if (m_TargetBlocks != null)
+                        {
+                            targetNode = m_TargetBlocks[m_SourceBlockControllers.IndexOf(blockController)];
+                        }
+                        else
+                        { 
 
-                        var targetContext = m_TargetControllers[m_SourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
+                            var targetContext = m_TargetControllers[m_SourceControllers.IndexOf(blockController.contextController)] as VFXContextController;
 
-                        targetNode = targetContext.blockControllers[blockController.index];
+                            targetNode = targetContext.blockControllers[blockController.index];
+                        }
                     }
                     else
                     {
