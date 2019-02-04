@@ -236,7 +236,7 @@ namespace UnityEditor.VFX.UI
 
                 var sourceBlock = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
                 m_SourceNode = sourceBlock;
-                sourceContextController.model.AddChild(m_SourceNode);
+                sourceContextController.model.AddChild(m_SourceNode,m_SourceBlockControllers.Select(t=>t.index).Min());
                 sourceContextController.ApplyChanges();
                 m_SourceNodeController = sourceContextController.blockControllers.First(t=> t.model == m_SourceNode );
                 PostSetup();
