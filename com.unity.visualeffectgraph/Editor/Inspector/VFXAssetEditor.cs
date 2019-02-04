@@ -132,6 +132,14 @@ public class VFXExternalShaderProcessor : AssetPostprocessor
                 return;
             AssetDatabase.ImportAsset(assetPath);
         }
+
+        foreach( var assetPath in deletedAssets)
+        {
+            if (VisualEffectAssetModicationProcessor.HasVFXExtension(assetPath))
+            {
+                VisualEffectResource.DeleteAtPath(assetPath);
+            }
+        }
     }
 }
 
