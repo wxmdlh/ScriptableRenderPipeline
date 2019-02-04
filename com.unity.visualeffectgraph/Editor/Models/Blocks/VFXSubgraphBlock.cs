@@ -224,7 +224,7 @@ namespace UnityEditor.VFX
         {
             get
             {
-                return m_SubBlocks.SelectMany(t => t is VFXSubgraphBlock ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Repeat(t, 0));
+                return m_SubBlocks.SelectMany(t => t is VFXSubgraphBlock ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Repeat(t, 1));
             }
         }
 
