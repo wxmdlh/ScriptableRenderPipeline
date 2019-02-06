@@ -139,6 +139,58 @@ namespace UnityEditor.VFX.UI
                 m_SourceController.useCount--;
             }
 
+            void UninitSmart()
+            {
+                var nodeNotToDelete = new HashSet<Controller>();
+                foreach (var node in m_SourceControllers.OfType<VFXNodeController>())
+                {
+                    if( nodeNotToDelete.Contains(node))
+                        continue;
+
+                    var oldBag = new HashSet<VFXNodeController>();
+                    var newBag = new HashSet<VFXNodeController>();
+
+                    oldBag.Add(node);
+
+                    while(oldBag.Count > 0)
+                    {
+                        foreach( var n in oldBag)
+                        {
+                            if( n.outputPorts.SelectMany(t=>t.connections).Any(t=>nodeNotToDelete.Contains(t.input.sourceNode) || !m_SourceControllers.Contains(t.input.sourceNode)))
+                            {
+                                nodeNotToDelete.Add(n);
+                                oldBag.Clear();
+                                break;
+                            }
+
+                            foreach( var o in n.inputPorts.SelectMany(t=>t.connections).Select(t=>t.output))
+                            {
+                                newBag.Add(o.sourceNode);
+                            }
+                        }
+
+                        oldBag.Clear();
+                        var tmp = oldBag;
+                        oldBag = newBag;
+                        newBag = tmp;
+                    }
+                }
+
+                foreach (var element in m_SourceControllers.Where(t => !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController) && ! nodeNotToDelete.Contains(t)))
+                {
+                    m_SourceController.RemoveElement(element);
+                }
+
+                foreach (var element in parameterNodeControllers)
+                {
+                    if (element.infos.linkedSlots == null || element.infos.linkedSlots.Count() == 0)
+                        m_SourceController.RemoveElement(element);
+                }
+
+                m_TargetController.useCount--;
+                m_SourceController.useCount--;
+            }
+
 
             void CopyPasteNodes()
             {
@@ -170,7 +222,7 @@ namespace UnityEditor.VFX.UI
                 m_SourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
                 TransferEdges();
                 TransferContextsFlowEdges();
-                Uninit();
+                UninitSmart();
             }
 
             public void ConvertToSubgraphOperator(VFXView sourceView, IEnumerable<Controller> controllers, Rect rect)
@@ -246,7 +298,7 @@ namespace UnityEditor.VFX.UI
 
                 m_SourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceBlockControllers);
                 TransferEdges();
-                Uninit();
+                UninitSmart();
             }
 
 
