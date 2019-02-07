@@ -142,7 +142,8 @@ namespace UnityEditor.VFX.UI
             void UninitSmart()
             {
                 var nodeNotToDelete = new HashSet<Controller>();
-                foreach (var node in m_SourceControllers.OfType<VFXNodeController>())
+
+                foreach (var node in m_SourceControllers.OfType<VFXNodeController>().Where(t=>t.outputPorts.Count() > 0))
                 {
                     if( nodeNotToDelete.Contains(node))
                         continue;
@@ -156,7 +157,7 @@ namespace UnityEditor.VFX.UI
                     {
                         foreach( var n in oldBag)
                         {
-                            if( n.outputPorts.SelectMany(t=>t.connections).Any(t=>nodeNotToDelete.Contains(t.input.sourceNode) || !m_SourceControllers.Contains(t.input.sourceNode)))
+                            if( n.outputPorts.SelectMany(t=>t.connections).Any(t=>nodeNotToDelete.Contains(t.input.sourceNode) || !m_SourceControllersWithBlocks.Contains(t.input.sourceNode)))
                             {
                                 nodeNotToDelete.Add(n);
                                 oldBag.Clear();
@@ -617,19 +618,6 @@ namespace UnityEditor.VFX.UI
                     {
                         CreateAndLinkEvent(m_SourceControllers, m_TargetController, m_TargetControllers, kv.Value, kv.Key);
                     }
-                }
-
-
-
-                foreach (var element in m_SourceControllers.Where(t=> !(t is VFXDataEdgeController) && !(t is VFXParameterNodeController)))
-                {
-                    m_SourceController.RemoveElement(element);
-                }
-
-                foreach(var element in parameterNodeControllers)
-                {
-                    if (element.infos.linkedSlots == null || element.infos.linkedSlots.Count() == 0)
-                        m_SourceController.RemoveElement(element);
                 }
             }
         }
