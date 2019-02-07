@@ -234,6 +234,12 @@ namespace  UnityEditor.VFX.UI
                     }
                 }
             }
+
+            if( VFXViewModicationProcessor.assetMoved)
+            {
+                graphView.AssetMoved();
+                VFXViewModicationProcessor.assetMoved = false;
+            }
             titleContent.text = filename;
         }
 

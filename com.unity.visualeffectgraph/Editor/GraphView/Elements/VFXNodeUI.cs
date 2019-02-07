@@ -323,6 +323,20 @@ namespace UnityEditor.VFX.UI
             }
         }
 
+        public void AssetMoved()
+        {
+            title = controller.title;
+
+            foreach( var setting in m_Settings)
+            {
+                setting.UpdateGUI(true);
+            }
+            foreach( VFXEditableDataAnchor input in GetPorts(true,false))
+            {
+                input.AssetMoved();
+            }
+        }
+
         protected virtual void SelfChange()
         {
             Profiler.BeginSample("VFXNodeUI.SelfChange");
