@@ -200,12 +200,14 @@ namespace UnityEditor.VFX
             eventAttributeDescs.AddRange(listWithOffset);
         }
 
-        private static List<VFXContext> CollectContextParentRecursively(List<VFXContext> inputList)
+        private static List<VFXContext> CollectContextParentRecursively(List<VFXContext> inputList,ref SubgraphInfos subgraphContexts)
         {
-            var contextList = inputList.SelectMany(o => o.inputContexts).Distinct().ToList();
+            var contextEffectiveInputLinks = subgraphContexts.contextEffectiveInputLinks;
+            var contextList = inputList.SelectMany(o => contextEffectiveInputLinks[o].SelectMany(t=>t)).Select(t=>t.context).Distinct().ToList();
+
             if (contextList.Any(o => o.inputContexts.Any()))
             {
-                var parentContextList = CollectContextParentRecursively(contextList);
+                var parentContextList = CollectContextParentRecursively(contextList, ref subgraphContexts);
                 foreach (var context in parentContextList)
                 {
                     if (!contextList.Contains(context))
@@ -217,10 +219,10 @@ namespace UnityEditor.VFX
             return contextList;
         }
 
-        private static VFXContext[] CollectSpawnersHierarchy(IEnumerable<VFXContext> vfxContext,IEnumerable<VFXSubgraphContext> subgraphContexts)
+        private static VFXContext[] CollectSpawnersHierarchy(IEnumerable<VFXContext> vfxContext,ref SubgraphInfos subgraphContexts)
         {
-            var initContext = vfxContext.Where(o => o.contextType == VFXContextType.Init || o.contextType == VFXContextType.Subgraph).ToList();
-            var spawnerList = CollectContextParentRecursively(initContext);
+            var initContext = vfxContext.Where(o => o.contextType == VFXContextType.Init).ToList();
+            var spawnerList = CollectContextParentRecursively(initContext, ref subgraphContexts);
             return spawnerList.Where(o => o.contextType == VFXContextType.Spawner).Reverse().ToArray();
         }
 
@@ -296,93 +298,90 @@ namespace UnityEditor.VFX
                 RecursePutSubgraphParent(parents,subgraphs, subSubgraph);
             }
         }
-
-        static IEnumerable<VFXContextLink> SearchSpawnerLinks(VFXContext spawner,int flowSlotIndex, SubgraphInfos subgraphInfos, Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo)
+        
+        static List<VFXContextLink>[] ComputeContextEffectiveLinks(VFXContext context, ref SubgraphInfos subgraphInfos)
         {
-            //return spawner.inputFlowSlot[indexSlot].link;
-
-            VFXSubgraphContext parentSubgraph = null;
-
-            subgraphInfos.spawnerSubgraph.TryGetValue(spawner, out parentSubgraph);
-
-            List<VFXContext> subgraphAncestors = new List<VFXContext>();
-
-            subgraphAncestors.Add(spawner);
-
-            while (parentSubgraph != null)
+            List<VFXContextLink>[] result = new List<VFXContextLink>[context.inputFlowSlot.Length];
+            for(int i = 0 ; i < context.inputFlowSlot.Length ; ++i)
             {
-                subgraphAncestors.Add(parentSubgraph);
-                if (!subgraphInfos.subgraphParents.TryGetValue(parentSubgraph, out parentSubgraph))
+                result[i] = new List<VFXContextLink>();
+                VFXSubgraphContext parentSubgraph = null;
+
+                subgraphInfos.spawnerSubgraph.TryGetValue(context, out parentSubgraph);
+
+                List<VFXContext> subgraphAncestors = new List<VFXContext>();
+
+                subgraphAncestors.Add(context);
+
+                while (parentSubgraph != null)
                 {
-                    parentSubgraph = null;
-                }
-            }
-
-            List<List<int>> defaultEventPaths = new List<List<int>>();
-
-            defaultEventPaths.Add(new List<int>(new int[] { flowSlotIndex }));
-
-            List<List<int>> newEventPaths = new List<List<int>>();
-
-            var usedContexts = new List<VFXContext>();
-
-            foreach( var evt in spawner.inputFlowSlot[flowSlotIndex].link)
-            {
-                if (contextSpawnToSpawnInfo.ContainsKey(evt.context))
-                {
-                    yield return evt;
-                }
-            }
-
-            foreach (var sg in subgraphAncestors)
-            {
-                foreach (var path in defaultEventPaths)
-                {
-                    int currentFlowIndex = path.Last();
-                    var eventSlot = sg.inputFlowSlot[currentFlowIndex]; // -1 in path is Trigger therefore 2 in subgraph input
-                    var eventSlotSpawners = eventSlot.link.Where(t => ! (t.context is VFXBasicEvent));
-
-                    if (eventSlotSpawners.Any())
+                    subgraphAncestors.Add(parentSubgraph);
+                    if (!subgraphInfos.subgraphParents.TryGetValue(parentSubgraph, out parentSubgraph))
                     {
-                        foreach (var evt in eventSlotSpawners)
+                        parentSubgraph = null;
+                    }
+                }
+
+                List<List<int>> defaultEventPaths = new List<List<int>>();
+
+                defaultEventPaths.Add(new List<int>(new int[] { i }));
+
+                List<List<int>> newEventPaths = new List<List<int>>();
+
+                var usedContexts = new List<VFXContext>();
+
+                foreach (var sg in subgraphAncestors)
+                {
+                    foreach (var path in defaultEventPaths)
+                    {
+                        int currentFlowIndex = path.Last();
+                        var eventSlot = sg.inputFlowSlot[currentFlowIndex]; // -1 in path is Trigger therefore 2 in subgraph input
+                        var eventSlotSpawners = eventSlot.link.Where(t => ! (t.context is VFXBasicEvent));
+
+                        if (eventSlotSpawners.Any())
                         {
-                            if(contextSpawnToSpawnInfo.ContainsKey(evt.context))
+                            foreach (var evt in eventSlotSpawners)
                             {
-                                yield return evt;
+                                result[i].Add(evt);
                             }
                         }
-                    }
 
-                    var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
+                        var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
 
-                    if(eventSlotEvents.Any())
-                    {
-                        foreach(var evt in eventSlotEvents)
+                        if(eventSlotEvents.Any())
                         {
-                            string eventName = (evt.context as VFXBasicEvent).eventName;
-                            switch(eventName)
+                            foreach(var evt in eventSlotEvents)
                             {
-                                case VisualEffectAsset.PlayEventName:
-                                    newEventPaths.Add(path.Concat(new int[] { 0 }).ToList());
-                                    break;
-                                case VisualEffectAsset.StopEventName:
-                                    newEventPaths.Add(path.Concat(new int[] { 1 }).ToList());
-                                    break;
-                                case VFXSubgraphContext.triggerEventName:
-                                    newEventPaths.Add(path.Concat(new int[] { 2 }).ToList());
-                                    break;
+                                string eventName = (evt.context as VFXBasicEvent).eventName;
+                                switch(eventName)
+                                {
+                                    case VisualEffectAsset.PlayEventName:
+                                        newEventPaths.Add(path.Concat(new int[] { 0 }).ToList());
+                                        break;
+                                    case VisualEffectAsset.StopEventName:
+                                        newEventPaths.Add(path.Concat(new int[] { 1 }).ToList());
+                                        break;
+                                    case VFXSubgraphContext.triggerEventName:
+                                        newEventPaths.Add(path.Concat(new int[] { 2 }).ToList());
+                                        break;
+                                    default:
+                                        result[i].Add(evt);
+                                        break;
+
+                                }
                             }
                         }
+                        else if (!eventSlot.link.Any())
+                        {
+                            newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
+                        }
                     }
-                    else if (!eventSlot.link.Any())
-                    {
-                        newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
-                    }
+                    defaultEventPaths.Clear();
+                    defaultEventPaths.AddRange(newEventPaths);
+                    newEventPaths.Clear();
                 }
-                defaultEventPaths.Clear();
-                defaultEventPaths.AddRange(newEventPaths);
-                newEventPaths.Clear();
             }
+            return result;
         }
 
         private static void FillSpawner(Dictionary<VFXContext, SpawnInfo> outContextSpawnToSpawnInfo,
@@ -394,7 +393,7 @@ namespace UnityEditor.VFX
             Dictionary<VFXContext, VFXContextCompiledData> contextToCompiledData,
             ref SubgraphInfos subgraphInfos)
         {
-            var spawners = CollectSpawnersHierarchy(contexts,subgraphInfos.subgraphs);
+            var spawners = CollectSpawnersHierarchy(contexts,ref subgraphInfos);
             foreach (var it in spawners.Select((spawner, index) => new { spawner, index }))
             {
                 outContextSpawnToSpawnInfo.Add(it.spawner, new SpawnInfo() { bufferIndex = outCpuBufferDescs.Count, systemIndex = it.index });
@@ -406,7 +405,6 @@ namespace UnityEditor.VFX
                     initialData = ComputeArrayOfStructureInitialData(globalEventAttributeDescs)
                 });
             }
-
             foreach (var spawnContext in spawners)
             {
                 var buffers = new List<VFXMapping>();
@@ -418,9 +416,9 @@ namespace UnityEditor.VFX
 
                 for (int indexSlot = 0; indexSlot < 2 && indexSlot < spawnContext.inputFlowSlot.Length; ++indexSlot)
                 {
-                    foreach (var input in SearchSpawnerLinks(spawnContext,indexSlot,subgraphInfos,outContextSpawnToSpawnInfo))
+                    foreach (var input in subgraphInfos.contextEffectiveInputLinks[spawnContext][indexSlot])
                     {
-                        var inputContext = input.context as VFXContext;
+                        var inputContext = input.context;
                         if (outContextSpawnToSpawnInfo.ContainsKey(inputContext))
                         {
                             buffers.Add(new VFXMapping()
@@ -464,8 +462,6 @@ namespace UnityEditor.VFX
                             };
                         }).ToArray();
 
-                        
-
                         Object processor = null;
                         if (spawnerBlock.customBehavior != null)
                         {
@@ -497,147 +493,69 @@ namespace UnityEditor.VFX
             }
         }
 
-        struct EventLinks
-        {
-            public string eventName;
-            public List<uint> playSystems;
-            public List<uint> stopSystems;
-        }
-
-
         struct SubgraphInfos
-        {
-            public List<VFXSubgraphContext> subgraphs;
+        {   
             public Dictionary<VFXSubgraphContext, VFXSubgraphContext> subgraphParents;
             public Dictionary<VFXContext, VFXSubgraphContext> spawnerSubgraph;
+            public List<VFXSubgraphContext> subgraphs;
+            public Dictionary<VFXContext,List<VFXContextLink>[]> contextEffectiveInputLinks;
         }
 
-        private static void FillEvent(List<VFXEventDesc> outEventDesc,
-            Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo,
-            ref SubgraphInfos subgraphInfos)
+        private static void FillEvent(List<VFXEventDesc> outEventDesc, Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo, IEnumerable<VFXContext> contexts,ref SubgraphInfos subgraphInfos)
         {
-            var eventDescTemp = new EventLinks[]
+            var contextEffectiveInputLinks = subgraphInfos.contextEffectiveInputLinks;
+        
+            var allPlayNotLinked = contextSpawnToSpawnInfo.Where(o => !contextEffectiveInputLinks[o.Key][0].Any()).Select(o => (uint)o.Value.systemIndex).ToList();
+            var allStopNotLinked = contextSpawnToSpawnInfo.Where(o => !contextEffectiveInputLinks[o.Key][1].Any()).Select(o => (uint)o.Value.systemIndex).ToList();
+
+            var eventDescTemp = new[]
             {
-                new EventLinks{ eventName = VisualEffectAsset.PlayEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
-                new EventLinks{ eventName = VisualEffectAsset.StopEventName, playSystems = new List<uint>(), stopSystems = new List<uint>() },
+                new { eventName = "OnPlay", playSystems = allPlayNotLinked, stopSystems = new List<uint>() },
+                new { eventName = "OnStop", playSystems = new List<uint>(), stopSystems = allStopNotLinked },
             }.ToList();
 
-            SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, ref subgraphInfos, 0);
-            SearchEvent(contextSpawnToSpawnInfo, eventDescTemp, ref subgraphInfos, 1);
+            var specialNames = new HashSet<string>(new string[] {VisualEffectAsset.PlayEventName,VisualEffectAsset.StopEventName,VFXSubgraphContext.triggerEventName});
 
-            outEventDesc.Clear();
-            outEventDesc.AddRange(eventDescTemp.Select(o => new VFXEventDesc() { name = o.eventName, startSystems = o.playSystems.ToArray(), stopSystems = o.stopSystems.ToArray() }));
-        }
 
-        private static void SearchEvent(Dictionary<VFXContext, SpawnInfo> contextSpawnToSpawnInfo, List<EventLinks> eventDescTemp, ref SubgraphInfos subgraphInfos, int flowSlotIndex)
-        {
-            foreach (var spawner in contextSpawnToSpawnInfo)
+            var events = contexts.Where(o => o.contextType == VFXContextType.Event);
+            foreach (var evt in events)
             {
-                VFXSubgraphContext parentSubgraph = null;
+                var eventName = (evt as VFXBasicEvent).eventName;
 
-                subgraphInfos.spawnerSubgraph.TryGetValue(spawner.Key, out parentSubgraph);
+                if( subgraphInfos.spawnerSubgraph.ContainsKey(evt) && specialNames.Contains(eventName))
+                    continue;
 
-                List<VFXSubgraphContext> subgraphAncestors = new List<VFXSubgraphContext>();
-                while (parentSubgraph != null)
+                foreach (var link in evt.outputFlowSlot[0].link)
                 {
-                    subgraphAncestors.Add(parentSubgraph);
-                    if (!subgraphInfos.subgraphParents.TryGetValue(parentSubgraph, out parentSubgraph))
+                    if (contextSpawnToSpawnInfo.ContainsKey(link.context))
                     {
-                        parentSubgraph = null;
-                    }
-                }
-
-                List<List<int>> defaultEventPaths = new List<List<int>>();
-
-                // First step withoutsubgraph
-                {
-                    var eventSlot = spawner.Key.inputFlowSlot[flowSlotIndex]; // -1 in path is Trigger therefore 2 in subgraph input
-                    var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
-
-                    if (eventSlotEvents.Any())
-                    {
-                        foreach (var evt in eventSlotEvents)
+                        var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
+                        if (eventIndex == -1)
                         {
-                            var eventName = (evt.context as VFXBasicEvent).eventName;
-                            var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                            if (eventIndex == -1 && eventName != VFXSubgraphContext.triggerEventName)
+                            eventIndex = eventDescTemp.Count;
+                            eventDescTemp.Add(new
                             {
-                                eventIndex = eventDescTemp.Count;
-                                eventDescTemp.Add(new EventLinks
-                                {
-                                    eventName = eventName,
-                                    playSystems = new List<uint>(),
-                                    stopSystems = new List<uint>(),
-                                });
-                            }
-                            defaultEventPaths.Add(new int[] { eventIndex }.ToList());
+                                eventName = eventName,
+                                playSystems = new List<uint>(),
+                                stopSystems = new List<uint>(),
+                            });
                         }
-                    }
-                    else if (!eventSlot.link.Any())
-                    {
-                        defaultEventPaths.Add((new int[] { flowSlotIndex }).ToList());
-                    }
-                }
 
-                List<List<int>> newEventPaths = new List<List<int>>();
-
-                foreach (var sg in subgraphAncestors)
-                {
-                    if (sg.inputFlowSlot.Length <= flowSlotIndex)
-                        break;
-                    foreach (var path in defaultEventPaths)
-                    {
-                        int currentFlowIndex = path.Last();
-                        if (currentFlowIndex < 2) // only take into account paths that do not end with a custom event
+                        var startSystem = link.slotIndex == 0;
+                        var spawnerIndex = (uint)contextSpawnToSpawnInfo[link.context].systemIndex;
+                        if (startSystem)
                         {
-                            var eventSlot = sg.inputFlowSlot[currentFlowIndex != -1 ? currentFlowIndex : 2]; // -1 in path is Trigger therefore 2 in subgraph input
-                            var eventSlotEvents = eventSlot.link.Where(t => t.context is VFXBasicEvent);
-
-                            if (eventSlotEvents.Any())
-                            {
-                                foreach (var evt in eventSlotEvents)
-                                {
-                                    var eventName = (evt.context as VFXBasicEvent).eventName;
-                                    var eventIndex = eventDescTemp.FindIndex(o => o.eventName == eventName);
-                                    if (eventIndex == -1 && eventName != VFXSubgraphContext.triggerEventName)
-                                    {
-                                        eventIndex = eventDescTemp.Count;
-                                        eventDescTemp.Add(new EventLinks
-                                        {
-                                            eventName = eventName,
-                                            playSystems = new List<uint>(),
-                                            stopSystems = new List<uint>(),
-                                        });
-                                    }
-                                    newEventPaths.Add(path.Concat(new int[] { eventIndex }).ToList());
-                                }
-                            }
-                            else if (!eventSlot.link.Any())
-                            {
-                                newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
-                            }
+                            eventDescTemp[eventIndex].playSystems.Add(spawnerIndex);
                         }
-                    }
-                    defaultEventPaths.Clear();
-                    defaultEventPaths.AddRange(newEventPaths);
-                    newEventPaths.Clear();
-                }
-
-                var spawnerIndex = (uint)spawner.Value.systemIndex;
-
-                List<List<uint>> browsedPath = new List<List<uint>>();
-                List<uint> currentPath = new List<uint>();
-                foreach (var path in defaultEventPaths)
-                {
-                    if (path[path.Count - 1] != -1)
-                    {
-                        if (flowSlotIndex == 0)
-                            eventDescTemp[path[path.Count - 1]].playSystems.Add(spawnerIndex);
                         else
-                            eventDescTemp[path[path.Count - 1]].stopSystems.Add(spawnerIndex);
+                        {
+                            eventDescTemp[eventIndex].stopSystems.Add(spawnerIndex);
+                        }
                     }
                 }
             }
+            outEventDesc.Clear();
+            outEventDesc.AddRange(eventDescTemp.Select(o => new VFXEventDesc() { name = o.eventName, startSystems = o.playSystems.ToArray(), stopSystems = o.stopSystems.ToArray() }));
         }
 
         private static void GenerateShaders(List<GeneratedCodeData> outGeneratedCodeData, VFXExpressionGraph graph, IEnumerable<VFXContext> contexts, Dictionary<VFXContext, VFXContextCompiledData> contextToCompiledData, VFXCompilationMode compilationMode)
@@ -809,6 +727,17 @@ namespace UnityEditor.VFX
             return contexts;
         }
 
+        void ComputeEffectiveInputLinks(ref SubgraphInfos subgraphInfos, IEnumerable<VFXContext> compilableContexts)
+        {
+            var contextEffectiveInputLinks = subgraphInfos.contextEffectiveInputLinks;
+            foreach( var context in compilableContexts)
+            {
+                contextEffectiveInputLinks[context] = ComputeContextEffectiveLinks(context,ref subgraphInfos);
+
+                ComputeEffectiveInputLinks(ref subgraphInfos,contextEffectiveInputLinks[context].SelectMany(t=>t).Select(t=>t.context).Where(t=>!contextEffectiveInputLinks.ContainsKey(t)));
+            }
+        }
+
         public void Compile(VFXCompilationMode compilationMode, bool forceShaderValidation)
         {
             // Prevent doing anything ( and especially showing progesses ) in an empty graph.
@@ -829,7 +758,6 @@ namespace UnityEditor.VFX
             string progressBarTitle = "Compiling " + assetPath;
             try
             {
-
                 EditorUtility.DisplayProgressBar(progressBarTitle, "Collecting dependencies", 0 / nbSteps);
                 var models = new HashSet<ScriptableObject>();
                 m_Graph.CollectDependencies(models,true);
@@ -839,14 +767,13 @@ namespace UnityEditor.VFX
                 foreach (var c in contexts) // Unflag all contexts
                     c.MarkAsCompiled(false);
 
-                var compilableContexts = models.OfType<VFXContext>().Where(c => c.CanBeCompiled()).ToArray();
-
+                var compilableContexts = models.OfType<VFXContext>().Where(c => c.CanBeCompiled());
                 var compilableData = models.OfType<VFXData>().Where(d => d.CanBeCompiled());
 
                 IEnumerable<VFXContext> implicitContexts = Enumerable.Empty<VFXContext>();
                 foreach (var d in compilableData) // Flag compiled contexts
                     implicitContexts = implicitContexts.Concat(d.InitImplicitContexts());
-                compilableContexts = compilableContexts.Concat(implicitContexts.ToArray()).ToArray();
+                compilableContexts = compilableContexts.Concat(implicitContexts.ToArray());
 
                 foreach (var c in compilableContexts) // Flag compiled contexts
                     c.MarkAsCompiled(true);
@@ -931,16 +858,19 @@ namespace UnityEditor.VFX
 
                 foreach (var subgraph in subgraphInfos.subgraphs)
                 {
-                    var subSpawners = CollectSpawnersHierarchy(subgraph.subChildren.OfType<VFXContext>(),Enumerable.Empty<VFXSubgraphContext>());
-                    foreach (var spawner in subSpawners)
+                    foreach (var spawner in subgraph.subChildren.OfType<VFXContext>())
                         subgraphInfos.spawnerSubgraph.Add(spawner, subgraph);
                 }
+
+                subgraphInfos.contextEffectiveInputLinks = new Dictionary<VFXContext,List<VFXContextLink>[]>();
+
+                ComputeEffectiveInputLinks(ref subgraphInfos, compilableContexts.OfType<VFXBasicInitialize>());
 
                 var contextSpawnToSpawnInfo = new Dictionary<VFXContext, SpawnInfo>();
                 FillSpawner(contextSpawnToSpawnInfo, cpuBufferDescs, systemDescs, compilableContexts, m_ExpressionGraph, globalEventAttributeDescs, contextToCompiledData, ref subgraphInfos);
 
                 var eventDescs = new List<VFXEventDesc>();
-                FillEvent(eventDescs, contextSpawnToSpawnInfo,ref subgraphInfos);
+                FillEvent(eventDescs, contextSpawnToSpawnInfo, compilableContexts,ref subgraphInfos);
 
                 var attributeBufferDictionnary = new Dictionary<VFXData, int>();
                 var eventGpuBufferDictionnary = new Dictionary<VFXData, int>();
