@@ -205,7 +205,7 @@ namespace UnityEditor.VFX
             var contextEffectiveInputLinks = subgraphContexts.contextEffectiveInputLinks;
             var contextList = inputList.SelectMany(o => contextEffectiveInputLinks[o].SelectMany(t=>t)).Select(t=>t.context).Distinct().ToList();
 
-            if (contextList.Any(o => o.inputContexts.Any()))
+            if (contextList.Any(o => contextEffectiveInputLinks[o].Any()))
             {
                 var parentContextList = CollectContextParentRecursively(contextList, ref subgraphContexts);
                 foreach (var context in parentContextList)
@@ -715,22 +715,10 @@ namespace UnityEditor.VFX
             return null;
         }
 
-        IEnumerable<VFXContext> RecurseFindCompilableContexts(VFXGraph graph)
-        {
-            var contexts = graph.children.OfType<VFXContext>().Where(c => c.CanBeCompiled());
-
-            foreach ( var subgraph in graph.children.OfType<VFXSubgraphOperator>().Where(t => t.subgraph != null).Select(t => t.subgraph.GetResource().GetOrCreateGraph()))
-            {
-                contexts = contexts.Concat(RecurseFindCompilableContexts(graph));
-            }
-
-            return contexts;
-        }
-
         void ComputeEffectiveInputLinks(ref SubgraphInfos subgraphInfos, IEnumerable<VFXContext> compilableContexts)
         {
             var contextEffectiveInputLinks = subgraphInfos.contextEffectiveInputLinks;
-            foreach( var context in compilableContexts)
+            foreach( var context in compilableContexts.Where(t => !(t is VFXSubgraphContext)))
             {
                 contextEffectiveInputLinks[context] = ComputeContextEffectiveLinks(context,ref subgraphInfos);
 
@@ -767,7 +755,7 @@ namespace UnityEditor.VFX
                 foreach (var c in contexts) // Unflag all contexts
                     c.MarkAsCompiled(false);
 
-                var compilableContexts = models.OfType<VFXContext>().Where(c => c.CanBeCompiled());
+                IEnumerable<VFXContext> compilableContexts = contexts.Where(c => c.CanBeCompiled()).ToArray();
                 var compilableData = models.OfType<VFXData>().Where(d => d.CanBeCompiled());
 
                 IEnumerable<VFXContext> implicitContexts = Enumerable.Empty<VFXContext>();
