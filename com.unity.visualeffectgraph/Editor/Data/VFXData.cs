@@ -128,7 +128,8 @@ namespace UnityEditor.VFX
             Dictionary<VFXContext, VFXContextCompiledData> contextToCompiledData,
             Dictionary<VFXContext, int> contextSpawnToBufferIndex,
             Dictionary<VFXData, int> attributeBuffer,
-            Dictionary<VFXData, int> eventBuffer)
+            Dictionary<VFXData, int> eventBuffer,
+            Dictionary<VFXContext, List<VFXContextLink>[]> effectiveFlowInputLinks)
         {
             // Empty implementation by default
         }
@@ -475,7 +476,7 @@ namespace UnityEditor.VFX
             }
         }
 
-        public abstract void GenerateAttributeLayout();
+        public abstract void GenerateAttributeLayout(Dictionary<VFXContext, List<VFXContextLink>[]> effectiveFlowInputLinks);
 
         public abstract string GetAttributeDataDeclaration(VFXAttributeMode mode);
         public abstract string GetLoadAttributeCode(VFXAttribute attrib, VFXAttributeLocation location);
