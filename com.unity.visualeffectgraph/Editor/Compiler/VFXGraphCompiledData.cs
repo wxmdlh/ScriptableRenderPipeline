@@ -806,9 +806,35 @@ namespace UnityEditor.VFX
                 var globalEventAttributeDescs = new List<VFXLayoutElementDesc>() { new VFXLayoutElementDesc() { name = "spawnCount", type = VFXValueType.Float } };
                 FillEventAttributeDescs(globalEventAttributeDescs, m_ExpressionGraph, compilableContexts);
 
+
+
+                SubgraphInfos subgraphInfos;
+                subgraphInfos.subgraphParents = new Dictionary<VFXSubgraphContext, VFXSubgraphContext>();
+
+                subgraphInfos.subgraphs = new List<VFXSubgraphContext>();
+
+                foreach (var subgraph in m_Graph.children.OfType<VFXSubgraphContext>().Where(t => t.subgraph != null))
+                {
+                    subgraphInfos.subgraphs.Add(subgraph);
+                    RecursePutSubgraphParent(subgraphInfos.subgraphParents, subgraphInfos.subgraphs, subgraph);
+                }
+
+                subgraphInfos.spawnerSubgraph = new Dictionary<VFXContext, VFXSubgraphContext>();
+
+                foreach (var subgraph in subgraphInfos.subgraphs)
+                {
+                    foreach (var spawner in subgraph.subChildren.OfType<VFXContext>())
+                        subgraphInfos.spawnerSubgraph.Add(spawner, subgraph);
+                }
+
+                subgraphInfos.contextEffectiveInputLinks = new Dictionary<VFXContext, List<VFXContextLink>[]>();
+
+                ComputeEffectiveInputLinks(ref subgraphInfos, compilableContexts.OfType<VFXBasicInitialize>());
+
+
                 EditorUtility.DisplayProgressBar(progressBarTitle, "Generating Attribute layouts", 6 / nbSteps);
                 foreach (var data in compilableData)
-                    data.GenerateAttributeLayout();
+                    data.GenerateAttributeLayout(subgraphInfos.contextEffectiveInputLinks);
 
                 var generatedCodeData = new List<GeneratedCodeData>();
 
@@ -831,29 +857,6 @@ namespace UnityEditor.VFX
                     initialData = ComputeArrayOfStructureInitialData(globalEventAttributeDescs)
                 });
 
-                SubgraphInfos subgraphInfos;
-                subgraphInfos.subgraphParents  = new Dictionary<VFXSubgraphContext, VFXSubgraphContext>();
-
-                subgraphInfos.subgraphs = new List<VFXSubgraphContext>();
-
-                foreach (var subgraph in m_Graph.children.OfType<VFXSubgraphContext>().Where(t=>t.subgraph != null))
-                {
-                    subgraphInfos.subgraphs.Add(subgraph);
-                    RecursePutSubgraphParent(subgraphInfos.subgraphParents, subgraphInfos.subgraphs, subgraph);
-                }
-
-                subgraphInfos.spawnerSubgraph = new Dictionary<VFXContext, VFXSubgraphContext>();
-
-                foreach (var subgraph in subgraphInfos.subgraphs)
-                {
-                    foreach (var spawner in subgraph.subChildren.OfType<VFXContext>())
-                        subgraphInfos.spawnerSubgraph.Add(spawner, subgraph);
-                }
-
-                subgraphInfos.contextEffectiveInputLinks = new Dictionary<VFXContext,List<VFXContextLink>[]>();
-
-                ComputeEffectiveInputLinks(ref subgraphInfos, compilableContexts.OfType<VFXBasicInitialize>());
-
                 var contextSpawnToSpawnInfo = new Dictionary<VFXContext, SpawnInfo>();
                 FillSpawner(contextSpawnToSpawnInfo, cpuBufferDescs, systemDescs, compilableContexts, m_ExpressionGraph, globalEventAttributeDescs, contextToCompiledData, ref subgraphInfos);
 
@@ -873,7 +876,8 @@ namespace UnityEditor.VFX
                         contextToCompiledData,
                         contextSpawnToBufferIndex,
                         attributeBufferDictionnary,
-                        eventGpuBufferDictionnary);
+                        eventGpuBufferDictionnary,
+                        subgraphInfos.contextEffectiveInputLinks);
                 }
 
                 // Update renderer settings

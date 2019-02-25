@@ -43,7 +43,8 @@ namespace UnityEditor.VFX
             Dictionary<VFXContext, VFXContextCompiledData> contextToCompiledData,
             Dictionary<VFXContext, int> contextSpawnToBufferIndex,
             Dictionary<VFXData, int> attributeBuffer,
-            Dictionary<VFXData, int> eventBuffer)
+            Dictionary<VFXData, int> eventBuffer,
+            Dictionary<VFXContext, List<VFXContextLink>[]> effectiveFlowInputLinks)
         {
             var context = m_Owners[0];
             var contextData = contextToCompiledData[context];
@@ -92,7 +93,7 @@ namespace UnityEditor.VFX
             });
         }
 
-        public override void GenerateAttributeLayout()
+        public override void GenerateAttributeLayout(Dictionary<VFXContext, List<VFXContextLink>[]> effectiveFlowInputLinks)
         {
         }
 
