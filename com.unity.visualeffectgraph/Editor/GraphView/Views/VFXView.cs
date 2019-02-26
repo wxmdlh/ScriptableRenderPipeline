@@ -838,6 +838,8 @@ namespace UnityEditor.VFX.UI
 
         void SyncEdges(int change)
         {
+            if (change == VFXViewController.Change.ui)
+                return; // for the moment ui changes don't have an impact on edges
             if (change != VFXViewController.Change.flowEdge)
             {
                 if (controller == null)
