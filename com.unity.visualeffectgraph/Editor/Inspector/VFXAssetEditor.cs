@@ -87,6 +87,14 @@ public class VFXExternalShaderProcessor : AssetPostprocessor
 
     static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
     {
+        foreach (var assetPath in deletedAssets)
+        {
+            if (VisualEffectAssetModicationProcessor.HasVFXExtension(assetPath))
+            {
+                VisualEffectResource.DeleteAtPath(assetPath);
+            }
+        }
+
         if (!allowExternalization)
             return;
         HashSet<string> vfxToRefresh = new HashSet<string>();
@@ -131,14 +139,6 @@ public class VFXExternalShaderProcessor : AssetPostprocessor
             if (asset == null)
                 return;
             AssetDatabase.ImportAsset(assetPath);
-        }
-
-        foreach( var assetPath in deletedAssets)
-        {
-            if (VisualEffectAssetModicationProcessor.HasVFXExtension(assetPath))
-            {
-                VisualEffectResource.DeleteAtPath(assetPath);
-            }
         }
     }
 }
