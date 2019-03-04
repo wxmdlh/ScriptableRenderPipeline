@@ -127,7 +127,7 @@ VFXParameterUI.node.superCollapsed > #node-border > #contents .VFXDataAnchor.Out
 }
 VFXParameterUI.node.superCollapsed > #node-border > #contents .VFXDataAnchor.Input.first #connector
 {
-    margin-left:10;
+    margin-left:10px;
 }
 
 VFXParameterUI.node > #node-border > #contents > #top
