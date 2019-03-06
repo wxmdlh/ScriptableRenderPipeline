@@ -18,8 +18,10 @@ namespace UnityEditor.VFX
                 param.subgraphMode = true;
                 for (int i = 0; i < inputSlots.Length; ++i)
                 {
-                    if( inputExpression.Count > cptSlot + 1)
+                    if (inputExpression.Count > cptSlot + i)
+                    {
                         inputSlots[i].SetExpression(inputExpression[cptSlot + i]);
+                    }
 
                 }
 
