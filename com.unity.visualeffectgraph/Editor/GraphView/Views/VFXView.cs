@@ -1,4 +1,5 @@
 
+
 //#define OLD_COPY_PASTE
 using System;
 using System.Linq;
@@ -1041,6 +1042,24 @@ namespace UnityEditor.VFX.UI
 
         public EventPropagation Resync()
         {
+            foreach (var node in rootNodes.Values)
+                node.RemoveFromHierarchy();
+
+            rootNodes.Clear();
+            foreach (var node in nodes.ToList())
+                node.RemoveFromHierarchy();
+
+            foreach (var edge in dataEdges.Values)
+                edge.RemoveFromHierarchy();
+            dataEdges.Clear();
+
+            foreach (var edge in flowEdges.Values)
+                edge.RemoveFromHierarchy();
+            flowEdges.Clear();
+
+            foreach (var edge in edges.ToList())
+                edge.RemoveFromHierarchy();
+
             if (controller != null)
                 controller.ForceReload();
             return EventPropagation.Stop;
