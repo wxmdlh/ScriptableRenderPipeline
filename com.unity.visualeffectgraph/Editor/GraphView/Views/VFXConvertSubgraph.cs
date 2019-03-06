@@ -305,9 +305,23 @@ namespace UnityEditor.VFX.UI
 
             void CreateUniqueSubgraph(string typeName, string extension, Func<string,VisualEffectObject> createFunc)
             {
-                string graphPath = AssetDatabase.GetAssetPath(m_SourceView.controller.model.asset);
-                string graphName = Path.GetFileNameWithoutExtension(graphPath);
-                string graphDirPath = Path.GetDirectoryName(graphPath).Replace('\\','/');
+                string graphPath = AssetDatabase.GetAssetPath(m_SourceView.controller.model);
+                string graphName;
+                string graphDirPath;
+                if ( string.IsNullOrEmpty(graphPath))
+                {
+                    graphName = m_SourceView.controller.model.name;
+                    if (string.IsNullOrEmpty(graphName))
+                        graphName = "New VFX";
+
+                    graphDirPath = "Assets";
+                }
+                else
+                {
+                    graphName = Path.GetFileNameWithoutExtension(graphPath);
+                    graphDirPath = Path.GetDirectoryName(graphPath).Replace('\\', '/');
+                }
+                
 
                 string targetSubgraphPath = string.Format("{0}/{1}{2}{3}", graphDirPath, graphName, typeName, extension);
                 int cpt = 1;
