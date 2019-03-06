@@ -184,20 +184,7 @@ namespace UnityEditor.VFX
                 inputExpressions.Add(slot.GetExpression());
             }
 
-            int cptSlot = 0;
-            // Change all the inputExpressions of the parameters.
-            foreach (var param in GetParameters(t => InputPredicate(t)))
-            {
-                VFXSlot[] inputSlots = param.outputSlots[0].GetVFXValueTypeSlots().ToArray();
-
-                for (int i = 0; i < inputSlots.Length; ++i)
-                {
-                    if (inputExpressions.Count() <= cptSlot + i) break;
-                    inputSlots[i].SetOutExpression(inputExpressions[cptSlot + i], toInvalidate);
-                }
-
-                cptSlot += inputSlots.Length;
-            }
+            VFXSubgraphUtility.TransferExpressionToParameters(inputExpressions, GetParameters(t => VFXSubgraphUtility.InputPredicate(t)));
             foreach (var slot in toInvalidate)
             {
                 slot.InvalidateExpressionTree();

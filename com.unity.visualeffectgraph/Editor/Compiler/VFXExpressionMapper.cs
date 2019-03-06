@@ -52,20 +52,9 @@ namespace UnityEditor.VFX
             int cpt = 0;
             foreach (var block in blocks)
             {
-                mapper.AddBlock(block, ref cpt);
+                mapper.AddExpressions(block.parameters, cpt++);
             }
             return mapper;
-        }
-
-        void AddBlock(VFXBlock block, ref int index)
-        {
-            if( block is VFXSubgraphBlock)
-            {
-                foreach (var subBlock in (block as VFXSubgraphBlock).subBlocks)
-                    AddBlock(subBlock, ref index);
-            }
-            else
-                AddExpressions(block.parameters, index++);
         }
 
         public static VFXExpressionMapper FromContext(VFXContext context)

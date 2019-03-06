@@ -93,18 +93,6 @@ namespace UnityEditor.VFX
                 return sb.ToString();
             }
         }
-        public override IEnumerable<VFXNamedExpression> parameters
-        {
-            get
-            {
-                foreach (var block in m_SubBlocks)
-                {
-                    foreach (var parameter in block.parameters)
-                        yield return parameter;
-                }
-            }
-        }
-
 
         public void RecreateCopy()
         {
@@ -158,13 +146,12 @@ namespace UnityEditor.VFX
                 child.onInvalidateDelegate += SubChildrenOnInvalidate;
 
             }
+            PatchInputExpressions();
         }
         
         void PatchInputExpressions()
         {
             if (m_SubChildren == null) return;
-
-            var toInvalidate = new HashSet<VFXSlot>();
 
             var inputExpressions = new List<VFXExpression>();
 
@@ -173,24 +160,7 @@ namespace UnityEditor.VFX
                 inputExpressions.Add(slot.GetExpression());
             }
 
-            int cptSlot = 0;
-            // Change all the inputExpressions of the parameters.
-            foreach (var param in GetParameters(t => InputPredicate(t)))
-            {
-                VFXSlot[] inputSlots = param.outputSlots[0].GetVFXValueTypeSlots().ToArray();
-
-                for (int i = 0; i < inputSlots.Length; ++i)
-                {
-                    if (inputExpressions.Count() <= cptSlot + i) break;
-                    inputSlots[i].SetOutExpression(inputExpressions[cptSlot + i], toInvalidate);
-                }
-
-                cptSlot += inputSlots.Length;
-            }
-            foreach (var slot in toInvalidate)
-            {
-                slot.InvalidateExpressionTree();
-            }
+            VFXSubgraphUtility.TransferExpressionToParameters(inputExpressions, GetParameters(t => VFXSubgraphUtility.InputPredicate(t)));
         }
 
         protected override void OnInvalidate(VFXModel model, InvalidationCause cause)
@@ -203,7 +173,6 @@ namespace UnityEditor.VFX
                 }
 
                 base.OnInvalidate(model, cause);
-                PatchInputExpressions();
             }
             else
             {
