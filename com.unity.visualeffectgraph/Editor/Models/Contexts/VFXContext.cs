@@ -407,7 +407,7 @@ namespace UnityEditor.VFX
         public IEnumerable<VFXBlock> activeFlattenedChildrenWithImplicit
         {
             get{
-                return implicitPreBlock.Concat(children.SelectMany(t => t is VFXSubgraphBlock ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Repeat(t, 1))).Concat(implicitPostBlock).Where(o => o.enabled);
+                return implicitPreBlock.Concat(children.SelectMany(t => t is VFXSubgraphBlock ? (t.enabled ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Empty<VFXBlock>()): Enumerable.Repeat(t, 1))).Concat(implicitPostBlock).Where(o => o.enabled);
             }
         }
 
@@ -415,7 +415,7 @@ namespace UnityEditor.VFX
         {
             get
             {
-                return activeChildrenWithImplicit.OfType<IVFXSlotContainer>().Concat(Enumerable.Repeat(this as IVFXSlotContainer, 1));
+                return activeFlattenedChildrenWithImplicit.OfType<IVFXSlotContainer>().Concat(Enumerable.Repeat(this as IVFXSlotContainer, 1));
             }
         }
 
@@ -545,7 +545,7 @@ namespace UnityEditor.VFX
                     foreach (var owner in m_Data.owners)
                         Invalidate(InvalidationCause.kSettingChanged);
 
-                    var allSlots = m_Data.owners.SelectMany(c => c.inputSlots.Concat(c.activeChildrenWithImplicit.SelectMany(o => o.inputSlots)));
+                    var allSlots = m_Data.owners.SelectMany(c => c.inputSlots.Concat(c.activeFlattenedChildrenWithImplicit.SelectMany(o => o.inputSlots)));
                     foreach (var slot in allSlots.Where(s => s.spaceable))
                         slot.Invalidate(InvalidationCause.kSpaceChanged);
                 }

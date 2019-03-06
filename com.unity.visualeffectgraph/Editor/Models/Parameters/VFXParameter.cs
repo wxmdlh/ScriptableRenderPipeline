@@ -574,14 +574,20 @@ namespace UnityEditor.VFX
             m_Nodes.Add(newInfos);
         }
 
+        public bool subgraphMode
+        {
+            get;set;
+        }
+
         public override void UpdateOutputExpressions()
         {
-            if( ! isOutput)
+            if( ! isOutput )
             {
                 for (int i = 0; i < m_ExprSlots.Length; ++i)
                 {
                     m_ValueExpr[i].SetContent(m_ExprSlots[i].value);
-                    m_ExprSlots[i].SetExpression(m_ValueExpr[i]);
+                    if( !subgraphMode) // don't erase the expression in subgraph mode.
+                        m_ExprSlots[i].SetExpression(m_ValueExpr[i]);
                 }
             }
         }
