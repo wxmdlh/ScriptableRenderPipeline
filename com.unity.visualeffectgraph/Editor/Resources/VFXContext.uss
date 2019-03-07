@@ -189,9 +189,6 @@ VFXContextUI #footer #icon
 }
 
 VFXContextUI #block-container {
-    color:#8FC1DF;
-
-    font-size: 12px;
     margin-top: 0;
     margin-bottom: 0;
     padding-top: 2px;

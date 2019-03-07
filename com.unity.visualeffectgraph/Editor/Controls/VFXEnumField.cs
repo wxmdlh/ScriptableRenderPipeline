@@ -12,8 +12,9 @@ namespace UnityEditor.VFX.UIElements
 
         void CreateButton()
         {
+            AddToClassList("unity-enum-field");
             m_DropDownButton = new Label();
-            m_DropDownButton.AddToClassList("PopupButton");
+            m_DropDownButton.AddToClassList("unity-enum-field__input");
             m_DropDownButton.AddManipulator(new DownClickable(OnClick));
         }
 
