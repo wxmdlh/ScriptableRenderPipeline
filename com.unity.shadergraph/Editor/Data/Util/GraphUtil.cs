@@ -1521,4 +1521,50 @@ namespace UnityEditor.ShaderGraph
             }
         }
     }
+
+
+    //Small methods usable by the VFX since they are public
+    public static class GraphUtilForVFX
+    {
+        public struct Graph
+        {
+            internal GraphData graphData;
+        }
+
+        public static Graph LoadShaderGraph(string shaderFilePath)
+        {
+            var textGraph = File.ReadAllText(shaderFilePath, Encoding.UTF8);
+
+            Graph graph;
+            graph.graphData = JsonUtility.FromJson<GraphData>(textGraph);
+            graph.graphData.OnEnable();
+            graph.graphData.ValidateGraph();
+
+            return graph;
+        }
+
+        public static string GenerateSurfaceDescriptionStruct(Graph shaderGraph)
+        {
+            string pixelGraphOutputStructName = "SurfaceDescription";
+            var pixelSlots = new ShaderStringBuilder();
+            var graph = shaderGraph.graphData;
+
+            //var activeNodeList = ListPool<AbstractMaterialNode>.Get();
+
+            //NodeUtils.DepthFirstCollectNodesFromNode(activeNodeList, ((AbstractMaterialNode)graph.outputNode)); // need to specify pixel slots
+
+            var slots = new List<MaterialSlot>();
+            foreach (var activeNode in ((AbstractMaterialNode)graph.outputNode).ToEnumerable())
+            {
+                if (activeNode is IMasterNode || activeNode is SubGraphOutputNode)
+                    slots.AddRange(activeNode.GetInputSlots<MaterialSlot>());
+                else
+                    slots.AddRange(activeNode.GetOutputSlots<MaterialSlot>());
+            }
+            GraphUtil.GenerateSurfaceDescriptionStruct(pixelSlots, slots, true, pixelGraphOutputStructName, null);
+
+            //ListPool<AbstractMaterialNode>.Release(activeNodeList);
+            return pixelSlots.ToString();
+        }
+    }
 }
