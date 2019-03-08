@@ -12,10 +12,6 @@ namespace UnityEditor.VFX
 {
     class VFXShaderGraphAdapter
     {
-        protected string pixelGraphInputStructName = "SurfaceDescriptionInputs";
-        protected string pixelGraphOutputStructName = "SurfaceDescription";
-        protected string pixelGraphEvalFunctionName = "SurfaceDescriptionFunction";
-        string pixelGraphEvalFunctionName = "SurfaceDescriptionFunction";
     }
 
     class VFXSGLitMeshAdapter : VFXShaderGraphAdapter
@@ -30,22 +26,7 @@ namespace UnityEditor.VFX
 
             string surfaceDescStruct = GraphUtilForVFX.GenerateSurfaceDescriptionStruct(shaderGraph);
 
-            /*
-            // Build the graph evaluation code, to evaluate the specified slots
-            GraphUtil.GenerateSurfaceDescriptionFunction(
-                pixelNodes,
-                masterNode,
-                masterNode.owner as GraphData,
-                pixelGraphEvalFunction,
-                functionRegistry,
-                sharedProperties,
-                pixelRequirements,  // TODO : REMOVE UNUSED
-                mode,
-                pixelGraphEvalFunctionName,
-                pixelGraphOutputStructName,
-                null,
-                pixelSlots,
-                pixelGraphInputStructName);*/
+            string surfaceDescFunction = GraphUtilForVFX.GenerateSurfaceDescriptionFunction(shaderGraph);
         }
     }
 }

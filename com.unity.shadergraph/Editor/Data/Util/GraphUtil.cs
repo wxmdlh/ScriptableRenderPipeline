@@ -1529,6 +1529,7 @@ namespace UnityEditor.ShaderGraph
         public struct Graph
         {
             internal GraphData graphData;
+            internal List<MaterialSlot> slots;
         }
 
         public static Graph LoadShaderGraph(string shaderFilePath)
@@ -1540,6 +1541,14 @@ namespace UnityEditor.ShaderGraph
             graph.graphData.OnEnable();
             graph.graphData.ValidateGraph();
 
+            graph.slots = new List<MaterialSlot>();
+            foreach (var activeNode in ((AbstractMaterialNode)graph.graphData.outputNode).ToEnumerable())
+            {
+                if (activeNode is IMasterNode || activeNode is SubGraphOutputNode)
+                    graph.slots.AddRange(activeNode.GetInputSlots<MaterialSlot>());
+                else
+                    graph.slots.AddRange(activeNode.GetOutputSlots<MaterialSlot>());
+            }
             return graph;
         }
 
@@ -1549,22 +1558,47 @@ namespace UnityEditor.ShaderGraph
             var pixelSlots = new ShaderStringBuilder();
             var graph = shaderGraph.graphData;
 
-            //var activeNodeList = ListPool<AbstractMaterialNode>.Get();
+            GraphUtil.GenerateSurfaceDescriptionStruct(pixelSlots, shaderGraph.slots, true, pixelGraphOutputStructName, null);
 
-            //NodeUtils.DepthFirstCollectNodesFromNode(activeNodeList, ((AbstractMaterialNode)graph.outputNode)); // need to specify pixel slots
-
-            var slots = new List<MaterialSlot>();
-            foreach (var activeNode in ((AbstractMaterialNode)graph.outputNode).ToEnumerable())
-            {
-                if (activeNode is IMasterNode || activeNode is SubGraphOutputNode)
-                    slots.AddRange(activeNode.GetInputSlots<MaterialSlot>());
-                else
-                    slots.AddRange(activeNode.GetOutputSlots<MaterialSlot>());
-            }
-            GraphUtil.GenerateSurfaceDescriptionStruct(pixelSlots, slots, true, pixelGraphOutputStructName, null);
-
-            //ListPool<AbstractMaterialNode>.Release(activeNodeList);
             return pixelSlots.ToString();
+        }
+
+        public static string GenerateSurfaceDescriptionFunction(Graph shaderGraph)
+        {
+            var graph = shaderGraph.graphData;
+            var pixelGraphEvalFunction = new ShaderStringBuilder();
+            var activeNodeList = ListPool<AbstractMaterialNode>.Get();
+
+
+            string pixelGraphInputStructName = "SurfaceDescriptionInputs";
+            string pixelGraphOutputStructName = "SurfaceDescription";
+            string pixelGraphEvalFunctionName = "SurfaceDescriptionFunction";
+
+            ShaderStringBuilder graphNodeFunctions = new ShaderStringBuilder();
+            graphNodeFunctions.IncreaseIndent();
+            var functionRegistry = new FunctionRegistry(graphNodeFunctions);
+            var sharedProperties = new PropertyCollector();
+            var pixelRequirements = ShaderGraphRequirements.FromNodes(activeNodeList, ShaderStageCapability.Fragment, false);
+
+            NodeUtils.DepthFirstCollectNodesFromNode(activeNodeList, ((AbstractMaterialNode)graph.outputNode)); // need to specify pixel slots
+
+            GraphUtil.GenerateSurfaceDescriptionFunction(
+                activeNodeList,
+                shaderGraph.graphData.outputNode,
+                shaderGraph.graphData as GraphData,
+                pixelGraphEvalFunction,
+                functionRegistry,
+                sharedProperties,
+                pixelRequirements,  // TODO : REMOVE UNUSED
+                GenerationMode.ForReals,
+                pixelGraphEvalFunctionName,
+                pixelGraphOutputStructName,
+                null,
+                shaderGraph.slots,
+                pixelGraphInputStructName);
+
+            ListPool<AbstractMaterialNode>.Release(activeNodeList);
+            return pixelGraphEvalFunction.ToString();
         }
     }
 }
