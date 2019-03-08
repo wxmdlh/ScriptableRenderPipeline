@@ -113,6 +113,19 @@ namespace UnityEditor.ShaderGraph
             if (property == null)
                 return;
 
+            //TODO:tristan insert here for property
+
+
+            string getter;
+            if (PropertyCollector.customGenerator != null && PropertyCollector.customGenerator.GenerateCustomPropertyCode(out getter, property))
+            {
+                var result = string.Format("{0} {1} = {2};"
+                        , precision
+                        , property.referenceName
+                        , getter);
+                visitor.AddShaderChunk(result, true);
+            }
+
             if (property is Vector1ShaderProperty)
             {
                 var result = string.Format("{0} {1} = {2};"
