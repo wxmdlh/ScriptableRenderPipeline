@@ -1580,7 +1580,7 @@ namespace UnityEditor.ShaderGraph
             var sharedProperties = new PropertyCollector();
             var pixelRequirements = ShaderGraphRequirements.FromNodes(activeNodeList, ShaderStageCapability.Fragment, false);
 
-            NodeUtils.DepthFirstCollectNodesFromNode(activeNodeList, ((AbstractMaterialNode)graph.outputNode)); // need to specify pixel slots
+            NodeUtils.DepthFirstCollectNodesFromNode(activeNodeList, ((AbstractMaterialNode)graph.outputNode), NodeUtils.IncludeSelf.Include, Enumerable.Range(1,31).ToList()); // hardcoded hd pixel slots.
 
             GraphUtil.GenerateSurfaceDescriptionFunction(
                 activeNodeList,

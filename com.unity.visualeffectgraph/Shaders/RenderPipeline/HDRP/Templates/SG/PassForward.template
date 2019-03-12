@@ -1,22 +1,17 @@
 Pass
 {		
-	Tags { "LightMode"="GBuffer" }
-	
-	Stencil
-	{
-		WriteMask 7
-		Ref  2
-		Comp Always
-		Pass Replace
-	}	
-		
+	Tags { "LightMode"="${VFXHDRPForwardPassName}"}
+			
 	HLSLPROGRAM
 	#pragma target 4.5
 	
-	#pragma multi_compile _ LIGHT_LAYERS
-	#pragma multi_compile _ DEBUG_DISPLAY
-	
 	#define UNITY_MATERIAL_LIT
+	#define LIGHTLOOP_TILE_PASS
+	${VFXHDRPForwardDefines}
+	#pragma multi_compile USE_FPTL_LIGHTLIST USE_CLUSTERED_LIGHTLIST
+	#pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH SHADOW_VERY_HIGH
+	#pragma multi_compile _ DEBUG_DISPLAY
+	//#pragma enable_d3d11_debug_symbols
 	
 	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLitVaryings.template")}	
 	
@@ -41,6 +36,7 @@ Pass
 		// z: frame blending factor
 		nointerpolation float3 builtInInterpolants : TEXCOORD4;
 		#endif
+		float3 posWS : TEXCOORD5;
 	};
 	
 	struct ps_output
@@ -49,7 +45,7 @@ Pass
 	};
 
 ${VFXHDRPLitVaryingsMacros}
-	
+
 #define VFX_VARYING_PS_INPUTS ps_input
 #define VFX_VARYING_POSCS pos
 #define VFX_VARYING_UV uv
@@ -60,24 +56,26 @@ ${VFXHDRPLitVaryingsMacros}
 #if USE_NORMAL_MAP
 #define VFX_VARYING_TANGENT tangent
 #endif
+#define VFX_VARYING_POSWS posWS
 
 ${VFXBegin:VFXVertexAdditionalProcess}
 ${VFXHDRPLitFillVaryings}
 ${VFXEnd}
 
-	${VFXInclude("Shaders/ParticleMeshes/Pass.template")}	
-	#define SHADERPASS SHADERPASS_GBUFFER	
+	${VFXInclude("Shaders/ParticleMeshes/Pass.template")}
+	#define SHADERPASS SHADERPASS_FORWARD
 	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLit.template")}	
 		
 	#pragma fragment frag
-	void frag(ps_input i, OUTPUT_GBUFFER(outGBuffer)
+	void frag(ps_input i
+	, out float4 outColor : SV_Target0
 #if USE_DOUBLE_SIDED
 	, bool frontFace : SV_IsFrontFace
 #endif
 	)
 	{
 		${VFXComputeNormalWS}
-		VFXComputePixelOutputToGBuffer(i,normalWS,uvData,outGBuffer);
+		outColor = VFXGetPixelOutputForward(i,normalWS,uvData);
 	}
 	ENDHLSL
 }

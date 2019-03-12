@@ -41,6 +41,7 @@ Pass
 		// z: frame blending factor
 		nointerpolation float3 builtInInterpolants : TEXCOORD4;
 		#endif
+        ${VFXSGPixelInput}
 	};
 	
 	struct ps_output
@@ -68,16 +69,20 @@ ${VFXEnd}
 	${VFXInclude("Shaders/ParticleMeshes/Pass.template")}	
 	#define SHADERPASS SHADERPASS_GBUFFER	
 	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLit.template")}	
-		
+	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXShaderGraphGBuffer.template")}	
 	#pragma fragment frag
 	void frag(ps_input i, OUTPUT_GBUFFER(outGBuffer)
-#if USE_DOUBLE_SIDED
+	#if USE_DOUBLE_SIDED
 	, bool frontFace : SV_IsFrontFace
-#endif
+	#endif
 	)
 	{
-		${VFXComputeNormalWS}
-		VFXComputePixelOutputToGBuffer(i,normalWS,uvData,outGBuffer);
+		${VFXComputeNormalWS}		
+		//VFXComputePixelOutputToGBuffer(i,normalWS,uvData,outGBuffer);
+        
+        Frag(i, outGBuffer);
+        
 	}
-	ENDHLSL
+#endif
+    ENDHLSL
 }

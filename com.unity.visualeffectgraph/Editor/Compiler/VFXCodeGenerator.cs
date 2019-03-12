@@ -5,7 +5,7 @@ using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.VFX;
-
+using UnityEditor.ShaderGraph;
 using Object = UnityEngine.Object;
 using System.Text.RegularExpressions;
 
@@ -28,11 +28,16 @@ namespace UnityEditor.VFX
         //This function insure to keep padding while replacing a specific string
         private static void ReplaceMultiline(StringBuilder target, string targetQuery, StringBuilder value)
         {
+            ReplaceMultiline(target, targetQuery, value.ToString());
+        }
+            //This function insure to keep padding while replacing a specific string
+            private static void ReplaceMultiline(StringBuilder target, string targetQuery, string value)
+        {
             string[] delim = { System.Environment.NewLine, "\n" };
-            var valueLines = value.ToString().Split(delim, System.StringSplitOptions.None);
+            var valueLines = value.Split(delim, System.StringSplitOptions.None);
             if (valueLines.Length <= 1)
             {
-                target.Replace(targetQuery, value.ToString());
+                target.Replace(targetQuery, value);
             }
             else
             {
@@ -494,6 +499,31 @@ namespace UnityEditor.VFX
             var uniqueIncludes = new HashSet<string>(includes);
             foreach (var includePath in uniqueIncludes)
                 perPassIncludeContent.WriteLine(string.Format("#include \"{0}\"", includePath));
+
+#if VFX_HAS_SHADERGRAPH
+            if ( context is VFXAbstractParticleOutput && (context as VFXAbstractParticleOutput).shaderGraph != null)
+            {
+                string shaderGraphPath = AssetDatabase.GetAssetPath((context as VFXAbstractParticleOutput).shaderGraph);
+
+                if(Path.GetExtension(shaderGraphPath).Equals(".shadergraph",StringComparison.InvariantCultureIgnoreCase))
+                {
+                    try
+                    {
+                        var shaderGraph = GraphUtilForVFX.LoadShaderGraph(shaderGraphPath);
+                        string definitionStruct = GraphUtilForVFX.GenerateSurfaceDescriptionStruct(shaderGraph);
+                        string definition = GraphUtilForVFX.GenerateSurfaceDescriptionFunction(shaderGraph);
+
+                        globalIncludeContent.WriteLine("#define SHADER_GRAPH");
+                        ReplaceMultiline(stringBuilder, "${VFXSGSurfaceStruct}", definitionStruct);
+                        ReplaceMultiline(stringBuilder, "${VFXSGSurfaceFunction}", definition);
+                    }
+                    catch(Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
+                }
+            }
+#endif
 
             ReplaceMultiline(stringBuilder, "${VFXGlobalInclude}", globalIncludeContent.builder);
             ReplaceMultiline(stringBuilder, "${VFXGlobalDeclaration}", globalDeclaration.builder);

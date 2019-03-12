@@ -8,6 +8,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     class HDLitSubShader : IHDLitSubShader
     {
+        internal Pass passGBuffer { get { return m_PassGBuffer; } }
         Pass m_PassGBuffer = new Pass()
         {
             Name = "GBuffer",
@@ -150,6 +151,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             UseInPreview = false
         };
 
+
+        internal Pass passShadowCaster { get { return m_PassShadowCaster; } }
+
         Pass m_PassShadowCaster = new Pass()
         {
             Name = "ShadowCaster",
@@ -206,6 +210,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             },
             UseInPreview = false
         };
+        internal Pass passDepthOnly { get { return m_PassDepthOnly; } }
 
         Pass m_PassDepthOnly = new Pass()
         {
@@ -465,6 +470,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             },
             UseInPreview = true
         };
+
+        internal Pass passForward { get { return m_PassForward; } }
 
         Pass m_PassForward = new Pass()
         {
