@@ -501,9 +501,9 @@ namespace UnityEditor.VFX
                 perPassIncludeContent.WriteLine(string.Format("#include \"{0}\"", includePath));
 
 #if VFX_HAS_SHADERGRAPH
-            if ( context is VFXAbstractParticleOutput && (context as VFXAbstractParticleOutput).shaderGraph != null)
+            if ( context is VFXHDRPShaderGraphOutput && (context as VFXHDRPShaderGraphOutput).shaderGraph != null)
             {
-                string shaderGraphPath = AssetDatabase.GetAssetPath((context as VFXAbstractParticleOutput).shaderGraph);
+                string shaderGraphPath = AssetDatabase.GetAssetPath((context as VFXHDRPShaderGraphOutput).shaderGraph);
 
                 if(Path.GetExtension(shaderGraphPath).Equals(".shadergraph",StringComparison.InvariantCultureIgnoreCase))
                 {

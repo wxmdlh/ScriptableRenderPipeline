@@ -94,14 +94,6 @@ namespace UnityEditor.VFX
         [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
         protected bool preRefraction = false;
 
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.InGraph), SerializeField]
-        protected Shader m_ShaderGraph;
-
-        public Shader shaderGraph
-        {
-            get { return m_ShaderGraph; }
-        }
-
         // IVFXSubRenderer interface
         public virtual bool hasShadowCasting { get { return castShadows; } }
 
