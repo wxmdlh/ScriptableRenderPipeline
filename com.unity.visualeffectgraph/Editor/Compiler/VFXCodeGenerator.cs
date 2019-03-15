@@ -507,20 +507,28 @@ namespace UnityEditor.VFX
 
                 if(Path.GetExtension(shaderGraphPath).Equals(".shadergraph",StringComparison.InvariantCultureIgnoreCase))
                 {
-                    try
+                    //try
                     {
-                        var shaderGraph = GraphUtilForVFX.LoadShaderGraph(shaderGraphPath);
-                        string definitionStruct = GraphUtilForVFX.GenerateSurfaceDescriptionStruct(shaderGraph);
-                        string definition = GraphUtilForVFX.GenerateSurfaceDescriptionFunction(shaderGraph);
 
-                        globalIncludeContent.WriteLine("#define SHADER_GRAPH");
-                        ReplaceMultiline(stringBuilder, "${VFXSGSurfaceStruct}", definitionStruct);
-                        ReplaceMultiline(stringBuilder, "${VFXSGSurfaceFunction}", definition);
-                    }
-                    catch(Exception e)
+                        GraphUtilForVFX.VFXInfos infos = new GraphUtilForVFX.VFXInfos();
+                        infos.customParameterAccess = null;
+                        infos.vertexFunctions = blockFunction.ToString();
+                        infos.vertexShaderContent = blockCallFunction.ToString();
+                        infos.loadAttributes = GenerateLoadAttribute(".*", context).ToString();
+
+                        var parameters = new VFXShaderWriter();
+                        parameters.WriteCBuffer(contextData.uniformMapper, "parameters");
+                        parameters.WriteTexture(contextData.uniformMapper);
+
+                        infos.parameters = parameters.ToString();
+
+                        return new StringBuilder(GraphUtilForVFX.GenerateShader(shaderGraphPath, ref infos));
+
+                        }
+                    /*catch(Exception e)
                     {
                         Debug.LogException(e);
-                    }
+                    }*/
                 }
             }
 #endif

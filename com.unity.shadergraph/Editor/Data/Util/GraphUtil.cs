@@ -1526,6 +1526,118 @@ namespace UnityEditor.ShaderGraph
     //Small methods usable by the VFX since they are public
     public static class GraphUtilForVFX
     {
+        public struct VFXAttribute
+        {
+            public string name;
+            public string initialization;
+        }
+
+        public struct VFXInfos
+        {
+            public Dictionary<string, string> customParameterAccess;
+            public string vertexFunctions;
+            public string vertexShaderContent;
+            public string shaderName;
+            public string parameters;
+            //public List<string> attributes;
+            public string loadAttributes;
+        }
+        public static string GenerateShader(string shaderFilePath, ref VFXInfos vfxInfos)
+        {
+            Graph graph = LoadShaderGraph(shaderFilePath);
+
+            string shaderStart = @"
+{
+    SubShader
+    {
+        Tags { ""Queue"" = ""Geometry"" ""IgnoreProjector"" = ""False""}
+
+";
+
+            StringBuilder shader = new StringBuilder(shaderStart);
+
+            //TODO add renderstate commands
+
+            string hlslStart = @"
+        HLSLINCLUDE
+        #include ""Packages / com.unity.visualeffectgraph / Shaders / RenderPipeline / HDRP / VFXDefines.hlsl""
+
+
+        ByteAddressBuffer attributeBuffer;
+";
+            shader.AppendLine(hlslStart);
+            shader.AppendLine(vfxInfos.parameters);
+            shader.AppendLine("\t\t" + vfxInfos.vertexFunctions.Replace("\n", "\n\t\t"));
+            shader.AppendLine("\t\t" +GenerateMeshAttributesStruct(graph).Replace("\n", "\n\t\t"));
+
+            shader.AppendLine(@"
+        ENDHLSL");
+
+            for (int i = 0; i < Graph.PassName.Count && i < Graph.passInfos.Length; ++i)
+            {
+                var passInfo = Graph.passInfos[i];
+                var pass = graph.passes[i];
+
+
+                shader.AppendLine(@"
+        Pass
+		{		
+			Tags { ""LightMode""=""" + passInfo.name + @""");
+            HLSLSTART");
+
+                string hlslNext = @"
+            #pragma vertex vert
+		    ps_input vert(AttributeMesh i, uint instanceID : SV_InstanceID)
+		    {
+			    ps_input o = (ps_input)0;
+";
+                shader.AppendLine(hlslNext);
+
+                shader.Append("\t\t\t\t" + vfxInfos.loadAttributes.Replace("\n","\n\t\t\t\t"));
+                shader.Append("\t\t\t\t" + vfxInfos.vertexShaderContent.Replace("\n", "\n\t\t\t\t"));
+
+                hlslNext = @"
+                float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
+			    float3 vPos = mul(elementToVFX,float4(i.pos,1.0f)).xyz;
+			    o.VFX_VARYING_POSCS = TransformPositionVFXToClip(vPos);
+";
+                shader.Append(hlslNext);
+                if ((pass.pixel.requirements.requiresNormal &= NeededCoordinateSpace.Object) != 0)
+                    shader.AppendLine(@"
+                o.normalOS = i.normal;
+");
+                if ((pass.pixel.requirements.requiresNormal &= NeededCoordinateSpace.World) != 0)
+                    shader.AppendLine(@"
+                float3 normalWS = normalize(TransformDirectionVFXToWorld(mul((float3x3)elementToVFX, i.normal)));
+                o.normalWS = i.normal;
+");
+                if ((pass.pixel.requirements.requiresTangent &= NeededCoordinateSpace.World) != 0)
+                    shader.AppendLine(@"
+                o.tangent = float4(normalize(TransformDirectionVFXToWorld(mul((float3x3)elementToVFX,i.tangent.xyz))),i.tangent.w);
+");
+                if (pass.pixel.requirements.requiresVertexColor)
+                    shader.AppendLine(@"
+                o.color : float4(color,a)");
+
+                for (int uv = 0; uv < 4; ++uv)
+                {
+                    if (pass.pixel.requirements.requiresMeshUVs.Contains((UVChannel)uv))
+                        shader.AppendFormat("o.uv{0} : i.uv{0}\n", uv);
+                }
+
+                shader.Append(@"
+            }
+            ENDHLSL
+        }");
+
+
+            }
+            shader.AppendLine(@"
+    }");
+
+            return shader.ToString();
+        }
+
         public class Graph
         {
             internal GraphData graphData;
@@ -1557,11 +1669,13 @@ namespace UnityEditor.ShaderGraph
 
             internal class PassInfo
             {
-                public PassInfo(FunctionInfo pixel,FunctionInfo vertex)
+                public PassInfo(string name,FunctionInfo pixel,FunctionInfo vertex)
                 {
+                    this.name = name;
                     this.pixel = pixel;
                     this.vertex = vertex;
                 }
+                public readonly string name;
                 public readonly FunctionInfo pixel;
                 public readonly FunctionInfo vertex;
             }
@@ -1577,7 +1691,9 @@ namespace UnityEditor.ShaderGraph
             internal readonly static PassInfo[] passInfos = new PassInfo[]
                 {
                 //GBuffer
-                new PassInfo(new FunctionInfo(Enumerable.Range(1, 31).ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())) // hardcoded pbr pixel slots.
+                new PassInfo("GBuffer",new FunctionInfo(Enumerable.Range(1, 31).ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())), // hardcoded pbr pixel slots.
+                //ShadowCaster
+                //new PassInfo("ShadowCaster",new FunctionInfo(Enumerable.Range(1, 31).ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
                 };
         }
 
@@ -1621,10 +1737,12 @@ namespace UnityEditor.ShaderGraph
             vertexSlots.AppendLine("{");
             vertexSlots.IncreaseIndent();
             vertexSlots.AppendLine("float3 posOS : POSITION");
-            if(requirements.requiresNormal != NeededCoordinateSpace.None)
+            if ((requirements.requiresTangent &= NeededCoordinateSpace.Object) != 0)
                 vertexSlots.AppendLine("float4 normalOS : NORMAL");
-            if (requirements.requiresTangent != NeededCoordinateSpace.None)
-                vertexSlots.AppendLine("float4 tangentOS : TANGENT");
+            if ((requirements.requiresTangent &= NeededCoordinateSpace.World) != 0)
+                vertexSlots.AppendLine("float4 normalWS : NORMAL");
+            if ((requirements.requiresTangent &= NeededCoordinateSpace.World) != 0)
+                vertexSlots.AppendLine("float4 tangent : TANGENT");
             for(int i = 0; i < 4; ++i)
             {
                 if( shaderGraph.passes[Graph.PassName.GBuffer].vertex.requirements.requiresMeshUVs.Contains((UVChannel)i))
