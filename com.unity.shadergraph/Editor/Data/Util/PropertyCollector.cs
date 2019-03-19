@@ -13,6 +13,7 @@ namespace UnityEditor.ShaderGraph
             public bool modifiable;
         }
 
+        public readonly List<AbstractShaderProperty> properties = new List<AbstractShaderProperty>();
         public interface ICustomGenerator
         {
             bool ShouldGeneratePropertyDeclaration(AbstractShaderProperty property);
