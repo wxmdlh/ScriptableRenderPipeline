@@ -52,6 +52,9 @@ namespace UnityEditor.ShaderGraph
         {
             Graph graph = LoadShaderGraph(shaderGraph);
 
+
+            int currentPass = Graph.PassName.GBuffer;
+
             string shaderStart = @"
 {
     SubShader
@@ -74,7 +77,8 @@ namespace UnityEditor.ShaderGraph
             shader.AppendLine(hlslStart);
             shader.AppendLine(vfxInfos.parameters);
             shader.AppendLine("\t\t" + vfxInfos.vertexFunctions.Replace("\n", "\n\t\t"));
-            shader.AppendLine("\t\t" + GenerateMeshAttributesStruct(graph).Replace("\n", "\n\t\t"));
+            shader.AppendLine("\t\t" + GenerateMeshAttributesStruct(graph, currentPass).Replace("\n", "\n\t\t"));
+            shader.AppendLine("\t\t" + GeneratePSInputStruct(graph, currentPass).Replace("\n", "\n\t\t"));
 
             shader.AppendLine(@"
         ENDHLSL");
@@ -90,7 +94,7 @@ namespace UnityEditor.ShaderGraph
 		{		
 			Tags { ""LightMode""=""" + passInfo.name + @""");
             HLSLSTART");
-
+                /***Vertex Shader***/
                 string hlslNext = @"
             #pragma vertex vert
 		    ps_input vert(AttributeMesh i, uint instanceID : SV_InstanceID)
@@ -114,28 +118,36 @@ namespace UnityEditor.ShaderGraph
 				size3.y *= scaleY;
 				size3.z *= scaleZ;
                 float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
-			    float3 vPos = mul(elementToVFX,float4(i.pos,1.0f)).xyz;
-			    o.posOS = TransformPositionVFXToClip(vPos);
+			    float3 vPos = mul(elementToVFX,float4(i.posOS,1.0f)).xyz;
+			    o.posCS = TransformPositionVFXToClip(vPos);
 ";
                 shader.Append(hlslNext);
 
-                if ((pass.pixel.requirements.requiresPosition &= NeededCoordinateSpace.World) != 0)
+                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.World) != 0)
                     shader.AppendLine(@"
                 o.posWS =  TransformPositionVFXToWorld(vPos);
 ");
+                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
+                    shader.AppendLine(@"
+                o.posOS =  vPos;
+");
 
-                if ((pass.pixel.requirements.requiresNormal &= NeededCoordinateSpace.Object) != 0)
+                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
                     shader.AppendLine(@"
                 o.normalOS = i.normal;
 ");
-                if ((pass.pixel.requirements.requiresNormal &= NeededCoordinateSpace.World) != 0)
+                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.World) != 0)
                     shader.AppendLine(@"
                 float3 normalWS = normalize(TransformDirectionVFXToWorld(mul((float3x3)elementToVFX, i.normal)));
-                o.normalWS = i.normal;
+                o.normalWS = normalWS;
 ");
-                if ((pass.pixel.requirements.requiresTangent &= NeededCoordinateSpace.World) != 0)
+                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.Object) != 0)
                     shader.AppendLine(@"
-                o.tangent = float4(normalize(TransformDirectionVFXToWorld(mul((float3x3)elementToVFX,i.tangent.xyz))),i.tangent.w);
+                o.tangentSS = i.tangent;
+");
+                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.World) != 0)
+                    shader.AppendLine(@"
+                o.tangentWS = float4(normalize(TransformDirectionVFXToWorld(mul((float3x3)elementToVFX, i.tangent.xyz))), i.tangent.w);
 ");
                 if (pass.pixel.requirements.requiresVertexColor)
                     shader.AppendLine(@"
@@ -144,15 +156,25 @@ namespace UnityEditor.ShaderGraph
                 for (int uv = 0; uv < 4; ++uv)
                 {
                     if (pass.pixel.requirements.requiresMeshUVs.Contains((UVChannel)uv))
-                        shader.AppendFormat("o.uv{0} : i.uv{0}\n", uv);
+                        shader.AppendFormat(@"
+                o.uv{0} : i.uv{0};
+"
+                        , uv);
                 }
 
                 shader.Append(@"
                 return o;
             }
+");
+                /*** ps_input -> FragInput ***/
 
-            ");
+                shader.AppendLine(@"
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/FragInputs.hlsl""
 
+");
+
+
+                //SurfaceDescriptionFunction
 
                 var shaderProperties = new PropertyCollector();
                 graph.graphData.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
@@ -183,7 +205,7 @@ namespace UnityEditor.ShaderGraph
 
                 }
 
-                shader.AppendLine(surfaceDefinitionFunction.Replace("\n", "\n\t\t\t"));
+                shader.AppendLine("\t\t\t" + surfaceDefinitionFunction.Replace("\n", "\n\t\t\t"));
 
 
                 shader.Append(@"
@@ -296,36 +318,103 @@ namespace UnityEditor.ShaderGraph
             graph.passes[Graph.PassName.GBuffer].pixel.requirements = ShaderGraphRequirements.FromNodes(graph.passes[Graph.PassName.GBuffer].pixel.nodes, ShaderStageCapability.Fragment, false);
             graph.passes[Graph.PassName.GBuffer].vertex.requirements = ShaderGraphRequirements.FromNodes(graph.passes[Graph.PassName.GBuffer].vertex.nodes, ShaderStageCapability.Vertex, false);
 
+            graph.passes[Graph.PassName.GBuffer].pixel.requirements.requiresPosition |= NeededCoordinateSpace.View;
+            graph.passes[Graph.PassName.GBuffer].vertex.requirements.requiresPosition |= NeededCoordinateSpace.Object;
+
             return graph;
         }
 
 
-        public static string GenerateMeshAttributesStruct(Graph shaderGraph)
+        public static string GenerateMeshAttributesStruct(Graph shaderGraph, int passName)
         {
-            var requirements = shaderGraph.passes[Graph.PassName.GBuffer].vertex.requirements;
+            var requirements = shaderGraph.passes[passName].vertex.requirements.Union(shaderGraph.passes[passName].pixel.requirements);
             var vertexSlots = new ShaderStringBuilder();
 
             vertexSlots.AppendLine("struct AttributeMesh");
             vertexSlots.AppendLine("{");
             vertexSlots.IncreaseIndent();
-            vertexSlots.AppendLine("float3 posOS : POSITION");
-            if ((requirements.requiresTangent &= NeededCoordinateSpace.Object) != 0)
-                vertexSlots.AppendLine("float4 normalOS : NORMAL");
-            if ((requirements.requiresTangent &= NeededCoordinateSpace.World) != 0)
-                vertexSlots.AppendLine("float4 normalWS : NORMAL");
-            if ((requirements.requiresTangent &= NeededCoordinateSpace.World) != 0)
-                vertexSlots.AppendLine("float4 tangent : TANGENT");
-            for (int i = 0; i < 4; ++i)
-            {
-                if (shaderGraph.passes[Graph.PassName.GBuffer].vertex.requirements.requiresMeshUVs.Contains((UVChannel)i))
-                    vertexSlots.AppendLine(string.Format("float4 uv{0} : TEXCOORD{0}", i));
-            }
-            if (requirements.requiresVertexColor)
-                vertexSlots.AppendLine("float4 color : COLOR");
+            GenerateStructFields(requirements, vertexSlots,true);
             vertexSlots.DecreaseIndent();
             vertexSlots.AppendLine("}");
 
             return vertexSlots.ToString();
+        }
+
+        public static string GeneratePSInputStruct(Graph shaderGraph, int passName)
+        {
+            var requirements = shaderGraph.passes[passName].pixel.requirements;
+            var pixelSlots = new ShaderStringBuilder();
+
+            pixelSlots.AppendLine("struct ps_input");
+            pixelSlots.AppendLine("{");
+            pixelSlots.IncreaseIndent();
+            GenerateStructFields(requirements, pixelSlots,false);
+            pixelSlots.DecreaseIndent();
+            pixelSlots.AppendLine("}");
+
+            return pixelSlots.ToString();
+        }
+
+        private static void GenerateVertexToPixelTransfers(ShaderGraphRequirements requirements, ShaderStringBuilder builder)
+        {
+            if ((requirements.requiresPosition & NeededCoordinateSpace.View) != 0)
+                builder.AppendLine("o.posCS = i.posCS");
+
+            if ((requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
+                builder.AppendLine("o.posOS = i.posOS");
+
+            if ((requirements.requiresPosition & NeededCoordinateSpace.World) != 0)
+                builder.AppendLine("o.posWS = i.posWS");
+
+            if ((requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
+                builder.AppendLine("o.normalOS = i.normalOS");
+
+            if ((requirements.requiresNormal & NeededCoordinateSpace.World) != 0)
+                builder.AppendLine("o.normalWS = i.normalWS");
+
+            if ((requirements.requiresTangent & NeededCoordinateSpace.Object) != 0)
+                builder.AppendLine("o.tangentOS = i.tangentOS");
+
+            if ((requirements.requiresTangent & NeededCoordinateSpace.World) != 0)
+                builder.AppendLine("o.tangentWS = i.tangentWS");
+            for (int i = 0; i < 4; ++i)
+            {
+                if (requirements.requiresMeshUVs.Contains((UVChannel)i))
+                    builder.AppendLine(string.Format("o.uv{0} = i.uv{0}", i));
+            }
+            if (requirements.requiresVertexColor)
+                builder.AppendLine("o.color = i.color");
+        }
+
+        private static void GenerateStructFields(ShaderGraphRequirements requirements, ShaderStringBuilder builder, bool computeWSCS)
+        {
+            if (!computeWSCS &&(requirements.requiresPosition & NeededCoordinateSpace.View) != 0)
+                builder.AppendLine("float3 posCS : SV_POSITION");
+
+            if ((requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
+                builder.AppendLine("float4 posOS : POSITION0");
+
+            if (!computeWSCS && (requirements.requiresPosition & NeededCoordinateSpace.World) != 0)
+                builder.AppendLine("float4 posWS : POSITION1");
+
+            if ((requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
+                builder.AppendLine("float4 normalOS : NORMAL0");
+
+            if (!computeWSCS && (requirements.requiresNormal & NeededCoordinateSpace.World) != 0)
+                builder.AppendLine("float4 normalWS : NORMAL1");
+
+            if ((requirements.requiresTangent & NeededCoordinateSpace.Object) != 0)
+                builder.AppendLine("float4 tangentOS : TANGENT0");
+
+            if (!computeWSCS && (requirements.requiresTangent & NeededCoordinateSpace.World) != 0)
+                builder.AppendLine("float4 tangentWS : TANGENT0");
+            for (int i = 0; i < 4; ++i)
+            {
+                if (requirements.requiresMeshUVs.Contains((UVChannel)i))
+                    builder.AppendLine(string.Format("float4 uv{0} : TEXCOORD{0}", i));
+            }
+            if (requirements.requiresVertexColor)
+                builder.AppendLine("float4 color : COLOR");
         }
 
 
