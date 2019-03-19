@@ -389,32 +389,32 @@ namespace UnityEditor.ShaderGraph
         private static void GenerateStructFields(ShaderGraphRequirements requirements, ShaderStringBuilder builder, bool computeWSCS)
         {
             if (!computeWSCS &&(requirements.requiresPosition & NeededCoordinateSpace.View) != 0)
-                builder.AppendLine("float3 posCS : SV_POSITION");
+                builder.AppendLine("float3 posCS : SV_POSITION;");
 
             if ((requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
-                builder.AppendLine("float4 posOS : POSITION0");
+                builder.AppendLine("float4 posOS : POSITION0;");
 
             if (!computeWSCS && (requirements.requiresPosition & NeededCoordinateSpace.World) != 0)
-                builder.AppendLine("float4 posWS : POSITION1");
+                builder.AppendLine("float4 posWS : POSITION1;");
 
             if ((requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
-                builder.AppendLine("float4 normalOS : NORMAL0");
+                builder.AppendLine("float4 normalOS : NORMAL0;");
 
             if (!computeWSCS && (requirements.requiresNormal & NeededCoordinateSpace.World) != 0)
-                builder.AppendLine("float4 normalWS : NORMAL1");
+                builder.AppendLine("float4 normalWS : NORMAL1;");
 
             if ((requirements.requiresTangent & NeededCoordinateSpace.Object) != 0)
-                builder.AppendLine("float4 tangentOS : TANGENT0");
+                builder.AppendLine("float4 tangentOS : TANGENT0;");
 
             if (!computeWSCS && (requirements.requiresTangent & NeededCoordinateSpace.World) != 0)
-                builder.AppendLine("float4 tangentWS : TANGENT0");
+                builder.AppendLine("float4 tangentWS : TANGENT0;");
             for (int i = 0; i < 4; ++i)
             {
                 if (requirements.requiresMeshUVs.Contains((UVChannel)i))
-                    builder.AppendLine(string.Format("float4 uv{0} : TEXCOORD{0}", i));
+                    builder.AppendLine(string.Format("float4 uv{0} : TEXCOORD{0};", i));
             }
             if (requirements.requiresVertexColor)
-                builder.AppendLine("float4 color : COLOR");
+                builder.AppendLine("float4 color : COLOR;");
         }
 
 
