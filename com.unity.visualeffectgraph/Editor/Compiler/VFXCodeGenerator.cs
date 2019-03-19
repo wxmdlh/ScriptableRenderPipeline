@@ -503,10 +503,6 @@ namespace UnityEditor.VFX
 #if VFX_HAS_SHADERGRAPH
             if ( context is VFXHDRPShaderGraphOutput && (context as VFXHDRPShaderGraphOutput).shaderGraph != null)
             {
-                string shaderGraphPath = AssetDatabase.GetAssetPath((context as VFXHDRPShaderGraphOutput).shaderGraph);
-
-                if(Path.GetExtension(shaderGraphPath).Equals(".shadergraph",StringComparison.InvariantCultureIgnoreCase))
-                {
                     //try
                     {
 
@@ -514,6 +510,7 @@ namespace UnityEditor.VFX
                         infos.customParameterAccess = null;
                         infos.vertexFunctions = blockFunction.ToString();
                         infos.vertexShaderContent = blockCallFunction.ToString();
+                        infos.attributes = context.GetData().GetAttributes().Select(t=>t.attrib.name).ToList();
                         infos.loadAttributes = GenerateLoadAttribute(".*", context).ToString();
 
                         var parameters = new VFXShaderWriter();
@@ -522,14 +519,13 @@ namespace UnityEditor.VFX
 
                         infos.parameters = parameters.ToString();
 
-                        return new StringBuilder(GraphUtilForVFX.GenerateShader(shaderGraphPath, ref infos));
+                        return new StringBuilder(GraphUtilForVFX.GenerateShader((context as VFXHDRPShaderGraphOutput).shaderGraph, ref infos));
 
-                        }
+                    }
                     /*catch(Exception e)
                     {
                         Debug.LogException(e);
                     }*/
-                }
             }
 #endif
 

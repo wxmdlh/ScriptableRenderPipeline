@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.VFX.Block;
 using UnityEngine;
 using UnityEngine.Experimental.VFX;
+using UnityEditor.ShaderGraph;
 
 namespace UnityEditor.VFX
 {
@@ -54,6 +55,78 @@ namespace UnityEditor.VFX
             public Mesh mesh = VFXResources.defaultResources.mesh;
             [Tooltip("Define a bitmask to control which submeshes are rendered.")]
             public uint subMeshMask = 0xffffffff;
+        }
+
+
+        static readonly Dictionary<string, Type> s_shaderTypeToType = new Dictionary<string, Type>
+        {
+            { "Vector1" , typeof(float) },
+            { "Vector2", typeof(Vector2) },
+            { "Vector3", typeof(Vector3) },
+            { "Vector4", typeof(Vector4) },
+            { "Color" , typeof(Color) },
+            { "Texture2D" , typeof(Texture2D) },
+            { "Texture2DArray" , typeof(Texture2DArray) },
+            { "Texture3D" , typeof(Texture3D) },
+            { "Cubemap" , typeof(Cubemap) },
+            { "Bool" , typeof(bool) },
+            { "Matrix4" , typeof(Matrix4x4) },
+            { "Gradient" , typeof(Gradient) },
+        };
+
+        protected override IEnumerable<VFXPropertyWithValue> inputProperties
+        {
+            get {
+                if( shaderGraph != null)
+                {
+                    var graph = GraphUtilForVFX.LoadShaderGraph(shaderGraph);
+                    if( graph != null)
+                    {
+                        List<string> sgDeclarations = GraphUtilForVFX.GetPropertiesExcept(graph,attributes.Select(t => t.attrib.name).ToList());
+
+                        foreach (var decl in sgDeclarations)
+                        {
+                            int lastSpace = decl.LastIndexOfAny(new char[] { '\t', ' ' });
+                            string variable = decl.Substring(lastSpace + 1);
+                            string typeName = decl.Substring(0, lastSpace).Trim();
+                            Type type;
+                            if(s_shaderTypeToType.TryGetValue(typeName,out type))
+                                yield return new VFXPropertyWithValue(new VFXProperty(type, variable));
+                        }
+                    }
+
+                }
+
+
+                foreach ( var prop in PropertiesFromType(GetInputPropertiesTypeName()))
+                {
+                    yield return prop;
+                }
+        } }
+        protected override IEnumerable<VFXNamedExpression> CollectGPUExpressions(IEnumerable<VFXNamedExpression> slotExpressions)
+        {
+            foreach (var exp in base.CollectGPUExpressions(slotExpressions))
+                yield return exp;
+            if (shaderGraph != null)
+            {
+                var graph = GraphUtilForVFX.LoadShaderGraph(shaderGraph);
+                if (graph != null)
+                {
+                    List<string> sgDeclarations = GraphUtilForVFX.GetPropertiesExcept(graph, attributes.Select(t => t.attrib.name).ToList());
+
+                    foreach (var decl in sgDeclarations)
+                    {
+                        int lastSpace = decl.LastIndexOfAny(new char[] { '\t', ' ' });
+                        string variable = decl.Substring(lastSpace + 1);
+                        string typeName = decl.Substring(0, lastSpace).Trim();
+                        Type type;
+                        if (s_shaderTypeToType.TryGetValue(typeName, out type))
+                            yield return slotExpressions.First(o => o.name == variable);
+                    }
+                }
+
+            }
+
         }
 
         public override VFXExpressionMapper GetExpressionMapper(VFXDeviceTarget target)
