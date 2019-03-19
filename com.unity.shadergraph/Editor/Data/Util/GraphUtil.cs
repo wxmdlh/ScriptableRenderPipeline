@@ -1594,14 +1594,30 @@ namespace UnityEditor.ShaderGraph
                 shader.AppendLine(hlslNext);
 
                 shader.Append("\t\t\t\t" + vfxInfos.loadAttributes.Replace("\n","\n\t\t\t\t"));
+
+
+                shader.AppendLine(
+                @"if (!alive)
+                    return o;");
+
                 shader.Append("\t\t\t\t" + vfxInfos.vertexShaderContent.Replace("\n", "\n\t\t\t\t"));
 
                 hlslNext = @"
+                float3 size3 = float3(size,size,size);
+				size3.x *= scaleX;
+				size3.y *= scaleY;
+				size3.z *= scaleZ;
                 float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
 			    float3 vPos = mul(elementToVFX,float4(i.pos,1.0f)).xyz;
-			    o.VFX_VARYING_POSCS = TransformPositionVFXToClip(vPos);
+			    o.posOS = TransformPositionVFXToClip(vPos);
 ";
                 shader.Append(hlslNext);
+
+                if ((pass.pixel.requirements.requiresPosition &= NeededCoordinateSpace.World) != 0)
+                    shader.AppendLine(@"
+                o.posWS =  TransformPositionVFXToWorld(vPos);
+");
+
                 if ((pass.pixel.requirements.requiresNormal &= NeededCoordinateSpace.Object) != 0)
                     shader.AppendLine(@"
                 o.normalOS = i.normal;
@@ -1626,6 +1642,7 @@ namespace UnityEditor.ShaderGraph
                 }
 
                 shader.Append(@"
+                return o;
             }
             ENDHLSL
         }");
