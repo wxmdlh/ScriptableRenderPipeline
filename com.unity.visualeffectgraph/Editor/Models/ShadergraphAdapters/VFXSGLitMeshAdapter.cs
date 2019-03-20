@@ -20,13 +20,6 @@ namespace UnityEditor.VFX
 
         void Generate(string shaderFilePath)
         {
-            HashSet<string> activeFields = new HashSet<string>();
-
-            var shaderGraph = GraphUtilForVFX.LoadShaderGraph(shaderFilePath);
-
-            string surfaceDescStruct = GraphUtilForVFX.GenerateSurfaceDescriptionStruct(shaderGraph);
-
-            string surfaceDescFunction = GraphUtilForVFX.GenerateSurfaceDescriptionFunction(shaderGraph);
         }
     }
 }

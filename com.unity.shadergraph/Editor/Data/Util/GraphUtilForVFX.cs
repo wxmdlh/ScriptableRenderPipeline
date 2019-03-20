@@ -12,12 +12,6 @@ namespace UnityEditor.ShaderGraph
     //Small methods usable by the VFX since they are public
     public static class GraphUtilForVFX
     {
-        public struct VFXAttribute
-        {
-            public string name;
-            public string initialization;
-        }
-
         public struct VFXInfos
         {
             public Dictionary<string, string> customParameterAccess;
@@ -69,7 +63,9 @@ namespace UnityEditor.ShaderGraph
 
             string hlslStart = @"
         HLSLINCLUDE
-        #include ""Packages / com.unity.visualeffectgraph / Shaders / RenderPipeline / HDRP / VFXDefines.hlsl""
+        #include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl""
+		#include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc""
+		#include ""Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc""
 
 
         ByteAddressBuffer attributeBuffer;
@@ -92,13 +88,52 @@ namespace UnityEditor.ShaderGraph
                 shader.AppendLine(@"
         Pass
 		{		
-			Tags { ""LightMode""=""" + passInfo.name + @""");
-            HLSLSTART");
+			Tags { ""LightMode""=""" + passInfo.name + @""" }
+            HLSLPROGRAM
+
+            #pragma target 4.5
+            #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
+
+            #include ""Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl""
+
+            # include ""Packages/com.unity.render-pipelines.core/ShaderLibrary/NormalSurfaceGradient.hlsl""
+
+            #pragma multi_compile _ WRITE_NORMAL_BUFFER
+            #pragma multi_compile _ WRITE_MSAA_DEPTH
+
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl""
+        #ifdef DEBUG_DISPLAY
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl""
+        #endif
+        
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl""
+        
+        #if (SHADERPASS == SHADERPASS_FORWARD)
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/Lighting.hlsl""
+        
+            #define HAS_LIGHTLOOP
+        
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoopDef.hlsl""
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl""
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoop.hlsl""
+        #else
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl""
+        #endif
+        
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/FragInputs.hlsl""
+
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/BuiltinUtilities.hlsl""
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialUtilities.hlsl""
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl""
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl""
+            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderGraphFunctions.hlsl""
+");
                 /***Vertex Shader***/
                 string hlslNext = @"
             #pragma vertex vert
-		    ps_input vert(AttributeMesh i, uint instanceID : SV_InstanceID)
+		    VaryingsMeshToPS vert(AttributeMesh i, uint instanceID : SV_InstanceID)
 		    {
+				uint index = instanceID;
 			    VaryingsMeshToPS o = (VaryingsMeshToPS)0;
 ";
                 shader.AppendLine(hlslNext);
@@ -118,9 +153,10 @@ namespace UnityEditor.ShaderGraph
 				size3.y *= scaleY;
 				size3.z *= scaleZ;
                 float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
-			    float3 vPos = mul(elementToVFX,float4(i.posOS,1.0f)).xyz;
+			    float3 vPos = mul(elementToVFX,float4(i.posOS.xyz,1.0f)).xyz;
 			    o.posCS = TransformPositionVFXToClip(vPos);
                 o.posWS =  TransformPositionVFXToWorld(vPos);
+                o.instanceID = instanceID; // needed by pixel stuff using attributes
 ";
                 shader.Append(hlslNext);
 
@@ -148,13 +184,13 @@ namespace UnityEditor.ShaderGraph
 ");
                 if (pass.pixel.requirements.requiresVertexColor)
                     shader.Append(@"
-                o.color : float4(color,a);");
+                o.color = float4(color,a);");
 
                 for (int uv = 0; uv < 4; ++uv)
                 {
                     if (pass.pixel.requirements.requiresMeshUVs.Contains((UVChannel)uv))
                         shader.AppendFormat(@"
-                o.uv{0} : i.uv{0};
+                o.uv{0} = i.uv{0};
 "
                         , uv);
                 }
@@ -163,12 +199,7 @@ namespace UnityEditor.ShaderGraph
                 return o;
             }
 ");
-                /*** ps_input -> FragInput ***/
-
-                shader.AppendLine(@"
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/FragInputs.hlsl""
-
-");
+                /*** VaryingsMeshToPS -> FragInput ***/
 
                 shader.AppendLine(
             @"
@@ -176,13 +207,13 @@ namespace UnityEditor.ShaderGraph
             {
                 FragInputs o = (FragInputs)0;
                 o.worldToTangent = k_identity3x3;
-                o.positionSS = input.posCS;
+                o.positionSS = float4(i.posCS,1);
 ");
 
 
                 //if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.World) != 0) //required
                 shader.Append(@"
-                o.positionRWS = i.posWS;
+                o.positionRWS = float4(i.posWS,1);
 ");/*
                 if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
                     shader.AppendLine(@"
@@ -207,13 +238,13 @@ namespace UnityEditor.ShaderGraph
 ");*/
                 if (pass.pixel.requirements.requiresVertexColor)
                     shader.Append(@"
-                o.color : i.color;");
+                o.color = i.color;");
 
                 for (int uv = 0; uv < 4; ++uv)
                 {
                     if (pass.pixel.requirements.requiresMeshUVs.Contains((UVChannel)uv))
                         shader.AppendFormat(@"
-                o.texCoord0{0} : i.uv{0};
+                o.texCoord{0} = i.uv{0};
 "
                         , uv);
                 }
@@ -225,7 +256,8 @@ namespace UnityEditor.ShaderGraph
                 surfaceInputBuilder.IncreaseIndent(3);
                 GraphUtil.GenerateSurfaceInputStruct(surfaceInputBuilder, graph.passes[currentPass].pixel.requirements, "SurfaceDescriptionInputs");
 
-                shader.AppendLine(surfaceInputBuilder.ToString());
+                //inject instanceID in surfacedescriptioninput
+                shader.AppendLine(surfaceInputBuilder.ToString().Replace("}", "uint instanceID;\n\t\t\t}"));
 
                 //FragInput to ShaderDescriptionInput
 
@@ -341,7 +373,9 @@ namespace UnityEditor.ShaderGraph
                 return output;
             }
 ");
+                //Surface Description
 
+                shader.AppendLine("\t\t\t" + GenerateSurfaceDescriptionStruct(currentPass,graph).Replace("\n","\n\t\t\t"));
 
                 //SurfaceDescriptionFunction
 
@@ -354,12 +388,15 @@ namespace UnityEditor.ShaderGraph
                     string matchingAttribute = vfxInfos.attributes.FirstOrDefault(t => prop.displayName.Equals(t, StringComparison.InvariantCultureIgnoreCase));
                     if (matchingAttribute != null)
                     {
-                        vfxAttributesToshaderProperties.AppendLine(prop.GetPropertyDeclarationString("") + " = " + matchingAttribute + ";");
+                        if(matchingAttribute == "color")
+                            vfxAttributesToshaderProperties.AppendLine(prop.GetPropertyDeclarationString("") + " = float4(color,alpha);");
+                        else
+                            vfxAttributesToshaderProperties.AppendLine(prop.GetPropertyDeclarationString("") + " = " + matchingAttribute + ";");
                     }
                 }
 
-
-                string surfaceDefinitionFunction = GenerateSurfaceDescriptionFunction(graph);
+                string shaderGraphfunctions;
+                string surfaceDefinitionFunction = GenerateSurfaceDescriptionFunction(currentPass,graph, out shaderGraphfunctions);
                 // inject vfx load attributes.
                 int firstBracketIndex = surfaceDefinitionFunction.IndexOf('{');
                 if (firstBracketIndex > -1)
@@ -368,23 +405,233 @@ namespace UnityEditor.ShaderGraph
                         ++firstBracketIndex;
 
                     surfaceDefinitionFunction = surfaceDefinitionFunction.Substring(0, firstBracketIndex) +
+                        "\t\t\t\t uint index = IN.instanceID;\n" + 
                         "\t\t\t\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t") +
                         vfxAttributesToshaderProperties +
                         surfaceDefinitionFunction.Substring(firstBracketIndex);
 
                 }
-
+                shader.AppendLine("\t\t\t" + shaderGraphfunctions.Replace("\n", "\n\t\t\t"));
                 shader.AppendLine("\t\t\t" + surfaceDefinitionFunction.Replace("\n", "\n\t\t\t"));
 
+                shader.Append(@"
+void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDescription, float3 V, PositionInputs posInput, out SurfaceData surfaceData, out float3 bentNormalWS)
+            {
+                // setup defaults -- these are used if the graph doesn't output a value
+                ZERO_INITIALIZE(SurfaceData, surfaceData);
+        
+                // copy across graph values, if defined
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Albedo"))
+                    shader.Append(@"
+                surfaceData.baseColor = surfaceDescription.Albedo;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Smoothness"))
+                    shader.Append(@"
+                surfaceData.perceptualSmoothness = surfaceDescription.Smoothness;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Occlusion"))
+                    shader.Append(@"
+                surfaceData.ambientOcclusion = surfaceDescription.Occlusion;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "SpecularOcclusion"))
+                    shader.Append(@"
+                surfaceData.specularOcclusion = surfaceDescription.SpecularOcclusion;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Metallic"))
+                    shader.Append(@"
+                surfaceData.metallic = surfaceDescription.Metallic;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "SubsurfaceMask"))
+                    shader.Append(@"
+                surfaceData.subsurfaceMask = surfaceDescription.SubsurfaceMask;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Thickness"))
+                    shader.Append(@"
+                surfaceData.thickness = surfaceDescription.Thickness;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "DiffusionProfileHash"))
+                    shader.Append(@"
+                surfaceData.diffusionProfileHash = surfaceDescription.DiffusionProfileHash;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Specular"))
+                    shader.Append(@"
+                surfaceData.specularColor = surfaceDescription.Specular;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "CoatMask"))
+                    shader.Append(@"
+                surfaceData.coatMask = surfaceDescription.CoatMask;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Anisotropy"))
+                    shader.Append(@"
+                surfaceData.anisotropy = surfaceDescription.Anisotropy;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "IridescenceMask"))
+                    shader.Append(@"
+                surfaceData.iridescenceMask = surfaceDescription.IridescenceMask;
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "IridescenceThickness"))
+                    shader.Append(@"
+                surfaceData.iridescenceThickness = surfaceDescription.IridescenceThickness;
+");
 
                 shader.Append(@"
+        #ifdef _HAS_REFRACTION
+                if (_EnableSSRefraction)
+                {
+        
+                    surfaceData.transmittanceMask = (1.0 - surfaceDescription.Alpha);
+                    surfaceDescription.Alpha = 1.0;
+                }
+                else
+                {
+                    surfaceData.ior = 1.0;
+                    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
+                    surfaceData.atDistance = 1.0;
+                    surfaceData.transmittanceMask = 0.0;
+                    surfaceDescription.Alpha = 1.0;
+                }
+        #else
+                surfaceData.ior = 1.0;
+                surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
+                surfaceData.atDistance = 1.0;
+                surfaceData.transmittanceMask = 0.0;
+        #endif
+                
+                // These static material feature allow compile time optimization
+                surfaceData.materialFeatures = MATERIALFEATUREFLAGS_LIT_STANDARD;
+        #ifdef _MATERIAL_FEATURE_SUBSURFACE_SCATTERING
+                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING;
+        #endif
+        #ifdef _MATERIAL_FEATURE_TRANSMISSION
+                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_TRANSMISSION;
+        #endif
+        #ifdef _MATERIAL_FEATURE_ANISOTROPY
+                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_ANISOTROPY;
+        #endif
+        
+        #ifdef _MATERIAL_FEATURE_IRIDESCENCE
+                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_IRIDESCENCE;
+        #endif
+        #ifdef _MATERIAL_FEATURE_SPECULAR_COLOR
+                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR;
+        #endif
+        
+        #if defined (_MATERIAL_FEATURE_SPECULAR_COLOR) && defined (_ENERGY_CONSERVING_SPECULAR)
+                // Require to have setup baseColor
+                // Reproduce the energy conservation done in legacy Unity. Not ideal but better for compatibility and users can unchek it
+                surfaceData.baseColor *= (1.0 - Max3(surfaceData.specularColor.r, surfaceData.specularColor.g, surfaceData.specularColor.b));
+        #endif
+        
+                float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
+        
+                // tangent-space normal
+                float3 normalTS = float3(0.0f, 0.0f, 1.0f);
+                normalTS = surfaceDescription.Normal;
+        
+                // compute world space normal
+                GetNormalWS(fragInputs, normalTS, surfaceData.normalWS, doubleSidedConstants);
+        
+                bentNormalWS = surfaceData.normalWS;
+        
+                surfaceData.geomNormalWS = fragInputs.worldToTangent[2];
+        
+                surfaceData.tangentWS = normalize(fragInputs.worldToTangent[0].xyz);    // The tangent is not normalize in worldToTangent for mikkt. TODO: Check if it expected that we normalize with Morten. Tag: SURFACE_GRADIENT
+                surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
+        
+                // By default we use the ambient occlusion with Tri-ace trick (apply outside) for specular occlusion.
+                // If user provide bent normal then we process a better term
+        #if defined(_SPECULAR_OCCLUSION_CUSTOM)
+                // Just use the value passed through via the slot (not active otherwise)
+        #elif defined(_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL)
+                // If we have bent normal and ambient occlusion, process a specular occlusion
+                surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData.normalWS, surfaceData.ambientOcclusion, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
+        #elif defined(_AMBIENT_OCCLUSION) && defined(_SPECULAR_OCCLUSION_FROM_AO)
+                surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(dot(surfaceData.normalWS, V)), surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
+        #else
+                surfaceData.specularOcclusion = 1.0;
+        #endif
+        
+        #if HAVE_DECALS
+                if (_EnableDecals)
+                {
+                    DecalSurfaceData decalSurfaceData = GetDecalSurfaceData(posInput, surfaceDescription.Alpha);
+                    ApplyDecalToSurfaceData(decalSurfaceData, surfaceData);
+                }
+        #endif
+        
+        #ifdef _ENABLE_GEOMETRIC_SPECULAR_AA
+                surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, fragInputs.worldToTangent[2], surfaceDescription.SpecularAAScreenSpaceVariance, surfaceDescription.SpecularAAThreshold);
+        #endif
+        
+        #ifdef DEBUG_DISPLAY
+                if (_DebugMipMapMode != DEBUGMIPMAPMODE_NONE)
+                {
+                    // TODO: need to update mip info
+                    surfaceData.metallic = 0;
+                }
+        
+                // We need to call ApplyDebugToSurfaceData after filling the surfarcedata and before filling builtinData
+                // as it can modify attribute use for static lighting
+                ApplyDebugToSurfaceData(fragInputs.worldToTangent, surfaceData);
+        #endif
+            }
+        
+            void GetSurfaceAndBuiltinData(FragInputs fragInputs, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
+            {
+        #ifdef LOD_FADE_CROSSFADE // enable dithering LOD transition if user select CrossFade transition in LOD group
+                uint3 fadeMaskSeed = asuint((int3)(V * _ScreenSize.xyx)); // Quantize V to _ScreenSize values
+                LODDitheringTransition(fadeMaskSeed, unity_LODFade.x);
+        #endif
+        
+                float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
+        
+                ApplyDoubleSidedFlipOrMirror(fragInputs, doubleSidedConstants);
+        
+                SurfaceDescriptionInputs surfaceDescriptionInputs = FragInputsToSurfaceDescriptionInputs(fragInputs, V);
+                SurfaceDescription surfaceDescription = SurfaceDescriptionFunction(surfaceDescriptionInputs);
+        
+                // Perform alpha test very early to save performance (a killed pixel will not sample textures)
+                // TODO: split graph evaluation to grab just alpha dependencies first? tricky..
+                
+        
+                float3 bentNormalWS;
+                BuildSurfaceData(fragInputs, surfaceDescription, V, posInput, surfaceData, bentNormalWS);
+        
+                // Builtin Data
+                // For back lighting we use the oposite vertex normal 
+                InitBuiltinData(posInput, surfaceDescription.Alpha, bentNormalWS, -fragInputs.worldToTangent[2], fragInputs.texCoord1, fragInputs.texCoord2, builtinData);
+        
+                // override sampleBakedGI:
+");
+                if (graph.slots.Any(t => t.shaderOutputName == "Emission"))
+                    shader.Append(@"
+                builtinData.emissiveColor = surfaceDescription.Emission;
+");
+                shader.Append(@"
+        #if (SHADERPASS == SHADERPASS_DISTORTION)
+                builtinData.distortion = surfaceDescription.Distortion;
+                builtinData.distortionBlur = surfaceDescription.DistortionBlur;
+        #else
+                builtinData.distortion = float2(0.0, 0.0);
+                builtinData.distortionBlur = 0.0;
+        #endif
+        
+                PostInitBuiltinData(V, posInput, surfaceData, builtinData);
+            }
+                #pragma fragment Frag
+
+                #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassGBuffer.hlsl""
+
             ENDHLSL
         }
 ");
 
             }
             shader.AppendLine(@"
-    }");
+    }
+}
+");
 
             return shader.ToString();
         }
@@ -487,7 +734,7 @@ namespace UnityEditor.ShaderGraph
             graph.passes[Graph.PassName.GBuffer].pixel.requirements = ShaderGraphRequirements.FromNodes(graph.passes[Graph.PassName.GBuffer].pixel.nodes, ShaderStageCapability.Fragment, false);
             graph.passes[Graph.PassName.GBuffer].vertex.requirements = ShaderGraphRequirements.FromNodes(graph.passes[Graph.PassName.GBuffer].vertex.nodes, ShaderStageCapability.Vertex, false);
 
-            graph.passes[Graph.PassName.GBuffer].pixel.requirements.requiresPosition |= NeededCoordinateSpace.View;
+            graph.passes[Graph.PassName.GBuffer].pixel.requirements.requiresPosition |= NeededCoordinateSpace.View | NeededCoordinateSpace.World;
             graph.passes[Graph.PassName.GBuffer].vertex.requirements.requiresPosition |= NeededCoordinateSpace.Object;
 
             return graph;
@@ -504,7 +751,7 @@ namespace UnityEditor.ShaderGraph
             vertexSlots.IncreaseIndent();
             GenerateStructFields(requirements, vertexSlots, true);
             vertexSlots.DecreaseIndent();
-            vertexSlots.AppendLine("}");
+            vertexSlots.AppendLine("};");
 
             return vertexSlots.ToString();
         }
@@ -518,8 +765,9 @@ namespace UnityEditor.ShaderGraph
             pixelSlots.AppendLine("{");
             pixelSlots.IncreaseIndent();
             GenerateStructFields(requirements, pixelSlots, false);
+            pixelSlots.AppendLine("uint instanceID : TEXCOORD9; ");
             pixelSlots.DecreaseIndent();
-            pixelSlots.AppendLine("}");
+            pixelSlots.AppendLine("};");
 
             return pixelSlots.ToString();
         }
@@ -561,10 +809,10 @@ namespace UnityEditor.ShaderGraph
                 builder.AppendLine("float3 posCS : SV_POSITION;");
 
             if ((requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
-                builder.AppendLine("float4 posOS : POSITION0;");
+                builder.AppendLine("float3 posOS : POSITION0;");
 
             if (!computeWSCS && (requirements.requiresPosition & NeededCoordinateSpace.World) != 0)
-                builder.AppendLine("float4 posWS : POSITION1;");
+                builder.AppendLine("float3 posWS : POSITION1;");
 
             if ((requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
                 builder.AppendLine("float4 normalOS : NORMAL0;");
@@ -588,18 +836,18 @@ namespace UnityEditor.ShaderGraph
 
 
 
-        public static string GenerateSurfaceDescriptionStruct(Graph shaderGraph)
+        public static string GenerateSurfaceDescriptionStruct(int pass,Graph shaderGraph)
         {
             string pixelGraphOutputStructName = "SurfaceDescription";
             var pixelSlots = new ShaderStringBuilder();
             var graph = shaderGraph.graphData;
 
-            GraphUtil.GenerateSurfaceDescriptionStruct(pixelSlots, shaderGraph.slots, true, pixelGraphOutputStructName, null);
+            GraphUtil.GenerateSurfaceDescriptionStruct(pixelSlots, shaderGraph.slots.Where(t=> Graph.passInfos[pass].pixel.activeSlots.Contains(t.id)).ToList(), true, pixelGraphOutputStructName, null);
 
             return pixelSlots.ToString();
         }
 
-        public static string GenerateSurfaceDescriptionFunction(Graph shaderGraph)
+        public static string GenerateSurfaceDescriptionFunction(int pass,Graph shaderGraph, out string functions)
         {
             var graph = shaderGraph.graphData;
             var pixelGraphEvalFunction = new ShaderStringBuilder();
@@ -630,11 +878,12 @@ namespace UnityEditor.ShaderGraph
                 pixelGraphEvalFunctionName,
                 pixelGraphOutputStructName,
                 null,
-                shaderGraph.slots,
+                shaderGraph.slots.Where(t => Graph.passInfos[pass].pixel.activeSlots.Contains(t.id)).ToList(),
                 pixelGraphInputStructName);
 
             ListPool<AbstractMaterialNode>.Release(activeNodeList);
-            return pixelGraphEvalFunction.ToString();
+            functions = graphNodeFunctions.ToString();
+            return pixelGraphEvalFunction.ToString() ;
         }
     }
 }
