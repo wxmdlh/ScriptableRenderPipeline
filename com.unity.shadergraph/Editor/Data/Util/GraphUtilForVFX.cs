@@ -84,7 +84,7 @@ namespace UnityEditor.ShaderGraph
 
 ByteAddressBuffer attributeBuffer;
 
-void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
+void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
     surfaceData = (SurfaceData)0;
     builtinData = (BuiltinData)0;
@@ -191,6 +191,35 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh, uint instanceID : SV_I
 ".Replace("\n", "\n" + indentation));
 
                             shader.AppendLine(indentation + "#pragma vertex ParticleVert");
+                        }
+                        else if( trimmed.StartsWith("#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPass")) // let's hack the file matching the shader pass
+                        {
+                            int indexOfQuote = trimmed.IndexOf('"');
+                            string fileName = trimmed.Substring(indexOfQuote+1, trimmed.Length - 2 - indexOfQuote);
+
+                            string passFile = File.ReadAllText(fileName);
+
+                            // Replace calls to GetSurfaceAndBuiltinData to calls to ParticleGetSurfaceAndBuiltinData with an additionnal parameter
+                            int callIndex = passFile.IndexOf("GetSurfaceAndBuiltinData(");
+                            if( callIndex != -1)
+                            {
+                                int endCallIndex = passFile.IndexOf(';', callIndex + 1);
+                                endCallIndex = passFile.LastIndexOf(')', endCallIndex) -1;
+                                int paramStartIndex = callIndex + "GetSurfaceAndBuiltinData(".Length;
+
+                                string[] parameters = passFile.Substring(paramStartIndex, endCallIndex - paramStartIndex).Split(',');
+
+                                shader.Append(passFile.Substring(0, callIndex));
+                                shader.Append("ParticleGetSurfaceAndBuiltinData(");
+
+                                var args = parameters.Take(1).Concat(Enumerable.Repeat("packedInput.instanceID", 1).Concat(parameters.Skip(1)));
+
+                                shader.Append(args.Aggregate((a, b) => a + "," + b));
+
+                                shader.Append(passFile.Substring(endCallIndex));
+                            }
+                            else
+                                shader.Append(passFile);
                         }
                         else
                             shader.AppendLine(standardShader[i]);
