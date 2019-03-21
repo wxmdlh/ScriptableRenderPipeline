@@ -42,12 +42,45 @@ namespace UnityEditor.ShaderGraph
             return remainingProperties;
         }
 
+
+        public static string NewGenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
+        {
+            Graph graph = LoadShaderGraph(shaderGraph);
+
+            var getSurfaceDataFunction = new ShaderStringBuilder();
+
+            getSurfaceDataFunction.Append(@"
+void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
+{
+    surfaceData = (SurfaceData)0;
+    builtinData = (BuiltinData)0;
+}
+
+void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3 positionRWS, float4 time)
+{
+
+}
+                ");
+
+            string[] standardShader = File.ReadAllLines("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader");
+
+            for(int i = 0; i < standardShader.Length; ++i)
+            {
+                if (standardShader[i].Trim() == "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl\"")
+                {
+                    string indentation = standardShader[i].Substring(0,standardShader[i].IndexOf('#'));
+                    standardShader[i] = indentation + getSurfaceDataFunction.ToString().Replace("\n","\n" + indentation);
+                }
+            }
+
+            return standardShader.Skip(1).Aggregate((a,b)=> a + "\n" + b);
+        }
+
         public static string GenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
         {
             Graph graph = LoadShaderGraph(shaderGraph);
 
 
-            int currentPass = Graph.PassName.GBuffer;
 
             string shaderStart = @"
 {
@@ -61,55 +94,10 @@ namespace UnityEditor.ShaderGraph
 
             //TODO add renderstate commands
 
-            string hlslStart = @"
-        HLSLINCLUDE
-        #include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl""
-		#include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc""
-		#include ""Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc""
-
-
-        ByteAddressBuffer attributeBuffer;
-";
-            shader.AppendLine(hlslStart);
-            shader.AppendLine("\t\t" + vfxInfos.parameters.Replace("\n", "\n\t\t"));
-            shader.AppendLine("\t\t" + vfxInfos.vertexFunctions.Replace("\n", "\n\t\t"));
-            shader.AppendLine("\t\t" + GenerateMeshAttributesStruct(graph, currentPass).Replace("\n", "\n\t\t"));
-            shader.AppendLine("\t\t" + GenerateMeshToPSStruct(graph, currentPass).Replace("\n", "\n\t\t"));
-            shader.AppendLine("\t\t" + GeneratePackedMeshToPSStruct(graph, currentPass).Replace("\n", "\n\t\t"));
-
-            shader.Append(@"
-        PackedVaryingsMeshToPS PackVaryingsMeshToPS(VaryingsMeshToPS i)
-        {
-            PackedVaryingsMeshToPS o;
-            o = (PackedVaryingsMeshToPS)0;
-");
-            var copyVarying = new StringBuilder();
-            GenerateVertexToPixelTransfers(graph.passes[currentPass].pixel.requirements, copyVarying);
-
-            shader.Append("\t\t\t" + copyVarying.ToString().Replace("\n", "\n\t\t\t"));
-
-            shader.Append(@"
-            o.instanceID = i.instanceID;
-            return o;
-        }
-
-        VaryingsMeshToPS UnpackVaryingsMeshToPS(PackedVaryingsMeshToPS i)
-        {
-            VaryingsMeshToPS o;
-            o = (VaryingsMeshToPS)0;
-");
-            shader.Append("\t\t\t" + copyVarying.ToString().Replace("\n", "\n\t\t\t"));
-
-            shader.AppendLine(@"
-            o.instanceID = i.instanceID;
-            return o;
-        }
-        ENDHLSL");
-
-            for (int i = 0; i < Graph.PassName.Count && i < Graph.passInfos.Length; ++i)
+            for (int currentPass = 0; currentPass < Graph.PassName.Count && currentPass < Graph.passInfos.Length; ++currentPass)
             {
-                var passInfo = Graph.passInfos[i];
-                var pass = graph.passes[i];
+                var passInfo = Graph.passInfos[currentPass];
+                var pass = graph.passes[currentPass];
 
 
                 shader.AppendLine(@"
@@ -120,6 +108,10 @@ namespace UnityEditor.ShaderGraph
 
             #pragma target 4.5
             #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
+
+            #include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl""
+		    #include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc""
+		    #include ""Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc""
 
             #include ""Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl""
 
@@ -154,7 +146,46 @@ namespace UnityEditor.ShaderGraph
             #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl""
             #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl""
             #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderGraphFunctions.hlsl""
+
+
+            ByteAddressBuffer attributeBuffer;
 ");
+                shader.AppendLine("\t\t" + vfxInfos.parameters.Replace("\n", "\n\t\t"));
+                shader.AppendLine("\t\t" + vfxInfos.vertexFunctions.Replace("\n", "\n\t\t"));
+                shader.AppendLine("\t\t" + GenerateMeshAttributesStruct(graph, currentPass).Replace("\n", "\n\t\t"));
+                shader.AppendLine("\t\t" + GenerateMeshToPSStruct(graph, currentPass).Replace("\n", "\n\t\t"));
+                shader.AppendLine("\t\t" + GeneratePackedMeshToPSStruct(graph, currentPass).Replace("\n", "\n\t\t"));
+
+                shader.Append(@"
+        PackedVaryingsMeshToPS PackVaryingsMeshToPS(VaryingsMeshToPS i)
+        {
+            PackedVaryingsMeshToPS o;
+            o = (PackedVaryingsMeshToPS)0;
+");
+                var copyVarying = new StringBuilder();
+                GenerateVertexToPixelTransfers(pass.pixel.requirements, copyVarying);
+
+                shader.Append("\t\t\t" + copyVarying.ToString().Replace("\n", "\n\t\t\t"));
+
+                shader.Append(@"
+            o.instanceID = i.instanceID;
+            return o;
+        }
+
+        VaryingsMeshToPS UnpackVaryingsMeshToPS(PackedVaryingsMeshToPS i)
+        {
+            VaryingsMeshToPS o;
+            o = (VaryingsMeshToPS)0;
+");
+                shader.Append("\t\t\t" + copyVarying.ToString().Replace("\n", "\n\t\t\t"));
+
+                shader.AppendLine(@"
+            o.instanceID = i.instanceID;
+            return o;
+        }
+");
+
+
                 /***Vertex Shader***/
                 string hlslNext = @"
             #pragma vertex vert
@@ -451,55 +482,55 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
         
                 // copy across graph values, if defined
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "Albedo"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Albedo"))
                     shader.Append(@"
                 surfaceData.baseColor = surfaceDescription.Albedo;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "Smoothness"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Smoothness"))
                     shader.Append(@"
                 surfaceData.perceptualSmoothness = surfaceDescription.Smoothness;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "Occlusion"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Occlusion"))
                     shader.Append(@"
                 surfaceData.ambientOcclusion = surfaceDescription.Occlusion;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "SpecularOcclusion"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "SpecularOcclusion"))
                     shader.Append(@"
                 surfaceData.specularOcclusion = surfaceDescription.SpecularOcclusion;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "Metallic"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Metallic"))
                     shader.Append(@"
                 surfaceData.metallic = surfaceDescription.Metallic;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "SubsurfaceMask"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "SubsurfaceMask"))
                     shader.Append(@"
                 surfaceData.subsurfaceMask = surfaceDescription.SubsurfaceMask;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "Thickness"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Thickness"))
                     shader.Append(@"
                 surfaceData.thickness = surfaceDescription.Thickness;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "DiffusionProfileHash"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "DiffusionProfileHash"))
                     shader.Append(@"
                 surfaceData.diffusionProfileHash = surfaceDescription.DiffusionProfileHash;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "Specular"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Specular"))
                     shader.Append(@"
                 surfaceData.specularColor = surfaceDescription.Specular;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "CoatMask"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "CoatMask"))
                     shader.Append(@"
                 surfaceData.coatMask = surfaceDescription.CoatMask;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "Anisotropy"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Anisotropy"))
                     shader.Append(@"
                 surfaceData.anisotropy = surfaceDescription.Anisotropy;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "IridescenceMask"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "IridescenceMask"))
                     shader.Append(@"
                 surfaceData.iridescenceMask = surfaceDescription.IridescenceMask;
 ");
-                if (graph.slots.Any(t => t.shaderOutputName == "IridescenceThickness"))
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "IridescenceThickness"))
                     shader.Append(@"
                 surfaceData.iridescenceThickness = surfaceDescription.IridescenceThickness;
 ");
@@ -551,9 +582,11 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
                 // Reproduce the energy conservation done in legacy Unity. Not ideal but better for compatibility and users can unchek it
                 surfaceData.baseColor *= (1.0 - Max3(surfaceData.specularColor.r, surfaceData.specularColor.g, surfaceData.specularColor.b));
         #endif
-        
                 float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
-        
+                
+");
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Normal"))
+                    shader.Append(@"
                 // tangent-space normal
                 float3 normalTS = float3(0.0f, 0.0f, 1.0f);
                 normalTS = surfaceDescription.Normal;
@@ -564,10 +597,15 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
                 bentNormalWS = surfaceData.normalWS;
         
                 surfaceData.geomNormalWS = fragInputs.worldToTangent[2];
-        
+");
+
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Tangent"))
+                    shader.Append(@"
                 surfaceData.tangentWS = normalize(fragInputs.worldToTangent[0].xyz);    // The tangent is not normalize in worldToTangent for mikkt. TODO: Check if it expected that we normalize with Morten. Tag: SURFACE_GRADIENT
                 surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
-        
+");
+                if (pass.pixel.slots.Any(t => t.shaderOutputName == "SpecularOcclusion"))
+                    shader.Append(@"
                 // By default we use the ambient occlusion with Tri-ace trick (apply outside) for specular occlusion.
                 // If user provide bent normal then we process a better term
         #if defined(_SPECULAR_OCCLUSION_CUSTOM)
@@ -580,7 +618,9 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
         #else
                 surfaceData.specularOcclusion = 1.0;
         #endif
-        
+");
+
+        shader.Append(@"
         #if HAVE_DECALS
                 if (_EnableDecals)
                 {
@@ -674,6 +714,7 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
             {
                 internal List<AbstractMaterialNode> nodes;
                 internal ShaderGraphRequirements requirements;
+                internal List<MaterialSlot> slots;
             }
 
             internal struct Pass
@@ -720,7 +761,8 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
                 //GBuffer
                 new PassInfo("GBuffer",new FunctionInfo(Enumerable.Range(1, 31).ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())), // hardcoded pbr pixel slots.
                 //ShadowCaster
-                //new PassInfo("ShadowCaster",new FunctionInfo(Enumerable.Range(1, 31).ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("ShadowCaster",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("DepthOnly",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
                 };
         }
 
@@ -753,18 +795,22 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
                 else
                     graph.slots.AddRange(activeNode.GetOutputSlots<MaterialSlot>());
             }
+            for(int currentPass = 0; currentPass < Graph.PassName.Count; ++currentPass)
+            {
+                graph.passes[currentPass].pixel.nodes = ListPool<AbstractMaterialNode>.Get();
+                NodeUtils.DepthFirstCollectNodesFromNode(graph.passes[currentPass].pixel.nodes, ((AbstractMaterialNode)graph.graphData.outputNode), NodeUtils.IncludeSelf.Include, Graph.passInfos[currentPass].pixel.activeSlots);
+                graph.passes[currentPass].vertex.nodes = ListPool<AbstractMaterialNode>.Get();
+                NodeUtils.DepthFirstCollectNodesFromNode(graph.passes[currentPass].vertex.nodes, ((AbstractMaterialNode)graph.graphData.outputNode), NodeUtils.IncludeSelf.Include, Graph.passInfos[currentPass].vertex.activeSlots);
 
+                graph.passes[currentPass].pixel.requirements = ShaderGraphRequirements.FromNodes(graph.passes[currentPass].pixel.nodes, ShaderStageCapability.Fragment, false);
+                graph.passes[currentPass].vertex.requirements = ShaderGraphRequirements.FromNodes(graph.passes[currentPass].vertex.nodes, ShaderStageCapability.Vertex, false);
 
-            graph.passes[Graph.PassName.GBuffer].pixel.nodes = ListPool<AbstractMaterialNode>.Get();
-            NodeUtils.DepthFirstCollectNodesFromNode(graph.passes[Graph.PassName.GBuffer].pixel.nodes, ((AbstractMaterialNode)graph.graphData.outputNode), NodeUtils.IncludeSelf.Include, Graph.passInfos[Graph.PassName.GBuffer].pixel.activeSlots);
-            graph.passes[Graph.PassName.GBuffer].vertex.nodes = ListPool<AbstractMaterialNode>.Get();
-            NodeUtils.DepthFirstCollectNodesFromNode(graph.passes[Graph.PassName.GBuffer].vertex.nodes, ((AbstractMaterialNode)graph.graphData.outputNode), NodeUtils.IncludeSelf.Include, Graph.passInfos[Graph.PassName.GBuffer].vertex.activeSlots);
+                graph.passes[currentPass].pixel.requirements.requiresPosition |= NeededCoordinateSpace.View | NeededCoordinateSpace.World;
+                graph.passes[currentPass].vertex.requirements.requiresPosition |= NeededCoordinateSpace.Object;
 
-            graph.passes[Graph.PassName.GBuffer].pixel.requirements = ShaderGraphRequirements.FromNodes(graph.passes[Graph.PassName.GBuffer].pixel.nodes, ShaderStageCapability.Fragment, false);
-            graph.passes[Graph.PassName.GBuffer].vertex.requirements = ShaderGraphRequirements.FromNodes(graph.passes[Graph.PassName.GBuffer].vertex.nodes, ShaderStageCapability.Vertex, false);
-
-            graph.passes[Graph.PassName.GBuffer].pixel.requirements.requiresPosition |= NeededCoordinateSpace.View | NeededCoordinateSpace.World;
-            graph.passes[Graph.PassName.GBuffer].vertex.requirements.requiresPosition |= NeededCoordinateSpace.Object;
+                graph.passes[currentPass].pixel.slots = graph.slots.Where(t => Graph.passInfos[currentPass].pixel.activeSlots.Contains(t.id)).ToList();
+                graph.passes[currentPass].vertex.slots = graph.slots.Where(t => Graph.passInfos[currentPass].vertex.activeSlots.Contains(t.id)).ToList();
+            }
 
             return graph;
         }

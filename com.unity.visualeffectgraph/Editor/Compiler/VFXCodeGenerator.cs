@@ -519,7 +519,7 @@ namespace UnityEditor.VFX
 
                         infos.parameters = parameters.ToString();
 
-                        return new StringBuilder(GraphUtilForVFX.GenerateShader((context as VFXHDRPShaderGraphOutput).shaderGraph, ref infos));
+                        return new StringBuilder(GraphUtilForVFX.NewGenerateShader((context as VFXHDRPShaderGraphOutput).shaderGraph, ref infos));
 
                     }
                     /*catch(Exception e)
