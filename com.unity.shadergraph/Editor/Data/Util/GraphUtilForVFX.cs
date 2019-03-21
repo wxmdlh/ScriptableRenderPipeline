@@ -48,6 +48,8 @@ namespace UnityEditor.ShaderGraph
             Graph graph = LoadShaderGraph(shaderGraph);
             var getSurfaceDataFunction = new ShaderStringBuilder();
 
+            getSurfaceDataFunction.Append(vfxInfos.parameters);
+
             string shaderGraphCode;
             PropertyCollector shaderProperties = new PropertyCollector();
             {   // inspired by GenerateSurfaceDescriptionFunction
@@ -84,10 +86,35 @@ namespace UnityEditor.ShaderGraph
 
 ByteAddressBuffer attributeBuffer;
 
+struct FragInputForSG
+{
+    float4 posCS; // In case depth offset is use, positionRWS.w is equal to depth offset
+    float3 posWD; // Relative camera space position
+    float4 uv0;
+    float4 uv1;
+    float4 uv2;
+    float4 uv3;
+    float4 color; // vertex color
+};
+FragInputForSG ConvertFragInput(FragInputs input)
+{
+    FragInputForSG fisg;
+    fisg.posCS = input.positionSS;
+    fisg.posWD = input.positionRWS;
+    fisg.uv0 = input.texCoord0;
+    fisg.uv1 = input.texCoord1;
+    fisg.uv2 = input.texCoord2;
+    fisg.uv3 = input.texCoord3;
+    fisg.color = input.color;
+}
+
+
 void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
     surfaceData = (SurfaceData)0;
     builtinData = (BuiltinData)0;
+
+    FragInputForSG IN = ConvertFragInput(input);
 
 ");
             getSurfaceDataFunction.Append("\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t"));
