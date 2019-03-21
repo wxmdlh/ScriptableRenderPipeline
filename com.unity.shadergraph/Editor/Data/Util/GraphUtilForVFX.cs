@@ -46,16 +46,91 @@ namespace UnityEditor.ShaderGraph
         public static string NewGenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
         {
             Graph graph = LoadShaderGraph(shaderGraph);
-
             var getSurfaceDataFunction = new ShaderStringBuilder();
 
+            string shaderGraphCode;
+            PropertyCollector shaderProperties = new PropertyCollector();
+            {   // inspired by GenerateSurfaceDescriptionFunction
+
+                ShaderStringBuilder functionsString = new ShaderStringBuilder();
+                FunctionRegistry functionRegistry = new FunctionRegistry(functionsString);
+
+                graph.graphData.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
+
+                ShaderGenerator sg = new ShaderGenerator();
+                int currentPass = 0;
+
+                GraphContext graphContext = new GraphContext("SurfaceDescriptionInputs");
+
+                foreach (var activeNode in graph.passes[currentPass].pixel.nodes.OfType<AbstractMaterialNode>())
+                {
+                    if (activeNode is IGeneratesFunction)
+                    {
+                        functionRegistry.builder.currentNode = activeNode;
+                        (activeNode as IGeneratesFunction).GenerateNodeFunction(functionRegistry, graphContext, GenerationMode.ForReals);
+                    }
+                    if (activeNode is IGeneratesBodyCode)
+                        (activeNode as IGeneratesBodyCode).GenerateNodeCode(sg, graphContext, GenerationMode.ForReals);
+
+                    activeNode.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
+                }
+                   
+                getSurfaceDataFunction.AppendLines(functionsString.ToString());
+                functionRegistry.builder.currentNode = null;
+                shaderGraphCode = sg.GetShaderString(0);
+            }
+
             getSurfaceDataFunction.Append(@"
+
+ByteAddressBuffer attributeBuffer;
+
 void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
     surfaceData = (SurfaceData)0;
     builtinData = (BuiltinData)0;
-}
 
+");
+            getSurfaceDataFunction.Append("\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t"));
+
+            foreach (var prop in shaderProperties.properties)
+            {
+                string matchingAttribute = vfxInfos.attributes.FirstOrDefault(t => prop.displayName.Equals(t, StringComparison.InvariantCultureIgnoreCase));
+                if (matchingAttribute != null)
+                {
+                    if (matchingAttribute == "color")
+                        getSurfaceDataFunction.AppendLine(prop.GetPropertyDeclarationString("") + " = float4(color,1);");
+                    else
+                        getSurfaceDataFunction.AppendLine(prop.GetPropertyDeclarationString("") + " = " + matchingAttribute + ";");
+                }
+            }
+
+            getSurfaceDataFunction.Append("\t"+shaderGraphCode.Replace("\n","\n\t"));
+
+            getSurfaceDataFunction.Append(@"
+    float alpha = 1;
+
+    // Perform alha test very early to save performance (a killed pixel will not sample textures)
+    #if defined(_ALPHATEST_ON) && !defined(LAYERED_LIT_SHADER)
+        float alphaCutoff = _AlphaCutoff;
+        #ifdef CUTOFF_TRANSPARENT_DEPTH_PREPASS
+        alphaCutoff = _AlphaCutoffPrepass;
+        #elif defined(CUTOFF_TRANSPARENT_DEPTH_POSTPASS)
+        alphaCutoff = _AlphaCutoffPostpass;
+        #endif
+    #if SHADERPASS == SHADERPASS_SHADOWS 
+        DoAlphaTest(alpha, _UseShadowThreshold ? _AlphaCutoffShadow : alphaCutoff);
+    #else
+        DoAlphaTest(alpha, alphaCutoff);
+    #endif
+    #endif
+");
+
+
+            getSurfaceDataFunction.Append(@"
+}");
+
+
+        getSurfaceDataFunction.Append(@"
 void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3 positionRWS, float4 time)
 {
 
@@ -64,16 +139,71 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
             string[] standardShader = File.ReadAllLines("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader");
 
-            for(int i = 0; i < standardShader.Length; ++i)
+            var shader = new StringBuilder();
+            bool withinProperties = false;
+            bool propertiesSkipped = false;
+            for(int i = 1; i < standardShader.Length; ++i) // to skip the "Shader "toto"" line
             {
-                if (standardShader[i].Trim() == "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl\"")
+                if (!propertiesSkipped)
                 {
-                    string indentation = standardShader[i].Substring(0,standardShader[i].IndexOf('#'));
-                    standardShader[i] = indentation + getSurfaceDataFunction.ToString().Replace("\n","\n" + indentation);
+                    if (!withinProperties)
+                    {
+                        if (standardShader[i].Trim() == "Properties")
+                        {
+                            withinProperties = true;
+
+                            string indentation = standardShader[i].Substring(0, standardShader[i].IndexOf('P'));
+
+                            shader.AppendLine(indentation + "Properties");
+                            shader.AppendLine(indentation + "{");
+                        }
+                    }
+                    else
+                    {
+                        if (standardShader[i].Trim() == "}")
+                        {
+                            withinProperties = false;
+                            propertiesSkipped = true;
+                        }
+                    }
+                }
+                if( !withinProperties)
+                {
+                    string trimmed = standardShader[i].Trim();
+                    if (trimmed  != "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl\"")
+                    {
+                        if (trimmed.StartsWith("#pragma vertex"))
+                        {
+                            string indentation = standardShader[i].Substring(0, standardShader[i].IndexOf('#'));
+
+                            shader.AppendLine(@"
+PackedVaryingsType ParticleVert(AttributesMesh inputMesh, uint instanceID : SV_InstanceID)
+{
+    VaryingsType varyingsType;
+    
+    
+    varyingsType.vmesh = VertMesh(inputMesh);
+    PackedVaryingsType result = PackVaryingsType(varyingsType);
+    result.instanceID = instanceID; // transmit the instanceID to the pixel shader through the varyings
+
+    return result;
+}
+".Replace("\n", "\n" + indentation));
+
+                            shader.AppendLine(indentation + "#pragma vertex ParticleVert");
+                        }
+                        else
+                            shader.AppendLine(standardShader[i]);
+                    }
+                    else
+                    {
+                        string indentation = standardShader[i].Substring(0, standardShader[i].IndexOf('#'));
+                        shader.AppendLine(indentation + getSurfaceDataFunction.ToString().Replace("\n", "\n" + indentation));
+                    }
                 }
             }
-
-            return standardShader.Skip(1).Aggregate((a,b)=> a + "\n" + b);
+            
+            return shader.ToString();
         }
 
         public static string GenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
