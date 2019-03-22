@@ -82,6 +82,36 @@ namespace UnityEditor.ShaderGraph
                 shaderGraphCode = sg.GetShaderString(0);
             }
 
+            Dictionary<string, string> guiVariables = new Dictionary<string, string>()
+            {
+                {"_StencilRef","2" },
+                {"_StencilRefDepth","0" },
+                {"_StencilRefDistortionVec","64" },
+                {"_StencilRefGBuffer", "2"},
+                {"_StencilRefMV","128" },
+                {"_StencilWriteMask","3" },
+                {"_StencilWriteMaskDepth","48" },
+                {"_StencilMaskDistortionVec","64" },
+                {"_StencilWriteMaskGBuffer", "51"},
+                {"_StencilWriteMaskMV","176" },
+
+                {"_CullMode","Back" },
+                {"_SrcBlend","One" },
+                {"_DstBlend","One" },
+                {"_ZWrite","On" },
+                {"_ColorMaskTransparentVel","RGBA" },
+                {"_ZTestDepthEqualForOpaque","LEqual" },
+                {"_CullModeForward","Back" },
+                {"_ZTestGBuffer","LEqual"},
+                {"_DistortionSrcBlend","One" },
+                {"_DistortionDstBlend","Zero" },
+                {"_DistortionBlurBlendOp","Add" },
+                {"_ZTestModeDistortion","Always" },
+                {"_DistortionBlurSrcBlend","One" },
+                {"_DistortionBlurDstBlend","Zero" },
+            };
+
+
             getSurfaceDataFunction.Append(@"
 
 ByteAddressBuffer attributeBuffer;
@@ -157,7 +187,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     #endif
     #endif
 #endif
-
+    alpha = 1;
     surfaceData.baseColor = float3(1,0,0);
 
     surfaceData.normalWS = float3(0.0, 0.0, 0.0); // Need to init this to keep quiet the compiler, but this is overriden later (0, 0, 0) so if we forget to override the compiler may comply.
@@ -371,7 +401,14 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                             shader.AppendLine(indentation + "#include \"Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc\"");
                         }
                         else
-                            shader.AppendLine(standardShader[i]);
+                        {
+                            string str = standardShader[i];
+                            foreach( var kv in guiVariables)
+                            {
+                                str = str.Replace("[" + kv.Key + "]", " " + kv.Value);
+                            }
+                            shader.AppendLine(str);
+                        }
                     }
                     else
                     {
