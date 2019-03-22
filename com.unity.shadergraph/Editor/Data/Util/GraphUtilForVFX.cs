@@ -106,8 +106,14 @@ FragInputForSG ConvertFragInput(FragInputs input)
     fisg.uv2 = input.texCoord2;
     fisg.uv3 = input.texCoord3;
     fisg.color = input.color;
-}
 
+    return fisg;
+}
+#include ""Packages/com.unity.render-pipelines.core/ShaderLibrary/Sampling/SampleUVMapping.hlsl""
+#include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialUtilities.hlsl""
+#include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl""
+#include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl""
+#include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitBuiltinData.hlsl""
 
 void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
@@ -134,8 +140,8 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             getSurfaceDataFunction.Append("\t"+shaderGraphCode.Replace("\n","\n\t"));
 
             getSurfaceDataFunction.Append(@"
-    float alpha = 1;
 
+#if 0
     // Perform alha test very early to save performance (a killed pixel will not sample textures)
     #if defined(_ALPHATEST_ON) && !defined(LAYERED_LIT_SHADER)
         float alphaCutoff = _AlphaCutoff;
@@ -150,6 +156,75 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
         DoAlphaTest(alpha, alphaCutoff);
     #endif
     #endif
+#endif
+
+    surfaceData.baseColor = float3(1,0,0);
+
+    surfaceData.normalWS = float3(0.0, 0.0, 0.0); // Need to init this to keep quiet the compiler, but this is overriden later (0, 0, 0) so if we forget to override the compiler may comply.
+    surfaceData.geomNormalWS = float3(0.0, 0.0, 0.0); // Not used, just to keep compiler quiet.
+
+    surfaceData.metallic = 1.0;
+    surfaceData.ambientOcclusion = 1.0;
+
+    surfaceData.materialFeatures = MATERIALFEATUREFLAGS_LIT_STANDARD;
+
+    #ifdef _MATERIAL_FEATURE_SUBSURFACE_SCATTERING
+        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING;
+    #endif
+    #ifdef _MATERIAL_FEATURE_TRANSMISSION
+        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_TRANSMISSION;
+    #endif
+    #ifdef _MATERIAL_FEATURE_ANISOTROPY
+        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_ANISOTROPY;
+    #endif
+    #ifdef _MATERIAL_FEATURE_CLEAR_COAT
+        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_CLEAR_COAT;
+    #endif
+    #ifdef _MATERIAL_FEATURE_IRIDESCENCE
+        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_IRIDESCENCE;
+    #endif
+    #ifdef _MATERIAL_FEATURE_SPECULAR_COLOR
+        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR;
+    #endif
+
+    surfaceData.tangentWS = input.worldToTangent[0].xyz; // The tangent is not normalize in worldToTangent for mikkt. TODO: Check if it expected that we normalize with Morten. Tag: SURFACE_GRADIENT
+
+    surfaceData.anisotropy = 1.0;
+
+    surfaceData.ior = 1.0;
+    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
+    surfaceData.atDistance = 1.0;
+    surfaceData.transmittanceMask = 0.0;
+
+
+    #ifdef _DOUBLESIDED_ON
+        float3 doubleSidedConstants = _DoubleSidedConstants.xyz;
+    #else
+        float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
+    #endif
+    ApplyDoubleSidedFlipOrMirror(input, doubleSidedConstants);
+
+    float3 normalTS;
+     #ifdef SURFACE_GRADIENT
+    normalTS = float3(0.0, 0.0, 0.0); // No gradient
+    #else
+    normalTS = float3(0.0, 0.0, 1.0);
+    #endif
+    float3 bentNormalTS;
+    bentNormalTS = normalTS;
+    float3 bentNormalWS;
+    GetNormalWS(input, normalTS, surfaceData.normalWS, doubleSidedConstants);
+    #ifdef _BENTNORMALMAP
+        GetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants);
+    #else
+        bentNormalWS = surfaceData.normalWS;
+    #endif
+    surfaceData.geomNormalWS = input.worldToTangent[2];
+    surfaceData.specularOcclusion = 1.0;
+
+    surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
+
+    GetBuiltinData(input, V, posInput, surfaceData, alpha, bentNormalWS, 0, builtinData);
 ");
 
 
@@ -203,35 +278,72 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                         {
                             string indentation = standardShader[i].Substring(0, standardShader[i].IndexOf('#'));
 
-                            shader.AppendLine(@"
-PackedVaryingsType ParticleVert(AttributesMesh inputMesh, uint instanceID : SV_InstanceID)
+                            shader.AppendLine(indentation + @"
+PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
 {
     VaryingsType varyingsType;
     
     
     varyingsType.vmesh = VertMesh(inputMesh);
+    uint index = inputMesh.instanceID;
+");
+                            shader.Append("\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t"));
+
+                            shader.AppendLine(indentation + @"
+    float3 size3 = float3(size,size,size);
+	#if VFX_USE_SCALEX_CURRENT
+	size3.x *= scaleX;
+	#endif
+	#if VFX_USE_SCALEY_CURRENT
+	size3.y *= scaleY;
+	#endif
+	#if VFX_USE_SCALEZ_CURRENT
+	size3.z *= scaleZ;
+	#endif
+
+    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
+	float3 vPos = mul(elementToVFX,float4(inputMesh.positionOS,1.0f)).xyz;
+	#ifdef VARYINGS_NEED_POSITION_WS
+	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(vPos);
+    #endif
+			
+	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(vPos);
+
+    #ifdef ATTRIBUTES_NEED_NORMAL
+        float3 normalWS = TransformObjectToWorldNormal(inputMesh.normalOS);
+    #endif
+
+    #ifdef ATTRIBUTES_NEED_TANGENT
+        float4 tangentWS = float4(TransformObjectToWorldDir(inputMesh.tangentOS.xyz), inputMesh.tangentOS.w);
+    #endif
+
+    #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
+        varyingsType.vmesh.normalWS = normalWS;
+        varyingsType.vmesh.tangentWS = tangentWS;
+    #endif
+
     PackedVaryingsType result = PackVaryingsType(varyingsType);
-    result.instanceID = instanceID; // transmit the instanceID to the pixel shader through the varyings
+    result.vmesh.instanceID = inputMesh.instanceID; // transmit the instanceID to the pixel shader through the varyings
 
     return result;
 }
-".Replace("\n", "\n" + indentation));
+");
 
                             shader.AppendLine(indentation + "#pragma vertex ParticleVert");
                         }
-                        else if( trimmed.StartsWith("#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPass")) // let's hack the file matching the shader pass
+                        else if (trimmed.StartsWith("#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPass")) // let's hack the file matching the shader pass
                         {
                             int indexOfQuote = trimmed.IndexOf('"');
-                            string fileName = trimmed.Substring(indexOfQuote+1, trimmed.Length - 2 - indexOfQuote);
+                            string fileName = trimmed.Substring(indexOfQuote + 1, trimmed.Length - 2 - indexOfQuote);
 
                             string passFile = File.ReadAllText(fileName);
 
                             // Replace calls to GetSurfaceAndBuiltinData to calls to ParticleGetSurfaceAndBuiltinData with an additionnal parameter
                             int callIndex = passFile.IndexOf("GetSurfaceAndBuiltinData(");
-                            if( callIndex != -1)
+                            if (callIndex != -1)
                             {
                                 int endCallIndex = passFile.IndexOf(';', callIndex + 1);
-                                endCallIndex = passFile.LastIndexOf(')', endCallIndex) -1;
+                                endCallIndex = passFile.LastIndexOf(')', endCallIndex) - 1;
                                 int paramStartIndex = callIndex + "GetSurfaceAndBuiltinData(".Length;
 
                                 string[] parameters = passFile.Substring(paramStartIndex, endCallIndex - paramStartIndex).Split(',');
@@ -239,7 +351,7 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh, uint instanceID : SV_I
                                 shader.Append(passFile.Substring(0, callIndex));
                                 shader.Append("ParticleGetSurfaceAndBuiltinData(");
 
-                                var args = parameters.Take(1).Concat(Enumerable.Repeat("packedInput.instanceID", 1).Concat(parameters.Skip(1)));
+                                var args = parameters.Take(1).Concat(Enumerable.Repeat("packedInput.vmesh.instanceID", 1).Concat(parameters.Skip(1)));
 
                                 shader.Append(args.Aggregate((a, b) => a + "," + b));
 
@@ -247,6 +359,16 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh, uint instanceID : SV_I
                             }
                             else
                                 shader.Append(passFile);
+                        }
+                        else if (trimmed == "HLSLPROGRAM")
+                        {
+                            string indentation = standardShader[i].Substring(0, standardShader[i].IndexOf('H'));
+                            shader.AppendLine(standardShader[i]);
+                            shader.AppendLine(indentation + "#define UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID : SV_InstanceID;");
+
+                            shader.AppendLine(indentation + "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl\"");
+                            shader.AppendLine(indentation + "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc\"");
+                            shader.AppendLine(indentation + "#include \"Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc\"");
                         }
                         else
                             shader.AppendLine(standardShader[i]);
@@ -259,635 +381,6 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh, uint instanceID : SV_I
                 }
             }
             
-            return shader.ToString();
-        }
-
-        public static string GenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
-        {
-            Graph graph = LoadShaderGraph(shaderGraph);
-
-
-
-            string shaderStart = @"
-{
-    SubShader
-    {
-        Tags { ""Queue"" = ""Geometry"" ""IgnoreProjector"" = ""False""}
-
-";
-
-            StringBuilder shader = new StringBuilder(shaderStart);
-
-            //TODO add renderstate commands
-
-            for (int currentPass = 0; currentPass < Graph.PassName.Count && currentPass < Graph.passInfos.Length; ++currentPass)
-            {
-                var passInfo = Graph.passInfos[currentPass];
-                var pass = graph.passes[currentPass];
-
-
-                shader.AppendLine(@"
-        Pass
-		{		
-			Tags { ""LightMode""=""" + passInfo.name + @""" }
-            HLSLPROGRAM
-
-            #pragma target 4.5
-            #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
-
-            #include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl""
-		    #include ""Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc""
-		    #include ""Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc""
-
-            #include ""Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl""
-
-            # include ""Packages/com.unity.render-pipelines.core/ShaderLibrary/NormalSurfaceGradient.hlsl""
-
-            #pragma multi_compile _ WRITE_NORMAL_BUFFER
-            #pragma multi_compile _ WRITE_MSAA_DEPTH
-
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl""
-        #ifdef DEBUG_DISPLAY
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl""
-        #endif
-        
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl""
-        
-        #if (SHADERPASS == SHADERPASS_FORWARD)
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/Lighting.hlsl""
-        
-            #define HAS_LIGHTLOOP
-        
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoopDef.hlsl""
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl""
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoop.hlsl""
-        #else
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl""
-        #endif
-        
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/FragInputs.hlsl""
-
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/BuiltinUtilities.hlsl""
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialUtilities.hlsl""
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl""
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl""
-            #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderGraphFunctions.hlsl""
-
-
-            ByteAddressBuffer attributeBuffer;
-");
-                shader.AppendLine("\t\t" + vfxInfos.parameters.Replace("\n", "\n\t\t"));
-                shader.AppendLine("\t\t" + vfxInfos.vertexFunctions.Replace("\n", "\n\t\t"));
-                shader.AppendLine("\t\t" + GenerateMeshAttributesStruct(graph, currentPass).Replace("\n", "\n\t\t"));
-                shader.AppendLine("\t\t" + GenerateMeshToPSStruct(graph, currentPass).Replace("\n", "\n\t\t"));
-                shader.AppendLine("\t\t" + GeneratePackedMeshToPSStruct(graph, currentPass).Replace("\n", "\n\t\t"));
-
-                shader.Append(@"
-        PackedVaryingsMeshToPS PackVaryingsMeshToPS(VaryingsMeshToPS i)
-        {
-            PackedVaryingsMeshToPS o;
-            o = (PackedVaryingsMeshToPS)0;
-");
-                var copyVarying = new StringBuilder();
-                GenerateVertexToPixelTransfers(pass.pixel.requirements, copyVarying);
-
-                shader.Append("\t\t\t" + copyVarying.ToString().Replace("\n", "\n\t\t\t"));
-
-                shader.Append(@"
-            o.instanceID = i.instanceID;
-            return o;
-        }
-
-        VaryingsMeshToPS UnpackVaryingsMeshToPS(PackedVaryingsMeshToPS i)
-        {
-            VaryingsMeshToPS o;
-            o = (VaryingsMeshToPS)0;
-");
-                shader.Append("\t\t\t" + copyVarying.ToString().Replace("\n", "\n\t\t\t"));
-
-                shader.AppendLine(@"
-            o.instanceID = i.instanceID;
-            return o;
-        }
-");
-
-
-                /***Vertex Shader***/
-                string hlslNext = @"
-            #pragma vertex vert
-		    VaryingsMeshToPS vert(AttributesMesh i, uint instanceID : SV_InstanceID)
-		    {
-				uint index = instanceID;
-			    VaryingsMeshToPS o = (VaryingsMeshToPS)0;
-";
-                shader.AppendLine(hlslNext);
-
-                shader.Append("\t\t\t\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t\t\t\t"));
-
-
-                shader.AppendLine(
-                @"if (!alive)
-                    return o;");
-
-                shader.Append("\t\t\t\t" + vfxInfos.vertexShaderContent.Replace("\n", "\n\t\t\t\t"));
-
-                hlslNext = @"
-                float3 size3 = float3(size,size,size);
-				size3.x *= scaleX;
-				size3.y *= scaleY;
-				size3.z *= scaleZ;
-                float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
-			    float3 vPos = mul(elementToVFX,float4(i.positionOS.xyz,1.0f)).xyz;
-			    o.positionCS = TransformPositionVFXToClip(vPos);
-                o.positionWS =  TransformPositionVFXToWorld(vPos);
-                o.instanceID = instanceID; // needed by pixel stuff using attributes
-";
-                shader.Append(hlslNext);
-
-                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                o.positionOS =  vPos;
-");
-
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                o.normalOS = i.normal;
-");
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.World) != 0)
-                    shader.Append(@"
-                float3 normalWS = normalize(TransformDirectionVFXToWorld(mul((float3x3)elementToVFX, i.normal)));
-                o.normalWS = normalWS;
-");
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                o.tangentOS = i.tangent;
-");
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.World) != 0)
-                    shader.Append(@"
-                o.tangentWS = float4(normalize(TransformDirectionVFXToWorld(mul((float3x3)elementToVFX, i.tangent.xyz))), i.tangent.w);
-");
-                if (pass.pixel.requirements.requiresVertexColor)
-                    shader.Append(@"
-                o.color = float4(color,a);
-");
-
-                for (int uv = 0; uv < 4; ++uv)
-                {
-                    if (pass.pixel.requirements.requiresMeshUVs.Contains((UVChannel)uv))
-                        shader.AppendFormat(@"
-                o.uv{0} = i.uv{0};
-"
-                        , uv);
-                }
-
-                shader.Append(@"
-                return o;
-            }
-");
-                /*** VaryingsMeshToPS -> FragInput ***/
-
-                shader.AppendLine(
-            @"
-            FragInputs UnpackVaryingsMeshToFragInputs(VaryingsMeshToPS i)
-            {
-                FragInputs o = (FragInputs)0;
-                o.worldToTangent = k_identity3x3;
-                o.positionSS = i.positionCS;
-");
-
-
-                //if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.World) != 0) //required
-                shader.Append(@"
-                o.positionRWS = i.positionWS;
-");/*
-                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
-                    shader.AppendLine(@"
-                o.positionOS = i.posOS;
-");
-
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
-                    shader.AppendLine(@"
-                o.normalOS = i.normalOS;
-");
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.World) != 0)
-                    shader.AppendLine(@"
-                o.normalWS = i.normalWS;
-");
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.Object) != 0)
-                    shader.AppendLine(@"
-                o.tangentOS = i.tangentOS;
-");
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.World) != 0)
-                    shader.AppendLine(@"
-                o.tangentWS = i.tangentWS;
-");*/
-                if (pass.pixel.requirements.requiresVertexColor)
-                    shader.Append(@"
-                o.color = i.color;");
-
-                for (int uv = 0; uv < 4; ++uv)
-                {
-                    if (pass.pixel.requirements.requiresMeshUVs.Contains((UVChannel)uv))
-                        shader.AppendFormat(@"
-                o.texCoord{0} = i.uv{0};
-"
-                        , uv);
-                }
-                shader.AppendLine(@"
-                return o;
-            }
-");
-                //SurfaceDescriptionInput
-                var surfaceInputBuilder = new ShaderStringBuilder();
-                surfaceInputBuilder.IncreaseIndent(3);
-                GraphUtil.GenerateSurfaceInputStruct(surfaceInputBuilder, graph.passes[currentPass].pixel.requirements, "SurfaceDescriptionInputs");
-
-                //inject instanceID in surfacedescriptioninput
-                shader.AppendLine(surfaceInputBuilder.ToString().Replace("}", "uint instanceID;\n\t\t\t}"));
-
-                //FragInput to ShaderDescriptionInput
-
-                shader.AppendLine(@"
-            SurfaceDescriptionInputs FragInputsToSurfaceDescriptionInputs(FragInputs input, float3 viewWS)
-             {
-                SurfaceDescriptionInputs output;
-                ZERO_INITIALIZE(SurfaceDescriptionInputs, output);
-");
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.World) != 0)
-                    shader.Append(@"
-                output.WorldSpaceNormal = normalize(input.worldToTangent[2].xyz);
-");
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                output.ObjectSpaceNormal = mul(output.WorldSpaceNormal, (float3x3)UNITY_MATRIX_M);           // transposed multiplication by inverse matrix to handle normal scale
-");
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.View) != 0)
-                    shader.Append(@"
-                output.ViewSpaceNormal = mul(output.WorldSpaceNormal, (float3x3)UNITY_MATRIX_I_V);         // transposed multiplication by inverse matrix to handle normal scale
-");
-                if ((pass.pixel.requirements.requiresNormal & NeededCoordinateSpace.Tangent) != 0)
-                    shader.Append(@"
-                output.TangentSpaceNormal = float3(0.0f, 0.0f, 1.0f);
-");
-
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.World) != 0)
-                    shader.Append(@"
-                output.WorldSpaceTangent = input.worldToTangent[0].xyz;
-");
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                output.ObjectSpaceTangent = TransformWorldToObjectDir(output.WorldSpaceTangent);
-");
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.View) != 0)
-                    shader.Append(@"
-                 output.ViewSpaceTangent = TransformWorldToViewDir(output.WorldSpaceTangent);
-");
-                if ((pass.pixel.requirements.requiresTangent & NeededCoordinateSpace.Tangent) != 0)
-                    shader.Append(@"
-                output.TangentSpaceTangent = float3(1.0f, 0.0f, 0.0f);
-");
-                if ((pass.pixel.requirements.requiresBitangent & NeededCoordinateSpace.World) != 0)
-                    shader.Append(@"
-                output.WorldSpaceBiTangent = input.worldToTangent[1].xyz;
-");
-                if ((pass.pixel.requirements.requiresBitangent & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                output.ObjectSpaceBiTangent = TransformWorldToObjectDir(output.WorldSpaceBiTangent);
-");
-                if ((pass.pixel.requirements.requiresBitangent & NeededCoordinateSpace.View) != 0)
-                    shader.Append(@"
-                 output.ViewSpaceBiTangent = TransformWorldToViewDir(output.WorldSpaceBiTangent);
-");
-                if ((pass.pixel.requirements.requiresBitangent & NeededCoordinateSpace.Tangent) != 0)
-                    shader.Append(@"
-                output.TangentSpaceBiTangent = float3(0.0f, 1.0f, 0.0f);
-");
-                if ((pass.pixel.requirements.requiresViewDir & NeededCoordinateSpace.World) != 0)
-                    shader.Append(@"
-                output.WorldSpaceViewDirection = normalize(viewWS);
-");
-                if ((pass.pixel.requirements.requiresViewDir & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                output.ObjectSpaceViewDirection = TransformWorldToObjectDir(output.WorldSpaceViewDirection);
-");
-                if ((pass.pixel.requirements.requiresViewDir & NeededCoordinateSpace.View) != 0)
-                    shader.Append(@"
-                output.ViewSpaceViewDirection = TransformWorldToViewDir(output.WorldSpaceViewDirection);
-");
-                if ((pass.pixel.requirements.requiresViewDir & NeededCoordinateSpace.Tangent) != 0)
-                    shader.Append(@"
-                float3x3 tangentSpaceTransform = float3x3(output.WorldSpaceTangent, output.WorldSpaceBiTangent, output.WorldSpaceNormal);
-                output.TangentSpaceViewDirection = mul(tangentSpaceTransform, output.WorldSpaceViewDirection);
-");
-                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.World) != 0)
-                    shader.Append(@"
-                output.WorldSpacePosition = GetAbsolutePositionWS(input.positionRWS);
-");
-                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.Object) != 0)
-                    shader.Append(@"
-                output.ObjectSpacePosition = TransformWorldToObject(input.positionRWS);
-");
-                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.View) != 0)
-                    shader.Append(@"
-                output.ViewSpacePosition = TransformWorldToView(input.positionRWS);
-");
-                if ((pass.pixel.requirements.requiresPosition & NeededCoordinateSpace.Tangent) != 0)
-                    shader.Append(@"
-                output.TangentSpacePosition = float3(0.0f, 0.0f, 0.0f);
-");
-                if (pass.pixel.requirements.requiresScreenPosition)
-                    shader.Append(@"
-                output.ScreenPosition = ComputeScreenPos(TransformWorldToHClip(input.positionRWS), _ProjectionParams.x);
-");
-                for (int j = 0; j < 4; ++j)
-                {
-                    if (pass.pixel.requirements.requiresMeshUVs.Contains((UVChannel)j))
-                        shader.AppendFormat(@"
-                output.uv0 = input.texCoord{0};
-", j);
-                }
-                if (pass.pixel.requirements.requiresVertexColor)
-                    shader.Append(@"
-                output.VertexColor = input.color;
-");
-                if (pass.pixel.requirements.requiresFaceSign)
-                    shader.Append(@"
-                output.FaceSign = input.isFrontFace;
-");
-
-                shader.AppendLine(@"
-                return output;
-            }
-");
-                //Surface Description
-
-                shader.AppendLine("\t\t\t" + GenerateSurfaceDescriptionStruct(currentPass,graph).Replace("\n","\n\t\t\t"));
-
-                //SurfaceDescriptionFunction
-
-                var shaderProperties = new PropertyCollector();
-                graph.graphData.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
-                var vfxAttributesToshaderProperties = new StringBuilder();
-
-                foreach (var prop in shaderProperties.properties)
-                {
-                    string matchingAttribute = vfxInfos.attributes.FirstOrDefault(t => prop.displayName.Equals(t, StringComparison.InvariantCultureIgnoreCase));
-                    if (matchingAttribute != null)
-                    {
-                        if(matchingAttribute == "color")
-                            vfxAttributesToshaderProperties.AppendLine(prop.GetPropertyDeclarationString("") + " = float4(color,alpha);");
-                        else
-                            vfxAttributesToshaderProperties.AppendLine(prop.GetPropertyDeclarationString("") + " = " + matchingAttribute + ";");
-                    }
-                }
-
-                string shaderGraphfunctions;
-                string surfaceDefinitionFunction = GenerateSurfaceDescriptionFunction(currentPass,graph, out shaderGraphfunctions);
-                // inject vfx load attributes.
-                int firstBracketIndex = surfaceDefinitionFunction.IndexOf('{');
-                if (firstBracketIndex > -1)
-                {
-                    while (surfaceDefinitionFunction.Length > firstBracketIndex + 1 && "\n\r".Contains(surfaceDefinitionFunction[firstBracketIndex + 1]))
-                        ++firstBracketIndex;
-
-                    surfaceDefinitionFunction = surfaceDefinitionFunction.Substring(0, firstBracketIndex) +
-                        "\t\t\t\t uint index = IN.instanceID;\n" + 
-                        "\t\t\t\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t") +
-                        vfxAttributesToshaderProperties +
-                        surfaceDefinitionFunction.Substring(firstBracketIndex);
-
-                }
-                shader.AppendLine("\t\t\t" + shaderGraphfunctions.Replace("\n", "\n\t\t\t"));
-                shader.AppendLine("\t\t\t" + surfaceDefinitionFunction.Replace("\n", "\n\t\t\t"));
-
-                shader.Append(@"
-void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDescription, float3 V, PositionInputs posInput, out SurfaceData surfaceData, out float3 bentNormalWS)
-            {
-                // setup defaults -- these are used if the graph doesn't output a value
-                ZERO_INITIALIZE(SurfaceData, surfaceData);
-        
-                // copy across graph values, if defined
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Albedo"))
-                    shader.Append(@"
-                surfaceData.baseColor = surfaceDescription.Albedo;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Smoothness"))
-                    shader.Append(@"
-                surfaceData.perceptualSmoothness = surfaceDescription.Smoothness;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Occlusion"))
-                    shader.Append(@"
-                surfaceData.ambientOcclusion = surfaceDescription.Occlusion;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "SpecularOcclusion"))
-                    shader.Append(@"
-                surfaceData.specularOcclusion = surfaceDescription.SpecularOcclusion;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Metallic"))
-                    shader.Append(@"
-                surfaceData.metallic = surfaceDescription.Metallic;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "SubsurfaceMask"))
-                    shader.Append(@"
-                surfaceData.subsurfaceMask = surfaceDescription.SubsurfaceMask;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Thickness"))
-                    shader.Append(@"
-                surfaceData.thickness = surfaceDescription.Thickness;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "DiffusionProfileHash"))
-                    shader.Append(@"
-                surfaceData.diffusionProfileHash = surfaceDescription.DiffusionProfileHash;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Specular"))
-                    shader.Append(@"
-                surfaceData.specularColor = surfaceDescription.Specular;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "CoatMask"))
-                    shader.Append(@"
-                surfaceData.coatMask = surfaceDescription.CoatMask;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Anisotropy"))
-                    shader.Append(@"
-                surfaceData.anisotropy = surfaceDescription.Anisotropy;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "IridescenceMask"))
-                    shader.Append(@"
-                surfaceData.iridescenceMask = surfaceDescription.IridescenceMask;
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "IridescenceThickness"))
-                    shader.Append(@"
-                surfaceData.iridescenceThickness = surfaceDescription.IridescenceThickness;
-");
-
-                shader.Append(@"
-        #ifdef _HAS_REFRACTION
-                if (_EnableSSRefraction)
-                {
-        
-                    surfaceData.transmittanceMask = (1.0 - surfaceDescription.Alpha);
-                    surfaceDescription.Alpha = 1.0;
-                }
-                else
-                {
-                    surfaceData.ior = 1.0;
-                    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
-                    surfaceData.atDistance = 1.0;
-                    surfaceData.transmittanceMask = 0.0;
-                    surfaceDescription.Alpha = 1.0;
-                }
-        #else
-                surfaceData.ior = 1.0;
-                surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
-                surfaceData.atDistance = 1.0;
-                surfaceData.transmittanceMask = 0.0;
-        #endif
-                
-                // These static material feature allow compile time optimization
-                surfaceData.materialFeatures = MATERIALFEATUREFLAGS_LIT_STANDARD;
-        #ifdef _MATERIAL_FEATURE_SUBSURFACE_SCATTERING
-                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING;
-        #endif
-        #ifdef _MATERIAL_FEATURE_TRANSMISSION
-                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_TRANSMISSION;
-        #endif
-        #ifdef _MATERIAL_FEATURE_ANISOTROPY
-                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_ANISOTROPY;
-        #endif
-        
-        #ifdef _MATERIAL_FEATURE_IRIDESCENCE
-                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_IRIDESCENCE;
-        #endif
-        #ifdef _MATERIAL_FEATURE_SPECULAR_COLOR
-                surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR;
-        #endif
-        
-        #if defined (_MATERIAL_FEATURE_SPECULAR_COLOR) && defined (_ENERGY_CONSERVING_SPECULAR)
-                // Require to have setup baseColor
-                // Reproduce the energy conservation done in legacy Unity. Not ideal but better for compatibility and users can unchek it
-                surfaceData.baseColor *= (1.0 - Max3(surfaceData.specularColor.r, surfaceData.specularColor.g, surfaceData.specularColor.b));
-        #endif
-                float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
-                
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Normal"))
-                    shader.Append(@"
-                // tangent-space normal
-                float3 normalTS = float3(0.0f, 0.0f, 1.0f);
-                normalTS = surfaceDescription.Normal;
-        
-                // compute world space normal
-                GetNormalWS(fragInputs, normalTS, surfaceData.normalWS, doubleSidedConstants);
-        
-                bentNormalWS = surfaceData.normalWS;
-        
-                surfaceData.geomNormalWS = fragInputs.worldToTangent[2];
-");
-
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "Tangent"))
-                    shader.Append(@"
-                surfaceData.tangentWS = normalize(fragInputs.worldToTangent[0].xyz);    // The tangent is not normalize in worldToTangent for mikkt. TODO: Check if it expected that we normalize with Morten. Tag: SURFACE_GRADIENT
-                surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
-");
-                if (pass.pixel.slots.Any(t => t.shaderOutputName == "SpecularOcclusion"))
-                    shader.Append(@"
-                // By default we use the ambient occlusion with Tri-ace trick (apply outside) for specular occlusion.
-                // If user provide bent normal then we process a better term
-        #if defined(_SPECULAR_OCCLUSION_CUSTOM)
-                // Just use the value passed through via the slot (not active otherwise)
-        #elif defined(_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL)
-                // If we have bent normal and ambient occlusion, process a specular occlusion
-                surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData.normalWS, surfaceData.ambientOcclusion, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
-        #elif defined(_AMBIENT_OCCLUSION) && defined(_SPECULAR_OCCLUSION_FROM_AO)
-                surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(dot(surfaceData.normalWS, V)), surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
-        #else
-                surfaceData.specularOcclusion = 1.0;
-        #endif
-");
-
-        shader.Append(@"
-        #if HAVE_DECALS
-                if (_EnableDecals)
-                {
-                    DecalSurfaceData decalSurfaceData = GetDecalSurfaceData(posInput, surfaceDescription.Alpha);
-                    ApplyDecalToSurfaceData(decalSurfaceData, surfaceData);
-                }
-        #endif
-        
-        #ifdef _ENABLE_GEOMETRIC_SPECULAR_AA
-                surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, fragInputs.worldToTangent[2], surfaceDescription.SpecularAAScreenSpaceVariance, surfaceDescription.SpecularAAThreshold);
-        #endif
-        
-        #ifdef DEBUG_DISPLAY
-                if (_DebugMipMapMode != DEBUGMIPMAPMODE_NONE)
-                {
-                    // TODO: need to update mip info
-                    surfaceData.metallic = 0;
-                }
-        
-                // We need to call ApplyDebugToSurfaceData after filling the surfarcedata and before filling builtinData
-                // as it can modify attribute use for static lighting
-                ApplyDebugToSurfaceData(fragInputs.worldToTangent, surfaceData);
-        #endif
-            }
-        
-            void GetSurfaceAndBuiltinData(FragInputs fragInputs, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
-            {
-        #ifdef LOD_FADE_CROSSFADE // enable dithering LOD transition if user select CrossFade transition in LOD group
-                uint3 fadeMaskSeed = asuint((int3)(V * _ScreenSize.xyx)); // Quantize V to _ScreenSize values
-                LODDitheringTransition(fadeMaskSeed, unity_LODFade.x);
-        #endif
-        
-                float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
-        
-                ApplyDoubleSidedFlipOrMirror(fragInputs, doubleSidedConstants);
-        
-                SurfaceDescriptionInputs surfaceDescriptionInputs = FragInputsToSurfaceDescriptionInputs(fragInputs, V);
-                SurfaceDescription surfaceDescription = SurfaceDescriptionFunction(surfaceDescriptionInputs);
-        
-                // Perform alpha test very early to save performance (a killed pixel will not sample textures)
-                // TODO: split graph evaluation to grab just alpha dependencies first? tricky..
-                
-        
-                float3 bentNormalWS;
-                BuildSurfaceData(fragInputs, surfaceDescription, V, posInput, surfaceData, bentNormalWS);
-        
-                // Builtin Data
-                // For back lighting we use the oposite vertex normal 
-                InitBuiltinData(posInput, surfaceDescription.Alpha, bentNormalWS, -fragInputs.worldToTangent[2], fragInputs.texCoord1, fragInputs.texCoord2, builtinData);
-        
-                // override sampleBakedGI:
-");
-                if (graph.slots.Any(t => t.shaderOutputName == "Emission"))
-                    shader.Append(@"
-                builtinData.emissiveColor = surfaceDescription.Emission;
-");
-                shader.Append(@"
-        #if (SHADERPASS == SHADERPASS_DISTORTION)
-                builtinData.distortion = surfaceDescription.Distortion;
-                builtinData.distortionBlur = surfaceDescription.DistortionBlur;
-        #else
-                builtinData.distortion = float2(0.0, 0.0);
-                builtinData.distortionBlur = 0.0;
-        #endif
-        
-                PostInitBuiltinData(V, posInput, surfaceData, builtinData);
-            }
-                #pragma fragment Frag
-
-                #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassGBuffer.hlsl""
-
-            ENDHLSL
-        }
-");
-
-            }
-            shader.AppendLine(@"
-    }
-}
-");
-
             return shader.ToString();
         }
 
