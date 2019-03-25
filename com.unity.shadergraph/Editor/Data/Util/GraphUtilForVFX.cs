@@ -105,7 +105,8 @@ namespace UnityEditor.ShaderGraph
                                                                                                         && t.shaderOutputName != "Normal"
                                                                                                         && t.shaderOutputName != "BentNormal"
                                                                                                         && t.shaderOutputName != "Emission"
-                                                                                                        && t.shaderOutputName != "Alpha");
+                                                                                                        && t.shaderOutputName != "Alpha"
+                                                                                                        && t.shaderOutputName != "AlphaClipThreshold");
 
                 if (graph.graphData.outputNode is IMasterNode)
                 {
@@ -148,7 +149,7 @@ namespace UnityEditor.ShaderGraph
                 {"_DstBlend","Zero" },
                 {"_ZWrite","On" },
                 {"_ColorMaskTransparentVel","RGBA" },
-                {"_ZTestDepthEqualForOpaque","LEqual" },
+                {"_ZTestDepthEqualForOpaque","Equal" },
                 {"_ZTestGBuffer","LEqual"},
                 {"_DistortionSrcBlend","One" },
                 {"_DistortionDstBlend","Zero" },
@@ -243,25 +244,28 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                     getSurfaceDataFunction.AppendLine("\talpha = {0};\n", alpha.GetDefaultValue(GenerationMode.ForReals));
                 }
             }
-            getSurfaceDataFunction.Append(@"
 
-#if 0
-    // Perform alha test very early to save performance (a killed pixel will not sample textures)
-    #if defined(_ALPHATEST_ON) && !defined(LAYERED_LIT_SHADER)
-        float alphaCutoff = _AlphaCutoff;
-        #ifdef CUTOFF_TRANSPARENT_DEPTH_PREPASS
-        alphaCutoff = _AlphaCutoffPrepass;
-        #elif defined(CUTOFF_TRANSPARENT_DEPTH_POSTPASS)
-        alphaCutoff = _AlphaCutoffPostpass;
-        #endif
-    #if SHADERPASS == SHADERPASS_SHADOWS 
-        DoAlphaTest(alpha, _UseShadowThreshold ? _AlphaCutoffShadow : alphaCutoff);
-    #else
-        DoAlphaTest(alpha, alphaCutoff);
-    #endif
-    #endif
-#endif
-    alpha = 1;
+            var alphaThreshold = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == "AlphaClipThreshold");
+
+            if (alphaThreshold != null)
+            {
+                guiVariables["_ZTestGBuffer"] = "Equal";
+                var foundEdges = graph.graphData.GetEdges(alphaThreshold.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    getSurfaceDataFunction.AppendLine("\float alphaCutoff = {0};\n", graph.graphData.outputNode.GetSlotValue(alphaThreshold.id, GenerationMode.ForReals));
+                }
+                else
+                {
+                    getSurfaceDataFunction.AppendLine("\tfloat alphaCutoff = {0};\n", alphaThreshold.GetDefaultValue(GenerationMode.ForReals));
+                }
+                getSurfaceDataFunction.AppendLine("DoAlphaTest(alpha, alphaCutoff);");
+            }
+            else
+            {
+                guiVariables["_ZTestGBuffer"] = "LEqual";
+            }
+            getSurfaceDataFunction.Append(@"
 
     surfaceData.normalWS = float3(0.0, 0.0, 0.0); // Need to init this to keep quiet the compiler, but this is overriden later (0, 0, 0) so if we forget to override the compiler may comply.
     surfaceData.geomNormalWS = float3(0.0, 0.0, 0.0); // Not used, just to keep compiler quiet.
