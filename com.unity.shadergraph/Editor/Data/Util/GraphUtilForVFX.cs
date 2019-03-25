@@ -96,12 +96,12 @@ namespace UnityEditor.ShaderGraph
                 {"_StencilWriteMaskMV","176" },
 
                 {"_CullMode","Back" },
+                {"_CullModeForward","Back" },
                 {"_SrcBlend","One" },
-                {"_DstBlend","One" },
+                {"_DstBlend","Zero" },
                 {"_ZWrite","On" },
                 {"_ColorMaskTransparentVel","RGBA" },
                 {"_ZTestDepthEqualForOpaque","LEqual" },
-                {"_CullModeForward","Back" },
                 {"_ZTestGBuffer","LEqual"},
                 {"_DistortionSrcBlend","One" },
                 {"_DistortionDstBlend","Zero" },
@@ -403,10 +403,10 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                         else
                         {
                             string str = standardShader[i];
-                            foreach( var kv in guiVariables)
+                            /*foreach( var kv in guiVariables)
                             {
                                 str = str.Replace("[" + kv.Key + "]", " " + kv.Value);
-                            }
+                            }*/
                             shader.AppendLine(str);
                         }
                     }
