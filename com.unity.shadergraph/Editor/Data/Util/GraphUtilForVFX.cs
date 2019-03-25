@@ -43,6 +43,22 @@ namespace UnityEditor.ShaderGraph
         }
 
 
+
+        static readonly Dictionary<string, string> s_ShaderGraphToSurfaceDescriptionName = new Dictionary<string, string>()
+            {
+                {"Albedo" ,"baseColor"},
+                {"Smoothness", "perceptualSmoothness" },
+                {"Occlusion", "ambientOcclusion" }
+            };
+
+        static string ShaderGraphToSurfaceDescriptionName(string name)
+        {
+            string result;
+            if (s_ShaderGraphToSurfaceDescriptionName.TryGetValue(name, out result))
+                return result;
+            return name.Substring(0,1).ToLower() + name.Substring(1);
+        }
+
         public static string NewGenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
         {
             Graph graph = LoadShaderGraph(shaderGraph);
@@ -51,6 +67,9 @@ namespace UnityEditor.ShaderGraph
             getSurfaceDataFunction.Append(vfxInfos.parameters);
 
             string shaderGraphCode;
+
+            IEnumerable<MaterialSlot> usedSlots;
+
             PropertyCollector shaderProperties = new PropertyCollector();
             {   // inspired by GenerateSurfaceDescriptionFunction
 
@@ -79,7 +98,35 @@ namespace UnityEditor.ShaderGraph
                    
                 getSurfaceDataFunction.AppendLines(functionsString.ToString());
                 functionRegistry.builder.currentNode = null;
-                shaderGraphCode = sg.GetShaderString(0);
+
+                var sb = new StringBuilder();
+                sb.Append(sg.GetShaderString(0));
+                usedSlots = /*slots ?? */graph.graphData.outputNode.GetInputSlots<MaterialSlot>().Where(t => t.shaderOutputName != "Position"
+                                                                                                        && t.shaderOutputName != "Normal"
+                                                                                                        && t.shaderOutputName != "BentNormal"
+                                                                                                        && t.shaderOutputName != "Emission"
+                                                                                                        && t.shaderOutputName != "Alpha");
+
+                if (graph.graphData.outputNode is IMasterNode)
+                {
+                    foreach (var input in usedSlots)
+                    {
+                        if (input != null)
+                        {
+                            var foundEdges = graph.graphData.GetEdges(input.slotReference).ToArray();
+                            if (foundEdges.Any())
+                            {
+                                sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), graph.graphData.outputNode.GetSlotValue(input.id, GenerationMode.ForReals));
+                            }
+                            else
+                            {
+                                sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), input.GetDefaultValue(GenerationMode.ForReals));
+                            }
+                        }
+                    }
+                }
+
+                shaderGraphCode = sb.ToString();
             }
 
             Dictionary<string, string> guiVariables = new Dictionary<string, string>()
@@ -125,10 +172,13 @@ struct FragInputForSG
     float4 uv2;
     float4 uv3;
     float4 color; // vertex color
+
+    float3 TangentSpaceNormal;
 };
 FragInputForSG ConvertFragInput(FragInputs input)
 {
     FragInputForSG fisg;
+    fisg.TangentSpaceNormal = float3(0.0f, 0.0f, 1.0f);
     fisg.posCS = input.positionSS;
     fisg.posWD = input.positionRWS;
     fisg.uv0 = input.texCoord0;
@@ -143,7 +193,7 @@ FragInputForSG ConvertFragInput(FragInputs input)
 #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialUtilities.hlsl""
 #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl""
 #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl""
-#include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitBuiltinData.hlsl""
+#include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/BuiltinUtilities.hlsl""
 
 void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
@@ -151,6 +201,16 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     builtinData = (BuiltinData)0;
 
     FragInputForSG IN = ConvertFragInput(input);
+
+    //Setup default value in case sg does not set them
+    surfaceData.metallic = 1.0;
+    surfaceData.ambientOcclusion = 1.0;
+    surfaceData.anisotropy = 1.0;
+
+    surfaceData.ior = 1.0;
+    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
+    surfaceData.atDistance = 1.0;
+    surfaceData.transmittanceMask = 0.0;
 
 ");
             getSurfaceDataFunction.Append("\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t"));
@@ -169,6 +229,20 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
 
             getSurfaceDataFunction.Append("\t"+shaderGraphCode.Replace("\n","\n\t"));
 
+            var alpha = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == "Alpha");
+
+            if (alpha != null)
+            {
+                var foundEdges = graph.graphData.GetEdges(alpha.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    getSurfaceDataFunction.AppendLine("\talpha = {0};\n", graph.graphData.outputNode.GetSlotValue(alpha.id, GenerationMode.ForReals));
+                }
+                else
+                {
+                    getSurfaceDataFunction.AppendLine("\talpha = {0};\n", alpha.GetDefaultValue(GenerationMode.ForReals));
+                }
+            }
             getSurfaceDataFunction.Append(@"
 
 #if 0
@@ -188,13 +262,10 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     #endif
 #endif
     alpha = 1;
-    surfaceData.baseColor = float3(1,0,0);
 
     surfaceData.normalWS = float3(0.0, 0.0, 0.0); // Need to init this to keep quiet the compiler, but this is overriden later (0, 0, 0) so if we forget to override the compiler may comply.
     surfaceData.geomNormalWS = float3(0.0, 0.0, 0.0); // Not used, just to keep compiler quiet.
 
-    surfaceData.metallic = 1.0;
-    surfaceData.ambientOcclusion = 1.0;
 
     surfaceData.materialFeatures = MATERIALFEATUREFLAGS_LIT_STANDARD;
 
@@ -219,12 +290,6 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
 
     surfaceData.tangentWS = input.worldToTangent[0].xyz; // The tangent is not normalize in worldToTangent for mikkt. TODO: Check if it expected that we normalize with Morten. Tag: SURFACE_GRADIENT
 
-    surfaceData.anisotropy = 1.0;
-
-    surfaceData.ior = 1.0;
-    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
-    surfaceData.atDistance = 1.0;
-    surfaceData.transmittanceMask = 0.0;
 
 
     #ifdef _DOUBLESIDED_ON
@@ -244,21 +309,62 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     bentNormalTS = normalTS;
     float3 bentNormalWS;
     GetNormalWS(input, normalTS, surfaceData.normalWS, doubleSidedConstants);
-    #ifdef _BENTNORMALMAP
-        GetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants);
-    #else
-        bentNormalWS = surfaceData.normalWS;
-    #endif
+");
+            var bentNormal = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t=> t.shaderOutputName == "BentNormal");
+
+            if( bentNormal != null)
+            {
+                var foundEdges = graph.graphData.GetEdges(bentNormal.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    getSurfaceDataFunction.AppendLine("\tbentNormalTS = {0};\n", graph.graphData.outputNode.GetSlotValue(bentNormal.id, GenerationMode.ForReals));
+                }
+                else
+                {
+                    getSurfaceDataFunction.AppendLine("\tbentNormalTS = {0};\n", bentNormal.GetDefaultValue(GenerationMode.ForReals));
+                }
+                getSurfaceDataFunction.AppendLine("\tGetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants); ");
+            }
+            else
+            {
+                getSurfaceDataFunction.AppendLine("\tbentNormalWS = surfaceData.normalWS;");
+            }
+            
+
+            getSurfaceDataFunction.Append(@"
     surfaceData.geomNormalWS = input.worldToTangent[2];
     surfaceData.specularOcclusion = 1.0;
 
     surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
 
-    GetBuiltinData(input, V, posInput, surfaceData, alpha, bentNormalWS, 0, builtinData);
+    InitBuiltinData(posInput, alpha, bentNormalWS, -input.worldToTangent[2], input.texCoord1, input.texCoord2, builtinData);
 ");
 
+            var emissive = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == "Emission");
+            if (emissive != null)
+            {
+                var foundEdges = graph.graphData.GetEdges(emissive.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    getSurfaceDataFunction.AppendLine("\tbuiltinData.emissiveColor = {0};\n", graph.graphData.outputNode.GetSlotValue(emissive.id, GenerationMode.ForReals));
+                }
+                else
+                {
+                    getSurfaceDataFunction.AppendLine("\tbuiltinData.emissiveColor = {0};\n", emissive.GetDefaultValue(GenerationMode.ForReals));
+                }
+            }
 
             getSurfaceDataFunction.Append(@"
+#if (SHADERPASS == SHADERPASS_DISTORTION) || defined(DEBUG_DISPLAY)
+    float3 distortion = SAMPLE_TEXTURE2D(_DistortionVectorMap, sampler_DistortionVectorMap, input.texCoord0.xy).rgb;
+    distortion.rg = distortion.rg * _DistortionVectorScale.xx + _DistortionVectorBias.xx;
+    builtinData.distortion = distortion.rg * _DistortionScale;
+    builtinData.distortionBlur = clamp(distortion.b * _DistortionBlurScale, 0.0, 1.0) * (_DistortionBlurRemapMax - _DistortionBlurRemapMin) + _DistortionBlurRemapMin;
+#endif
+
+    //builtinData.depthOffset = depthOffset;
+
+    PostInitBuiltinData(V, posInput, surfaceData, builtinData);
 }");
 
 
@@ -307,59 +413,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                         if (trimmed.StartsWith("#pragma vertex"))
                         {
                             string indentation = standardShader[i].Substring(0, standardShader[i].IndexOf('#'));
-
-                            shader.AppendLine(indentation + @"
-PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
-{
-    VaryingsType varyingsType;
-    
-    
-    varyingsType.vmesh = VertMesh(inputMesh);
-    uint index = inputMesh.instanceID;
-");
-                            shader.Append("\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t"));
-
-                            shader.AppendLine(indentation + @"
-    float3 size3 = float3(size,size,size);
-	#if VFX_USE_SCALEX_CURRENT
-	size3.x *= scaleX;
-	#endif
-	#if VFX_USE_SCALEY_CURRENT
-	size3.y *= scaleY;
-	#endif
-	#if VFX_USE_SCALEZ_CURRENT
-	size3.z *= scaleZ;
-	#endif
-
-    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
-	float3 vPos = mul(elementToVFX,float4(inputMesh.positionOS,1.0f)).xyz;
-	#ifdef VARYINGS_NEED_POSITION_WS
-	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(vPos);
-    #endif
-			
-	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(vPos);
-
-    #ifdef ATTRIBUTES_NEED_NORMAL
-        float3 normalWS = TransformObjectToWorldNormal(inputMesh.normalOS);
-    #endif
-
-    #ifdef ATTRIBUTES_NEED_TANGENT
-        float4 tangentWS = float4(TransformObjectToWorldDir(inputMesh.tangentOS.xyz), inputMesh.tangentOS.w);
-    #endif
-
-    #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
-        varyingsType.vmesh.normalWS = normalWS;
-        varyingsType.vmesh.tangentWS = tangentWS;
-    #endif
-
-    PackedVaryingsType result = PackVaryingsType(varyingsType);
-    result.vmesh.instanceID = inputMesh.instanceID; // transmit the instanceID to the pixel shader through the varyings
-
-    return result;
-}
-");
-
-                            shader.AppendLine(indentation + "#pragma vertex ParticleVert");
+                            GenerateParticleVert(vfxInfos, shader, indentation);
                         }
                         else if (trimmed.StartsWith("#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPass")) // let's hack the file matching the shader pass
                         {
@@ -403,10 +457,10 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                         else
                         {
                             string str = standardShader[i];
-                            /*foreach( var kv in guiVariables)
+                            foreach( var kv in guiVariables)
                             {
                                 str = str.Replace("[" + kv.Key + "]", " " + kv.Value);
-                            }*/
+                            }
                             shader.AppendLine(str);
                         }
                     }
@@ -419,6 +473,68 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
             }
             
             return shader.ToString();
+        }
+
+        private static void GenerateParticleVert(VFXInfos vfxInfos, StringBuilder shader, string indentation)
+        {
+            shader.Append(indentation + vfxInfos.vertexFunctions.Replace("\n","\n"+ indentation));
+
+            shader.AppendLine(indentation + @"
+PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
+{
+    VaryingsType varyingsType;
+    
+    
+    varyingsType.vmesh = VertMesh(inputMesh);
+    uint index = inputMesh.instanceID;
+".Replace("\n", "\n" + indentation));
+            shader.Append(indentation + "\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t" + indentation));
+
+            shader.AppendLine(indentation + @"
+    float3 size3 = float3(size,size,size);
+	#if VFX_USE_SCALEX_CURRENT
+	size3.x *= scaleX;
+	#endif
+	#if VFX_USE_SCALEY_CURRENT
+	size3.y *= scaleY;
+	#endif
+	#if VFX_USE_SCALEZ_CURRENT
+	size3.z *= scaleZ;
+	#endif
+
+    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
+	float3 vPos = mul(elementToVFX,float4(inputMesh.positionOS,1.0f)).xyz;
+	#ifdef VARYINGS_NEED_POSITION_WS
+	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(vPos);
+    #endif
+			
+	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(vPos);
+
+    #ifdef ATTRIBUTES_NEED_NORMAL
+        float3 normalWS = TransformObjectToWorldNormal(inputMesh.normalOS);
+    #endif
+
+    #ifdef ATTRIBUTES_NEED_TANGENT
+        float4 tangentWS = float4(TransformObjectToWorldDir(inputMesh.tangentOS.xyz), inputMesh.tangentOS.w);
+    #endif
+
+    #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
+        varyingsType.vmesh.normalWS = normalWS;
+        varyingsType.vmesh.tangentWS = tangentWS;
+    #endif
+
+    PackedVaryingsType result = PackVaryingsType(varyingsType);
+    result.vmesh.instanceID = inputMesh.instanceID; // transmit the instanceID to the pixel shader through the varyings
+");
+            shader.Append(indentation + "\t" + vfxInfos.vertexShaderContent.Replace("\n","\n\t" + indentation));
+            shader.Append(@"
+
+
+    return result;
+}
+".Replace("\n", "\n" + indentation));
+
+            shader.AppendLine(indentation + "#pragma vertex ParticleVert");
         }
 
         public class Graph
