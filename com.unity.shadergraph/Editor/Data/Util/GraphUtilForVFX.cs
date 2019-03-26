@@ -195,6 +195,7 @@ FragInputForSG ConvertFragInput(FragInputs input)
 #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl""
 #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl""
 #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/Material/BuiltinUtilities.hlsl""
+#include ""Packages/com.unity.shadergraph/ShaderGraphLibrary/Functions.hlsl""
 
 void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
@@ -268,6 +269,22 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             {
                 guiVariables["_ZTestGBuffer"] = "LEqual";
             }
+            var coatMask = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == "CoatMask");
+            if (coatMask != null)
+            {
+                var foundEdges = graph.graphData.GetEdges(coatMask.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    defines.Add("_MATERIAL_FEATURE_CLEAR_COAT", 1);
+                }
+                else 
+                {
+                    float value;
+                    if( float.TryParse(coatMask.GetDefaultValue(GenerationMode.ForReals),out value) && value > 0)
+                        defines.Add("_MATERIAL_FEATURE_CLEAR_COAT", 1);
+                }
+            }
+
             getSurfaceDataFunction.Append(@"
 
     surfaceData.normalWS = float3(0.0, 0.0, 0.0); // Need to init this to keep quiet the compiler, but this is overriden later (0, 0, 0) so if we forget to override the compiler may comply.
@@ -305,13 +322,28 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
         float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
     #endif
     ApplyDoubleSidedFlipOrMirror(input, doubleSidedConstants);
+ ");
+            var normal = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == "Normal");
 
-    float3 normalTS;
-     #ifdef SURFACE_GRADIENT
-    normalTS = float3(0.0, 0.0, 0.0); // No gradient
-    #else
-    normalTS = float3(0.0, 0.0, 1.0);
-    #endif
+            if (normal != null)
+            {
+                var foundEdges = graph.graphData.GetEdges(normal.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    getSurfaceDataFunction.AppendLine("\tfloat3 normalTS = {0};\n", graph.graphData.outputNode.GetSlotValue(normal.id, GenerationMode.ForReals));
+                }
+                else
+                {
+                    getSurfaceDataFunction.AppendLine("\tfloat3 normalTS = {0};\n", normal.GetDefaultValue(GenerationMode.ForReals));
+                }
+            }
+            else
+            {
+                getSurfaceDataFunction.AppendLine("\tfloat3 normalTS = float3(0.0,0.0,1.0);");
+            }
+
+
+            getSurfaceDataFunction.AppendLine(@"
     float3 bentNormalTS;
     bentNormalTS = normalTS;
     float3 bentNormalWS;
