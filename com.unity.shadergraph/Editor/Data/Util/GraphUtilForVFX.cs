@@ -237,7 +237,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                 var foundEdges = graph.graphData.GetEdges(alpha.slotReference).ToArray();
                 if (foundEdges.Any())
                 {
-                    getSurfaceDataFunction.AppendLine("\talpha = {0};\n", graph.graphData.outputNode.GetSlotValue(alpha.id, GenerationMode.ForReals));
+                    getSurfaceDataFunction.AppendLine("\talpha = {0};/* surfaceData.baseColor = float3(alpha,alpha,alpha);*/\n", graph.graphData.outputNode.GetSlotValue(alpha.id, GenerationMode.ForReals));
                 }
                 else
                 {
@@ -246,10 +246,12 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             }
 
             var alphaThreshold = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == "AlphaClipThreshold");
-
+            string SubShaderTags = "\t\tTags{ \"RenderPipeline\"=\"HDRenderPipeline\" \"RenderType\" = \"HDLitShader\" }" ;
+            var defines = new Dictionary<string, int>();
             if (alphaThreshold != null)
             {
                 guiVariables["_ZTestGBuffer"] = "Equal";
+                SubShaderTags = "\t\tTags{ \"RenderPipeline\"=\"HDRenderPipeline\" \"RenderType\" = \"HDLitShader\" \"Queue\"=\"AlphaTest+0\" }";
                 var foundEdges = graph.graphData.GetEdges(alphaThreshold.slotReference).ToArray();
                 if (foundEdges.Any())
                 {
@@ -260,6 +262,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                     getSurfaceDataFunction.AppendLine("\tfloat alphaCutoff = {0};\n", alphaThreshold.GetDefaultValue(GenerationMode.ForReals));
                 }
                 getSurfaceDataFunction.AppendLine("DoAlphaTest(alpha, alphaCutoff);");
+                defines.Add("_ALPHATEST_ON", 1);
             }
             else
             {
@@ -384,6 +387,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             var shader = new StringBuilder();
             bool withinProperties = false;
             bool propertiesSkipped = false;
+            bool firstFeatureLocal = true;
             for(int i = 1; i < standardShader.Length; ++i) // to skip the "Shader "toto"" line
             {
                 if (!propertiesSkipped)
@@ -458,7 +462,11 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                             shader.AppendLine(indentation + "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc\"");
                             shader.AppendLine(indentation + "#include \"Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc\"");
                         }
-                        else
+                        else if( trimmed == "Tags{ \"RenderPipeline\"=\"HDRenderPipeline\" \"RenderType\" = \"HDLitShader\" }")
+                        {
+                            shader.AppendLine(SubShaderTags);
+                        }
+                        else if( ! trimmed.StartsWith("#pragma shader_feature_local")) // remove all feature_local pragmas
                         {
                             string str = standardShader[i];
                             foreach( var kv in guiVariables)
@@ -466,6 +474,13 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                                 str = str.Replace("[" + kv.Key + "]", " " + kv.Value);
                             }
                             shader.AppendLine(str);
+                        }
+                        else if(firstFeatureLocal)
+                        {
+                            firstFeatureLocal = false;
+
+                            foreach( var define in defines)
+                                shader.AppendLine(string.Format("#define {0} {1}",define.Key,define.Value));
                         }
                     }
                     else
