@@ -121,7 +121,11 @@ namespace UnityEditor.VFX
                         string typeName = decl.Substring(0, lastSpace).Trim();
                         Type type;
                         if (s_shaderTypeToType.TryGetValue(typeName, out type))
-                            yield return slotExpressions.First(o => o.name == variable);
+                        {
+                            VFXNamedExpression expression = slotExpressions.FirstOrDefault(o => o.name == variable);
+                            if( expression.exp != null)
+                                yield return expression;
+                        }   
                     }
                 }
 

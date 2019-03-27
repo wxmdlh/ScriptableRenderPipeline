@@ -2,16 +2,257 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using System.Text;
 using UnityEditor.Graphing;
 using UnityEditor.Graphing.Util;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace UnityEditor.ShaderGraph
 {
     //Small methods usable by the VFX since they are public
     public static class GraphUtilForVFX
     {
+        class Chunk
+        {
+            string name;
+            string content;
+        }
+
+        class ShaderCode
+        {
+            List<Chunk> chunks = new List<Chunk>();
+        }
+
+        
+
+        class ShaderPart
+        {
+            protected bool IsSame(string paramName, string document, RangeInt range)
+            {
+                return paramName.Length == range.length && string.Compare(document, range.start, paramName, 0, range.length, StringComparison.InvariantCultureIgnoreCase) == 0;
+            }
+
+            protected bool IsAny(IEnumerable<string> paramNames, string document, RangeInt range)
+            {
+                return paramNames.Any(t => IsSame(t, document, range));
+            }
+
+            public string name;
+            string shaderCode;
+            ShaderParameters parameters;
+            Dictionary<string, string> tags;
+
+            protected int ParseParameter(string statement, int startIndex, int endIndex, out RangeInt nameRange, out RangeInt range)
+            {
+                range.start = 0;
+                range.length = 0;
+                nameRange.start = 0;
+                nameRange.length = 0;
+                foreach (var charac in statement.Skip(startIndex))
+                {
+                    if (!char.IsWhiteSpace(charac))
+                        break;
+                    ++startIndex;
+                }
+
+                if (endIndex < startIndex + 1)
+                    return -2;
+
+                int localEndIndex = startIndex + 1;
+
+                foreach (var charac in statement.Skip(localEndIndex))
+                {
+                    if (char.IsWhiteSpace(charac) || localEndIndex >= endIndex)
+                        break;
+                    ++localEndIndex;
+                }
+                if (localEndIndex >= endIndex)
+                    return -2;
+
+                nameRange.start = startIndex;
+                nameRange.length = localEndIndex - startIndex;
+
+                bool wasEscapeChar = false;
+                bool inQuotes = false;
+                int bracketLevel = 0;
+
+                int valueStartIndex = localEndIndex;
+                int valueEndIndex = valueStartIndex;
+                foreach ( var charac in statement.Skip(valueStartIndex))
+                {
+                    valueEndIndex++;
+                    if (inQuotes)
+                    {
+                        if (charac == '\\')
+                            wasEscapeChar = true;
+                        else if (!wasEscapeChar && charac == '"')
+                        {
+                            inQuotes = false;
+                            if (bracketLevel == 0)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    else if (charac == '"')
+                        inQuotes = true;
+                    if( ! inQuotes)
+                    {
+                        if (charac == '{')
+                            bracketLevel++;
+                        if (charac == '}')
+                        {
+                            bracketLevel--;
+                            if (bracketLevel == 0)
+                                break;
+                        }
+                    }
+                }
+
+                range.start = valueStartIndex;
+                range.length = valueEndIndex - valueStartIndex;
+
+                return 0;
+            }
+
+            protected int ParseContent(string document,RangeInt paramName,ref RangeInt param)
+            {
+                if (IsAny(startShaderName, document, paramName)) //START OF SHADER, end is not param but must find line with endShaderName
+                {
+                    //Look for line with one of endShaderName
+
+                    int nextLine = paramName.end;
+                    bool found = false;
+                    int endLine = 0;
+                    int startLine = 0;
+                    do
+                    {
+                        foreach (var charac in document.Skip(nextLine))
+                        {
+                            nextLine++;
+                            if (charac == '\n')
+                                break;
+                        }
+                        startLine = nextLine;
+                        foreach (var charac in document.Skip(nextLine))
+                        {
+                            if (!char.IsWhiteSpace(charac))
+                                break;
+
+                            ++startLine;
+                        }
+
+                        endLine = startLine + 1;
+
+                        foreach (var charac in document.Skip(endLine))
+                        {
+                            if (char.IsWhiteSpace(charac))
+                                break;
+                            endLine++;
+                        }
+
+                        if (IsAny(endShaderName, document, new RangeInt(startLine, endLine - startLine)))
+                        {
+                            found = true;
+                            break;
+                        }
+                        nextLine = endLine;
+                        foreach (var charac in document.Skip(nextLine))
+                        {
+                            if (charac == '\n')
+                                break;
+                            nextLine++;
+                        }
+
+                    }
+                    while (!found);
+                    shaderCode = document.Substring(paramName.end, endLine - param.end);
+                    param.length = endLine - param.start;
+                }
+
+                return 0;
+            }
+            static readonly string[] startShaderName = { "HLSLINCLUDE", "HLSLPROGRAM", "CGINCLUDE", "CGPROGRAM" };
+            static readonly string[] endShaderName = { "ENDHLSL", "ENDCG" };
+        }
+
+        class ShaderDocument : ShaderPart
+        {
+            public int Parse(string document)
+            {
+                int startIndex = document.IndexOf('{');
+                if (startIndex == -1)
+                    return -1;
+
+                RangeInt paramName;
+                RangeInt param;
+
+                int error = ParseParameter(document, 0, startIndex, out paramName, out param);
+                if( error != 0)
+                {
+                    return 1000 + error;
+                }
+                if (!IsSame("Shader", document, paramName))
+                    return -2;
+
+                name = document.Substring(param.start+1, param.length-2);
+
+                int endIndex = document.LastIndexOf('}');
+                startIndex += 1; // skip '{' itself
+
+                while( ParseParameter(document,startIndex,endIndex-startIndex,out paramName, out param) == 0)
+                {
+                    if (IsSame("Properties", document, paramName))
+                    {
+                        // ignore properties Block we don't need it in our case
+                        startIndex = param.end;
+                    }
+                    else
+                    {
+                        base.ParseContent(document, paramName, ref param);
+                        startIndex = param.end;
+                    }
+                }
+
+
+                return 0;
+            }
+
+        }
+
+        struct StencilParameters
+        {
+            byte? writeMask;
+            byte? reference;
+            CompareFunction comp;
+            string pass;
+        }
+
+        [Flags]
+        enum ColorMask
+        {
+            R = 1<<0,
+            G = 1<<1,
+            B = 1<<2,
+            A = 1<<3,
+            RGB = R|G|B,
+            All = R |G |B | A
+        }
+
+        struct ShaderParameters
+        {
+            CullMode? cullMode;
+            bool? zWrite;
+            CompareFunction? zTest;
+            StencilParameters stencilParameters;
+            string ZClip;
+            ColorMask colorMask;
+        }
+
+
+
         public struct VFXInfos
         {
             public Dictionary<string, string> customParameterAccess;
@@ -416,6 +657,9 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
             string[] standardShader = File.ReadAllLines("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader");
 
+            ShaderDocument document = new ShaderDocument();
+            document.Parse(File.ReadAllText("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader"));
+
             var shader = new StringBuilder();
             bool withinProperties = false;
             bool propertiesSkipped = false;
@@ -816,7 +1060,7 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
             var pixelSlots = new ShaderStringBuilder();
             var graph = shaderGraph.graphData;
 
-            GraphUtil.GenerateSurfaceDescriptionStruct(pixelSlots, shaderGraph.slots.Where(t=> Graph.passInfos[pass].pixel.activeSlots.Contains(t.id)).ToList(), true, pixelGraphOutputStructName, null);
+            //GraphUtil.GenerateSurfaceDescriptionStruct(pixelSlots, shaderGraph.slots.Where(t=> Graph.passInfos[pass].pixel.activeSlots.Contains(t.id)).ToList(), true, pixelGraphOutputStructName, null);
 
             return pixelSlots.ToString();
         }
