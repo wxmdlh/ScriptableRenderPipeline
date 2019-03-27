@@ -39,50 +39,75 @@ namespace UnityEditor.ShaderGraph
                 return paramNames.Any(t => IsSame(t, document, range));
             }
 
-            public string name;
-            string shaderCode;
-            ShaderParameters parameters;
-            Dictionary<string, string> tags;
+            protected string shaderCode;
+            protected ShaderParameters parameters;
+            protected Dictionary<string, string> tags;
 
-            protected int ParseParameter(string statement, int startIndex, int endIndex, out RangeInt nameRange, out RangeInt range)
+
+            protected int ParseParameter(string statement, RangeInt totalRange, out RangeInt nameRange, out RangeInt range)
             {
                 range.start = 0;
                 range.length = 0;
                 nameRange.start = 0;
                 nameRange.length = 0;
-                foreach (var charac in statement.Skip(startIndex))
+                int startIndex = totalRange.start;
+                foreach (var charac in statement.Take(totalRange.end).Skip(totalRange.start))
                 {
                     if (!char.IsWhiteSpace(charac))
                         break;
                     ++startIndex;
                 }
 
-                if (endIndex < startIndex + 1)
+                if (totalRange.end < startIndex + 1)
                     return -2;
 
                 int localEndIndex = startIndex + 1;
 
-                foreach (var charac in statement.Skip(localEndIndex))
+                foreach (var charac in statement.Take(totalRange.end).Skip(localEndIndex))
                 {
-                    if (char.IsWhiteSpace(charac) || localEndIndex >= endIndex)
+                    if (char.IsWhiteSpace(charac))
                         break;
                     ++localEndIndex;
                 }
-                if (localEndIndex >= endIndex)
+
+                if (totalRange.end < localEndIndex)
                     return -2;
 
                 nameRange.start = startIndex;
                 nameRange.length = localEndIndex - startIndex;
 
+                //This is a comment line starting with two slashes : skip the line
+                if (nameRange.length == 2 && statement[startIndex] == '/' && statement[startIndex + 1] == '/')
+                {
+                    int lineStartIndex = localEndIndex+1;
+                    int lineEndIndex = lineStartIndex;
+                    foreach (var charac in statement.Take(totalRange.end).Skip(lineStartIndex))
+                    {
+                        lineEndIndex++;
+                        if (charac == '\n')
+                            break;
+                    }
+                    range.start = lineStartIndex;
+                    range.length = lineEndIndex - lineStartIndex;
+                    return 0;
+                }
+                    
+
                 bool wasEscapeChar = false;
                 bool inQuotes = false;
+                bool noSurrounding = false;
                 int bracketLevel = 0;
 
-                int valueStartIndex = localEndIndex;
+                int valueStartIndex = localEndIndex+1;
                 int valueEndIndex = valueStartIndex;
-                foreach ( var charac in statement.Skip(valueStartIndex))
+                int dataStartIndex = 0;
+
+                foreach ( var charac in statement.Take(totalRange.end).Skip(valueStartIndex))
                 {
+                    if (noSurrounding && char.IsWhiteSpace(charac))
+                        break;
                     valueEndIndex++;
+
                     if (inQuotes)
                     {
                         if (charac == '\\')
@@ -97,11 +122,23 @@ namespace UnityEditor.ShaderGraph
                         }
                     }
                     else if (charac == '"')
+                    {
+                        if(dataStartIndex== 0)
+                        {
+                            dataStartIndex = valueEndIndex-1;
+                        }
                         inQuotes = true;
+                    }
                     if( ! inQuotes)
                     {
                         if (charac == '{')
+                        {
+                            if (dataStartIndex == 0 && bracketLevel == 0)
+                            {
+                                dataStartIndex = valueEndIndex-1;
+                            }
                             bracketLevel++;
+                        }
                         if (charac == '}')
                         {
                             bracketLevel--;
@@ -109,15 +146,19 @@ namespace UnityEditor.ShaderGraph
                                 break;
                         }
                     }
+                    if (!noSurrounding && !inQuotes && bracketLevel == 0 && !char.IsWhiteSpace(charac)) // Parameter without quote or bracket ( Cull ... )
+                    {
+                        noSurrounding = true;
+                    }
                 }
 
-                range.start = valueStartIndex;
-                range.length = valueEndIndex - valueStartIndex;
+                range.start = dataStartIndex;
+                range.length = valueEndIndex - dataStartIndex;
 
                 return 0;
             }
 
-            protected int ParseContent(string document,RangeInt paramName,ref RangeInt param)
+            protected int ParseContent(string document,RangeInt totalRange, RangeInt paramName,ref RangeInt param)
             {
                 if (IsAny(startShaderName, document, paramName)) //START OF SHADER, end is not param but must find line with endShaderName
                 {
@@ -129,14 +170,14 @@ namespace UnityEditor.ShaderGraph
                     int startLine = 0;
                     do
                     {
-                        foreach (var charac in document.Skip(nextLine))
+                        foreach (var charac in document.Take(totalRange.end).Skip(nextLine))
                         {
                             nextLine++;
                             if (charac == '\n')
                                 break;
                         }
                         startLine = nextLine;
-                        foreach (var charac in document.Skip(nextLine))
+                        foreach (var charac in document.Take(totalRange.end).Skip(nextLine))
                         {
                             if (!char.IsWhiteSpace(charac))
                                 break;
@@ -146,7 +187,7 @@ namespace UnityEditor.ShaderGraph
 
                         endLine = startLine + 1;
 
-                        foreach (var charac in document.Skip(endLine))
+                        foreach (var charac in document.Take(totalRange.end).Skip(endLine))
                         {
                             if (char.IsWhiteSpace(charac))
                                 break;
@@ -159,7 +200,7 @@ namespace UnityEditor.ShaderGraph
                             break;
                         }
                         nextLine = endLine;
-                        foreach (var charac in document.Skip(nextLine))
+                        foreach (var charac in document.Take(totalRange.end).Skip(nextLine))
                         {
                             if (charac == '\n')
                                 break;
@@ -168,18 +209,144 @@ namespace UnityEditor.ShaderGraph
 
                     }
                     while (!found);
-                    shaderCode = document.Substring(paramName.end, endLine - param.end);
+                    shaderCode = document.Substring(paramName.end, startLine - paramName.end);
                     param.length = endLine - param.start;
+                }
+                else if(IsSame("Cull",document,paramName))
+                {
+                    string cullMode = document.Substring(param.start, param.length);
+                    CullMode enumCullMode;
+                    Enum.TryParse<CullMode>(cullMode, out enumCullMode);
+                    parameters.cullMode = enumCullMode;
                 }
 
                 return 0;
             }
             static readonly string[] startShaderName = { "HLSLINCLUDE", "HLSLPROGRAM", "CGINCLUDE", "CGPROGRAM" };
             static readonly string[] endShaderName = { "ENDHLSL", "ENDCG" };
+
+
+            protected void AppendContentTo(StringBuilder sb)
+            {
+                if (!string.IsNullOrEmpty(shaderCode))
+                {
+                    sb.AppendLine("HLSLPROGRAM");
+                    sb.Append(shaderCode);
+                    sb.AppendLine("ENDHLSL");
+                }
+            }
+        }
+
+        class PassPart : ShaderPart
+        {
+            protected string name;
+            public int Parse(string document, RangeInt totalRange)
+            {
+                int startIndex = document.IndexOf('{',totalRange.start,totalRange.length);
+                if (startIndex == -1)
+                    return -1;
+
+                RangeInt paramName;
+                RangeInt param;
+
+                int endIndex = document.LastIndexOf('}',totalRange.end,totalRange.length);
+                startIndex += 1; // skip '{' itself
+
+                while (ParseParameter(document, new RangeInt(startIndex, endIndex - startIndex), out paramName, out param) == 0)
+                {
+                    if( IsSame("name",document,paramName))
+                    {
+                        name = document.Substring(param.start + 1, param.length - 2);
+                    }
+                    else
+                        base.ParseContent(document, new RangeInt(startIndex, endIndex - startIndex), paramName, ref param);
+                    startIndex = param.end;
+                }
+
+
+                return 0;
+            }
+            public void AppendTo(StringBuilder sb)
+            {
+                sb.AppendLine("Pass");
+                sb.AppendLine("{");
+                sb.AppendFormat("name \"{0}\"\n",name);
+                base.AppendContentTo(sb);
+                sb.AppendLine("}");
+            }
+        }
+
+        class SubShaderPart : ShaderPart
+        {
+            List<PassPart> passes = new List<PassPart>();
+
+            public int Parse(string document, RangeInt totalRange)
+            {
+                int startIndex = document.IndexOf('{',totalRange.start,totalRange.length);
+                if (startIndex == -1)
+                    return -1;
+
+                RangeInt paramName;
+                RangeInt param;
+
+                int endIndex = document.LastIndexOf('}',totalRange.end,totalRange.length);
+                startIndex += 1; // skip '{' itself
+
+                while (ParseParameter(document, new RangeInt(startIndex, endIndex - startIndex), out paramName, out param) == 0)
+                {
+                    if (IsSame("Pass", document, paramName))
+                    {
+                        PassPart pass = new PassPart();
+
+                        if( pass.Parse(document,param) == 0)
+                            passes.Add(pass);
+                    }
+                    else
+                    {
+                        base.ParseContent(document, new RangeInt(startIndex, endIndex - startIndex), paramName, ref param);
+                    }
+                    startIndex = param.end;
+                }
+
+
+                return 0;
+            }
+
+            public void AppendTo(StringBuilder sb)
+            {
+                sb.AppendLine("SubShader");
+                sb.AppendLine("{");
+                base.AppendContentTo(sb);
+                foreach(var pass in passes)
+                {
+                    pass.AppendTo(sb);
+                }
+                sb.AppendLine("}");
+            }
         }
 
         class ShaderDocument : ShaderPart
         {
+            protected string name;
+            List<SubShaderPart> subShaders = new List<SubShaderPart>();
+
+            public override string ToString()
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("Shader \"" +name+'"');
+                sb.AppendLine("{");
+
+                base.AppendContentTo(sb);
+
+                foreach(var subShader in subShaders)
+                {
+                    subShader.AppendTo(sb);
+                }
+                sb.AppendLine("}");
+
+                return sb.ToString();
+            }
+
             public int Parse(string document)
             {
                 int startIndex = document.IndexOf('{');
@@ -189,7 +356,7 @@ namespace UnityEditor.ShaderGraph
                 RangeInt paramName;
                 RangeInt param;
 
-                int error = ParseParameter(document, 0, startIndex, out paramName, out param);
+                int error = ParseParameter(document, new RangeInt(0, startIndex), out paramName, out param);
                 if( error != 0)
                 {
                     return 1000 + error;
@@ -202,18 +369,25 @@ namespace UnityEditor.ShaderGraph
                 int endIndex = document.LastIndexOf('}');
                 startIndex += 1; // skip '{' itself
 
-                while( ParseParameter(document,startIndex,endIndex-startIndex,out paramName, out param) == 0)
+                while( ParseParameter(document,new RangeInt(startIndex, endIndex - startIndex),out paramName, out param) == 0)
                 {
                     if (IsSame("Properties", document, paramName))
                     {
                         // ignore properties Block we don't need it in our case
-                        startIndex = param.end;
+                    }
+                    else if( IsSame("SubShader",document,paramName))
+                    {
+                        SubShaderPart subShader = new SubShaderPart();
+
+                        if( subShader.Parse(document,param) == 0)
+                            subShaders.Add(subShader);
                     }
                     else
                     {
-                        base.ParseContent(document, paramName, ref param);
-                        startIndex = param.end;
+                        base.ParseContent(document, new RangeInt(startIndex, endIndex - startIndex), paramName, ref param);
+                        
                     }
+                    startIndex = param.end;
                 }
 
 
@@ -243,12 +417,12 @@ namespace UnityEditor.ShaderGraph
 
         struct ShaderParameters
         {
-            CullMode? cullMode;
-            bool? zWrite;
-            CompareFunction? zTest;
-            StencilParameters stencilParameters;
-            string ZClip;
-            ColorMask colorMask;
+            public CullMode? cullMode;
+            public bool? zWrite;
+            public CompareFunction? zTest;
+            public StencilParameters stencilParameters;
+            public string ZClip;
+            public ColorMask? colorMask;
         }
 
 
@@ -659,6 +833,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
             ShaderDocument document = new ShaderDocument();
             document.Parse(File.ReadAllText("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader"));
+            File.WriteAllText("C:/unity/shaderDocument.txt",document.ToString());
 
             var shader = new StringBuilder();
             bool withinProperties = false;
