@@ -29,6 +29,11 @@ namespace UnityEditor.ShaderGraph
 
         class ShaderPart
         {
+
+            public virtual string shaderStartTag
+            {
+                get { return "HLSLINCLUDE"; }
+            }
             protected bool IsSame(string paramName, string document, RangeInt range)
             {
                 return paramName.Length == range.length && string.Compare(document, range.start, paramName, 0, range.length, StringComparison.InvariantCultureIgnoreCase) == 0;
@@ -39,7 +44,7 @@ namespace UnityEditor.ShaderGraph
                 return paramNames.Any(t => IsSame(t, document, range));
             }
 
-            protected string shaderCode;
+            protected string[] shaderCode;
             protected ShaderParameters parameters;
 
 
@@ -75,7 +80,6 @@ namespace UnityEditor.ShaderGraph
                 nameRange.start = startIndex;
                 nameRange.length = localEndIndex - startIndex;
                 string name = statement.Substring(nameRange.start, nameRange.length);
-                Debug.Log(name);
 
                 //This is a comment line starting with two slashes : skip the line
                 if (nameRange.length >= 2 && statement[startIndex] == '/' && statement[startIndex + 1] == '/')
@@ -166,6 +170,47 @@ namespace UnityEditor.ShaderGraph
                 return 0;
             }
 
+            string[] UnIndent(string code)
+            {
+                //TODO rewrite in a non allocating way
+                string[] lines = code.Split('\n');
+
+                for(int i = 0; i < lines.Length; ++ i)
+                {
+                    if( lines[i].IndexOf('\t') >= 0)
+                        lines[i] = lines[i].Replace('\t', ' ');
+                }
+
+                int cptIndent = int.MaxValue;
+                foreach (var line in lines)
+                {
+                    int lineCptIndent = 0;
+                    if (line.Length == 0)
+                        lineCptIndent = int.MaxValue;
+                    else
+                        foreach (var charac in line)
+                        {
+                            if (charac == ' ')
+                                lineCptIndent += 1;
+                            else break;
+                        }
+
+                    if (lineCptIndent < line.Length && lineCptIndent < cptIndent)
+                        cptIndent = lineCptIndent;
+                }
+                if( cptIndent > 0)
+                {
+                    for (int i = 0; i < lines.Length; ++i)
+                    {
+                        if( lines[i].Length > cptIndent)
+                            lines[i] = lines[i].Substring(cptIndent).TrimEnd();
+                    }
+                }
+
+                return lines;
+            }
+
+
             protected int ParseContent(string document,RangeInt totalRange, RangeInt paramName,ref RangeInt param)
             {
                 if (IsAny(startShaderName, document, paramName)) //START OF SHADER, end is not param but must find line with endShaderName
@@ -217,7 +262,7 @@ namespace UnityEditor.ShaderGraph
 
                     }
                     while (!found);
-                    shaderCode = document.Substring(paramName.end, startLine - paramName.end);
+                    shaderCode = UnIndent(document.Substring(paramName.end, startLine - paramName.end));
                     param.length = endLine - param.start;
                 }
                 else if (IsSame("Cull", document, paramName))
@@ -234,13 +279,55 @@ namespace UnityEditor.ShaderGraph
                 }
                 else if (IsSame("Tags", document, paramName))
                 {
-                    ParseTags(document,param);
+
+                    int error = ParseTags(document, param);
+                    if( error != 0)
+                    {
+                        return 100 + error;
+                    }
+                }
+                else if( IsSame("Stencil",document,paramName))
+                {
+                    int startIndex = document.IndexOf('{',param.start) + 1;
+                    if (startIndex == -1)
+                        return -1;
+
+                    RangeInt stencilParamName;
+                    RangeInt stencilParam;
+
+                    int endIndex = param.end;
+                    while (document[endIndex] != '}')
+                        endIndex--;
+                    endIndex--;
+
+                    while (ParseParameter(document, new RangeInt(startIndex, endIndex - startIndex), out stencilParamName, out stencilParam) == 0)
+                    {
+                        if (IsSame("WriteMask", document, stencilParamName))
+                        {
+                            parameters.stencilParameters.writeMask = document.Substring(stencilParam.start, stencilParam.length);
+                        }
+                        else if (IsSame("Ref", document, stencilParamName))
+                        {
+                            parameters.stencilParameters.reference = document.Substring(stencilParam.start, stencilParam.length);
+                        }
+                        else if (IsSame("Pass", document, stencilParamName))
+                        {
+                            parameters.stencilParameters.pass = document.Substring(stencilParam.start, stencilParam.length);
+                        }
+                        else if (IsSame("Comp", document, stencilParamName))
+                        {
+                            CompareFunction compFunc;
+                            if( Enum.TryParse<CompareFunction>(document.Substring(stencilParam.start, stencilParam.length),out compFunc))
+                                parameters.stencilParameters.comp = compFunc;
+                        }
+                        startIndex = stencilParam.end;
+                    }
                 }
 
                 return 0;
             }
 
-            void ParseTags(string document,RangeInt param)
+            int ParseTags(string document,RangeInt param)
             {
                 if (document[param.start] == '{')
                 {
@@ -296,6 +383,8 @@ namespace UnityEditor.ShaderGraph
                         key = null;
                     }
                 }
+
+                return key == null ? 0 : -1;
             }
 
             static readonly string[] startShaderName = { "HLSLINCLUDE", "HLSLPROGRAM", "CGINCLUDE", "CGPROGRAM" };
@@ -322,10 +411,39 @@ namespace UnityEditor.ShaderGraph
                     sb.AppendLine("ZWrite " + parameters.zWrite);
                 }
 
-                if (!string.IsNullOrEmpty(shaderCode))
+                if( parameters.stencilParameters.writeMask != null ||
+                    parameters.stencilParameters.reference != null ||
+                    parameters.stencilParameters.pass != null ||
+                    parameters.stencilParameters.comp != (CompareFunction)0)
                 {
-                    sb.AppendLine("HLSLPROGRAM");
-                    sb.Append(shaderCode);
+                    sb.AppendLine("Stencil");
+                    sb.AppendLine("{");
+                    if (parameters.stencilParameters.writeMask != null)
+                    {
+                        sb.AppendLine("WriteMask " + parameters.stencilParameters.writeMask);
+                    }
+                    if (parameters.stencilParameters.reference != null)
+                    {
+                        sb.AppendLine("Ref " + parameters.stencilParameters.reference);
+                    }
+                    if (parameters.stencilParameters.comp != (CompareFunction)0)
+                    {
+                        sb.AppendLine("Comp " + parameters.stencilParameters.comp.ToString());
+                    }
+                    if (parameters.stencilParameters.pass != null)
+                    {
+                        sb.AppendLine("Pass " + parameters.stencilParameters.pass);
+                    }
+                    sb.AppendLine("}");
+                }
+
+                if (shaderCode != null)
+                {
+                    sb.AppendLine(shaderStartTag);
+                    foreach( var line in shaderCode)
+                    {
+                        sb.AppendLine(line);
+                    }
                     sb.AppendLine("ENDHLSL");
                 }
             }
@@ -367,6 +485,10 @@ namespace UnityEditor.ShaderGraph
                 sb.AppendFormat("name \"{0}\"\n",name);
                 base.AppendContentTo(sb);
                 sb.AppendLine("}");
+            }
+            public override string shaderStartTag
+            {
+                get { return "HLSLPROGRAM"; }
             }
         }
 
@@ -492,10 +614,10 @@ namespace UnityEditor.ShaderGraph
 
         struct StencilParameters
         {
-            string writeMask;
-            string reference;
-            CompareFunction comp;
-            string pass;
+            public string writeMask;
+            public string reference;
+            public CompareFunction comp;
+            public string pass;
         }
 
         [Flags]
