@@ -5,8 +5,8 @@ using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.VFX;
-using UnityEditor.ShaderGraph;
-using Object = UnityEngine.Object;
+using UnityEditor.ShaderGraph.VFX;
+
 using System.Text.RegularExpressions;
 
 namespace UnityEditor.VFX

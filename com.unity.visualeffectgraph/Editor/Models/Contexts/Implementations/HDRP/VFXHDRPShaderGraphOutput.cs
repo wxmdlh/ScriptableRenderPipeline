@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Experimental.VFX;
-using UnityEditor.ShaderGraph;
+using UnityEditor.ShaderGraph.VFX;
 
 namespace UnityEditor.VFX
 {

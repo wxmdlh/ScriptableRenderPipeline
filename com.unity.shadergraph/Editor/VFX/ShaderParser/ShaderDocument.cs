@@ -1,0 +1,84 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Globalization;
+using System.Text;
+using UnityEditor.Graphing;
+using UnityEditor.Graphing.Util;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace UnityEditor.ShaderGraph.VFX
+{
+    class ShaderDocument : ShaderPart
+    {
+        protected string name;
+        List<SubShaderPart> subShaders = new List<SubShaderPart>();
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Shader \"" +name+'"');
+            sb.AppendLine("{");
+
+            base.AppendContentTo(sb);
+
+            foreach(var subShader in subShaders)
+            {
+                subShader.AppendTo(sb);
+            }
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        public int Parse(string document)
+        {
+            int startIndex = document.IndexOf('{');
+            if (startIndex == -1)
+                return -1;
+
+            RangeInt paramName;
+            RangeInt param;
+
+            int error = ParseParameter(document, new RangeInt(0, startIndex), out paramName, out param);
+            if( error != 0)
+            {
+                return 1000 + error;
+            }
+            if (!IsSame("Shader", document, paramName))
+                return -2;
+
+            name = document.Substring(param.start+1, param.length-2);
+
+            int endIndex = document.LastIndexOf('}');
+            startIndex += 1; // skip '{' itself
+
+            while( ParseParameter(document,new RangeInt(startIndex, endIndex - startIndex),out paramName, out param) == 0)
+            {
+                if (IsSame("Properties", document, paramName))
+                {
+                    // ignore properties Block we don't need it in our case
+                }
+                else if( IsSame("SubShader",document,paramName))
+                {
+                    SubShaderPart subShader = new SubShaderPart();
+
+                    if( subShader.Parse(document,param) == 0)
+                        subShaders.Add(subShader);
+                }
+                else
+                {
+                    base.ParseContent(document, new RangeInt(startIndex, endIndex - startIndex), paramName, ref param);
+                        
+                }
+                startIndex = param.end;
+            }
+
+
+            return 0;
+        }
+
+    }
+}
