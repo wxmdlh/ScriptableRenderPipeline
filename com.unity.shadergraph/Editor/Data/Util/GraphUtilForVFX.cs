@@ -41,7 +41,6 @@ namespace UnityEditor.ShaderGraph
 
             protected string shaderCode;
             protected ShaderParameters parameters;
-            protected Dictionary<string, string> tags;
 
 
             protected int ParseParameter(string statement, RangeInt totalRange, out RangeInt nameRange, out RangeInt range)
@@ -65,7 +64,7 @@ namespace UnityEditor.ShaderGraph
 
                 foreach (var charac in statement.Take(totalRange.end).Skip(localEndIndex))
                 {
-                    if (char.IsWhiteSpace(charac))
+                    if (char.IsWhiteSpace(charac) || charac == '{' || charac == '"' || charac == '[')
                         break;
                     ++localEndIndex;
                 }
@@ -75,9 +74,11 @@ namespace UnityEditor.ShaderGraph
 
                 nameRange.start = startIndex;
                 nameRange.length = localEndIndex - startIndex;
+                string name = statement.Substring(nameRange.start, nameRange.length);
+                Debug.Log(name);
 
                 //This is a comment line starting with two slashes : skip the line
-                if (nameRange.length == 2 && statement[startIndex] == '/' && statement[startIndex + 1] == '/')
+                if (nameRange.length >= 2 && statement[startIndex] == '/' && statement[startIndex + 1] == '/')
                 {
                     int lineStartIndex = localEndIndex+1;
                     int lineEndIndex = lineStartIndex;
@@ -91,6 +92,12 @@ namespace UnityEditor.ShaderGraph
                     range.length = lineEndIndex - lineStartIndex;
                     return 0;
                 }
+
+                if( IsAny(startShaderName,statement,nameRange))
+                {
+                    range.start = localEndIndex + 1;
+                    return 0;
+                }
                     
 
                 bool wasEscapeChar = false;
@@ -98,7 +105,7 @@ namespace UnityEditor.ShaderGraph
                 bool noSurrounding = false;
                 int bracketLevel = 0;
 
-                int valueStartIndex = localEndIndex+1;
+                int valueStartIndex = localEndIndex;
                 int valueEndIndex = valueStartIndex;
                 int dataStartIndex = 0;
 
@@ -148,6 +155,7 @@ namespace UnityEditor.ShaderGraph
                     }
                     if (!noSurrounding && !inQuotes && bracketLevel == 0 && !char.IsWhiteSpace(charac)) // Parameter without quote or bracket ( Cull ... )
                     {
+                        dataStartIndex = valueEndIndex - 1;
                         noSurrounding = true;
                     }
                 }
@@ -212,22 +220,108 @@ namespace UnityEditor.ShaderGraph
                     shaderCode = document.Substring(paramName.end, startLine - paramName.end);
                     param.length = endLine - param.start;
                 }
-                else if(IsSame("Cull",document,paramName))
+                else if (IsSame("Cull", document, paramName))
                 {
-                    string cullMode = document.Substring(param.start, param.length);
-                    CullMode enumCullMode;
-                    Enum.TryParse<CullMode>(cullMode, out enumCullMode);
-                    parameters.cullMode = enumCullMode;
+                    parameters.cullMode = document.Substring(param.start, param.length);
+                }
+                else if (IsSame("ZWrite", document, paramName))
+                {
+                    parameters.zWrite = document.Substring(param.start, param.length);
+                }
+                else if (IsSame("ZTest", document, paramName))
+                {
+                    parameters.zTest = document.Substring(param.start, param.length);
+                }
+                else if (IsSame("Tags", document, paramName))
+                {
+                    ParseTags(document,param);
                 }
 
                 return 0;
             }
+
+            void ParseTags(string document,RangeInt param)
+            {
+                if (document[param.start] == '{')
+                {
+                    param.start++;
+                    param.length--;
+                }
+                if (document[param.start + param.length] == '}')
+                    param.length--;
+
+                string key = null;
+
+                int pos = param.start;
+
+                while(pos < param.end)
+                {
+                    foreach (char charac in document.Skip(pos).Take(param.length))
+                    {
+                        if (!char.IsWhiteSpace(charac))
+                            break;
+                        ++pos;
+                    }
+                    if (document[pos] == '"')
+                        pos++;
+                    int startSentence = pos;
+                    foreach (char charac in document.Skip(pos).Take(param.length))
+                    {
+                        if (char.IsWhiteSpace(charac) || charac == '=')
+                            break;
+                        ++pos;
+                    }
+                    int endSentence = pos;
+                    if (document[endSentence-1] == '"')
+                        endSentence--;
+
+                    if ( key == null)
+                    {
+                        key = document.Substring(startSentence, endSentence - startSentence);
+
+                        foreach (char charac in document.Skip(pos).Take(param.length))
+                        {
+                            ++pos;
+                            if (charac == '=' )
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        if(parameters.tags == null)
+                        {
+                            parameters.tags = new Dictionary<string, string>();
+                        }
+                        parameters.tags[key] = document.Substring(startSentence, endSentence - startSentence);
+                        key = null;
+                    }
+                }
+            }
+
             static readonly string[] startShaderName = { "HLSLINCLUDE", "HLSLPROGRAM", "CGINCLUDE", "CGPROGRAM" };
             static readonly string[] endShaderName = { "ENDHLSL", "ENDCG" };
 
 
             protected void AppendContentTo(StringBuilder sb)
             {
+                if(parameters.tags != null)
+                {
+                    sb.AppendLine("Tags {"+ parameters.tags.Select(t=>string.Format("\"{0}\" = \"{1}\" ", t.Key, t.Value)).Aggregate((s,t)=> s + t) + '}');
+                }
+
+                if (parameters.cullMode != null)
+                {
+                    sb.AppendLine("Cull " + parameters.cullMode);
+                }
+                if (parameters.zTest != null)
+                {
+                    sb.AppendLine("ZTest " + parameters.zTest);
+                }
+                if (parameters.zWrite != null)
+                {
+                    sb.AppendLine("ZWrite " + parameters.zWrite);
+                }
+
                 if (!string.IsNullOrEmpty(shaderCode))
                 {
                     sb.AppendLine("HLSLPROGRAM");
@@ -398,8 +492,8 @@ namespace UnityEditor.ShaderGraph
 
         struct StencilParameters
         {
-            byte? writeMask;
-            byte? reference;
+            string writeMask;
+            string reference;
             CompareFunction comp;
             string pass;
         }
@@ -417,12 +511,13 @@ namespace UnityEditor.ShaderGraph
 
         struct ShaderParameters
         {
-            public CullMode? cullMode;
-            public bool? zWrite;
-            public CompareFunction? zTest;
+            public Dictionary<string, string> tags;
+            public string cullMode;
+            public string zWrite;
+            public string zTest;
             public StencilParameters stencilParameters;
             public string ZClip;
-            public ColorMask? colorMask;
+            public string colorMask;
         }
 
 
