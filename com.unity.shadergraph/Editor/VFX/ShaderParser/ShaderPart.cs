@@ -8,16 +8,16 @@ using UnityEditor.Graphing;
 using UnityEditor.Graphing.Util;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Text.RegularExpressions;
 
 namespace UnityEditor.ShaderGraph.VFX
 {
 
     struct StencilParameters
     {
-        public string writeMask;
-        public string reference;
-        public CompareFunction comp;
-        public string pass;
+        public Dictionary<string, string> parameters;
+
+        public static readonly string[] s_StencilParameters = { "ReadMask", "WriteMask", "Ref", "Comp", "Pass", "Fail", "ZFail" };
     }
 
     [Flags]
@@ -34,17 +34,144 @@ namespace UnityEditor.ShaderGraph.VFX
     struct ShaderParameters
     {
         public Dictionary<string, string> tags;
-        public string cullMode;
-        public string zWrite;
-        public string zTest;
+        public Dictionary<string, string> parameters;
+
+        public static readonly string[] s_ShaderParameters = {"Cull", "ZTest", "ZWrite", "ZClip","ColorMask"};
+
         public StencilParameters stencilParameters;
-        public string ZClip;
-        public string colorMask;
     }
     class ShaderPart
     {
-        protected string[] shaderCode;
-        protected ShaderParameters parameters;
+        public List<string> shaderCode;
+        public ShaderParameters parameters;
+
+        public void AddTag(string key,string value)
+        {
+            parameters.tags[key] = value;
+        }
+
+        public void ReplaceParameterVariables(Dictionary<string, string> guiVariables)
+        {
+            if (parameters.parameters != null)
+            {
+                foreach (var parameter in parameters.parameters.ToList())
+                {
+                    foreach (var variable in guiVariables)
+                        if (parameter.Value == "[" + variable.Key + "]")
+                        {
+                            parameters.parameters[parameter.Key] = variable.Value;
+                        }
+                }
+            }
+            if (parameters.stencilParameters.parameters != null)
+            {
+                foreach (var parameter in parameters.stencilParameters.parameters.ToList())
+                {
+                    foreach (var variable in guiVariables)
+                        if (parameter.Value == "[" + variable.Key + "]")
+                        {
+                            parameters.stencilParameters.parameters[parameter.Key] = variable.Value;
+                        }
+                }
+            }
+        }
+
+        public int IndexOfLineMatching(string str)
+        {
+            Regex rx = new Regex(str,RegexOptions.Compiled);
+
+            return shaderCode.FindIndex(t => rx.IsMatch(t));
+        }
+
+        public void InsertShaderLine(int index,string line)
+        {
+            if( index >= 0)
+                shaderCode.Insert(index, line);
+            else
+                shaderCode.Add(line);
+        }
+
+        public void InsertShaderCode(int index, string newShaderCode)
+        {
+            if( index >= 0)
+                shaderCode.InsertRange(index, UnIndent(newShaderCode));
+            else
+                shaderCode.AddRange(UnIndent(newShaderCode));
+        }
+
+        public void RemoveShaderCodeContaining(string shaderLine)
+        {
+            shaderCode.RemoveAll(t => t.Contains(shaderLine));
+        }
+
+        const string includeCommand = "#include";
+
+        bool IsInclude(string line,string filePath)
+        {
+            int pos = 0;
+            int length = line.Length;
+            int filePathLength = filePath.Length;
+
+            if (length < includeCommand.Length + 2 /* for quotes*/ + filePathLength)
+                return false;
+
+            while( pos < length - filePathLength - 2)
+            {
+                if (!char.IsWhiteSpace(line[pos]))
+                    break;
+                ++pos;
+            }
+
+            if (pos + includeCommand.Length >= length - filePathLength - 2)
+                return false;
+
+            if (string.Compare(line, pos, includeCommand, 0, includeCommand.Length, true) != 0)
+                return false;
+
+            pos += includeCommand.Length;
+
+            while (pos < length)
+            {
+                if (!char.IsWhiteSpace(line[pos]))
+                    break;
+                ++pos;
+            }
+
+            if (line[pos] != '"')
+                return false;
+            int startPath = ++pos;
+
+            while (pos < length)
+            {
+                if (line[pos] == '"')
+                    break;
+                ++pos;
+            }
+
+            if (pos >= length)
+                return false;
+
+            if (string.Compare(line, startPath, filePath, 0, filePath.Length) != 0)
+                return false;
+
+            return true;
+        }
+
+
+        public void ReplaceInclude(string filePath, string content)
+        {
+            if(shaderCode != null)
+            {
+                int includeIndex = shaderCode.FindIndex(t => IsInclude(t, filePath));
+
+                if (includeIndex >= 0)
+                {
+                    shaderCode.RemoveAt(includeIndex);
+
+                    shaderCode.InsertRange(includeIndex, UnIndent(content));
+                }
+            }
+        }
 
         public virtual string shaderStartTag
         {
@@ -182,7 +309,7 @@ namespace UnityEditor.ShaderGraph.VFX
             return 0;
         }
 
-        static protected string[] UnIndent(string code)
+        static protected List<string> UnIndent(string code)
         {
             //TODO rewrite in a non allocating way
             string[] lines = code.Split('\n');
@@ -219,7 +346,7 @@ namespace UnityEditor.ShaderGraph.VFX
                 }
             }
 
-            return lines;
+            return lines.ToList();
         }
 
 
@@ -277,22 +404,6 @@ namespace UnityEditor.ShaderGraph.VFX
                 shaderCode = UnIndent(document.Substring(paramName.end, startLine - paramName.end));
                 param.length = endLine - param.start;
             }
-            else if (IsSame("Cull", document, paramName))
-            {
-                parameters.cullMode = document.Substring(param.start, param.length);
-            }
-            else if (IsSame("ZWrite", document, paramName))
-            {
-                parameters.zWrite = document.Substring(param.start, param.length);
-            }
-            else if (IsSame("ZTest", document, paramName))
-            {
-                parameters.zTest = document.Substring(param.start, param.length);
-            }
-            else if (IsSame("ColorMask", document, paramName))
-            {
-                parameters.colorMask = document.Substring(param.start, param.length);
-            }
             else if (IsSame("Tags", document, paramName))
             {
 
@@ -318,25 +429,30 @@ namespace UnityEditor.ShaderGraph.VFX
 
                 while (ParseParameter(document, new RangeInt(startIndex, endIndex - startIndex), out stencilParamName, out stencilParam) == 0)
                 {
-                    if (IsSame("WriteMask", document, stencilParamName))
+                    foreach (var parameter in StencilParameters.s_StencilParameters)
                     {
-                        parameters.stencilParameters.writeMask = document.Substring(stencilParam.start, stencilParam.length);
-                    }
-                    else if (IsSame("Ref", document, stencilParamName))
-                    {
-                        parameters.stencilParameters.reference = document.Substring(stencilParam.start, stencilParam.length);
-                    }
-                    else if (IsSame("Pass", document, stencilParamName))
-                    {
-                        parameters.stencilParameters.pass = document.Substring(stencilParam.start, stencilParam.length);
-                    }
-                    else if (IsSame("Comp", document, stencilParamName))
-                    {
-                        CompareFunction compFunc;
-                        if( Enum.TryParse<CompareFunction>(document.Substring(stencilParam.start, stencilParam.length),out compFunc))
-                            parameters.stencilParameters.comp = compFunc;
+                        if (IsSame(parameter, document, stencilParamName))
+                        {
+                            if (parameters.stencilParameters.parameters == null)
+                                parameters.stencilParameters.parameters = new Dictionary<string, string>();
+                            parameters.stencilParameters.parameters[parameter] = document.Substring(stencilParam.start, stencilParam.length);
+                            break;
+                        }
                     }
                     startIndex = stencilParam.end;
+                }
+            }
+            else
+            {
+                foreach (var parameter in ShaderParameters.s_ShaderParameters)
+                {
+                    if (IsSame(parameter, document, paramName))
+                    {
+                        if (parameters.parameters == null)
+                            parameters.parameters = new Dictionary<string, string>();
+                        parameters.parameters[parameter] = document.Substring(param.start, param.length);
+                        break;
+                    }
                 }
             }
 
@@ -407,49 +523,39 @@ namespace UnityEditor.ShaderGraph.VFX
         static readonly string[] endShaderName = { "ENDHLSL", "ENDCG" };
 
 
-        protected void AppendContentTo(StringBuilder sb)
+        protected void AppendContentTo(ShaderStringBuilder sb)
         {
             if(parameters.tags != null)
             {
                 sb.AppendLine("Tags {"+ parameters.tags.Select(t=>string.Format("\"{0}\" = \"{1}\" ", t.Key, t.Value)).Aggregate((s,t)=> s + t) + '}');
             }
 
-            if (parameters.cullMode != null)
+            if(parameters.parameters != null)
             {
-                sb.AppendLine("Cull " + parameters.cullMode);
-            }
-            if (parameters.zTest != null)
-            {
-                sb.AppendLine("ZTest " + parameters.zTest);
-            }
-            if (parameters.zWrite != null)
-            {
-                sb.AppendLine("ZWrite " + parameters.zWrite);
+                foreach (var parameter in ShaderParameters.s_ShaderParameters)
+                {
+                    string value;
+                    if (parameters.parameters.TryGetValue(parameter, out value))
+                    {
+                        sb.AppendLine("{0} {1}", parameter, value);
+                    }
+                }
             }
 
-            if( parameters.stencilParameters.writeMask != null ||
-                parameters.stencilParameters.reference != null ||
-                parameters.stencilParameters.pass != null ||
-                parameters.stencilParameters.comp != (CompareFunction)0)
+            if (parameters.stencilParameters.parameters != null)
             {
                 sb.AppendLine("Stencil");
                 sb.AppendLine("{");
-                if (parameters.stencilParameters.writeMask != null)
+                sb.IncreaseIndent();
+                foreach (var parameter in StencilParameters.s_StencilParameters)
                 {
-                    sb.AppendLine("WriteMask " + parameters.stencilParameters.writeMask);
+                    string value;
+                    if (parameters.stencilParameters.parameters.TryGetValue(parameter, out value))
+                    {
+                        sb.AppendLine("{0} {1}", parameter, value);
+                    }
                 }
-                if (parameters.stencilParameters.reference != null)
-                {
-                    sb.AppendLine("Ref " + parameters.stencilParameters.reference);
-                }
-                if (parameters.stencilParameters.comp != (CompareFunction)0)
-                {
-                    sb.AppendLine("Comp " + parameters.stencilParameters.comp.ToString());
-                }
-                if (parameters.stencilParameters.pass != null)
-                {
-                    sb.AppendLine("Pass " + parameters.stencilParameters.pass);
-                }
+                sb.DecreaseIndent();
                 sb.AppendLine("}");
             }
 

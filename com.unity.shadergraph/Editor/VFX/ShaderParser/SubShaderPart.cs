@@ -13,9 +13,27 @@ namespace UnityEditor.ShaderGraph.VFX
 {
     class SubShaderPart : ShaderPart
     {
-        List<PassPart> passes = new List<PassPart>();
+        public List<PassPart> passes = new List<PassPart>();
 
-        public int Parse(string document, RangeInt totalRange)
+        public new void ReplaceInclude(string filePath, string content)
+        {
+            base.ReplaceInclude(filePath, content);
+
+            foreach (var pass in passes)
+                pass.ReplaceInclude(filePath, content);
+        }
+        void InsertShaderCodeInEachPass(int index, string shaderCode)
+        {
+            foreach (var pass in passes)
+                InsertShaderCode(index, shaderCode);
+        }
+        public void RemoveShaderCodeInEachPassContaining(string shaderCode)
+        {
+            foreach (var pass in passes)
+                RemoveShaderCodeContaining(shaderCode);
+        }
+
+            public int Parse(string document, RangeInt totalRange)
         {
             int startIndex = document.IndexOf('{',totalRange.start,totalRange.length);
             if (startIndex == -1)
@@ -47,15 +65,17 @@ namespace UnityEditor.ShaderGraph.VFX
             return 0;
         }
 
-        public void AppendTo(StringBuilder sb)
+        public void AppendTo(ShaderStringBuilder sb)
         {
             sb.AppendLine("SubShader");
             sb.AppendLine("{");
+            sb.IncreaseIndent();
             base.AppendContentTo(sb);
             foreach(var pass in passes)
             {
                 pass.AppendTo(sb);
             }
+            sb.DecreaseIndent();
             sb.AppendLine("}");
         }
     }

@@ -40,12 +40,14 @@ namespace UnityEditor.ShaderGraph.VFX
 
             return 0;
         }
-        public void AppendTo(StringBuilder sb)
+        public void AppendTo(ShaderStringBuilder sb)
         {
             sb.AppendLine("Pass");
             sb.AppendLine("{");
-            sb.AppendFormat("name \"{0}\"\n",name);
+            sb.IncreaseIndent();
+            sb.AppendLine("name \"{0}\"",name);
             base.AppendContentTo(sb);
+            sb.DecreaseIndent();
             sb.AppendLine("}");
         }
         public override string shaderStartTag

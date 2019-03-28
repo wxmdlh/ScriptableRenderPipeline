@@ -13,14 +13,61 @@ namespace UnityEditor.ShaderGraph.VFX
 {
     class ShaderDocument : ShaderPart
     {
+        public IEnumerable<PassPart> passes
+        {
+            get
+            {
+                foreach( var subShader in subShaders)
+                {
+                    foreach (var pass in subShader.passes)
+                        yield return pass;
+                }
+            }
+        }
+
+
+        public new void ReplaceParameterVariables(Dictionary<string, string> guiVariables)
+        {
+            base.ReplaceParameterVariables(guiVariables);
+            foreach (var subShader in subShaders)
+            {
+                subShader.ReplaceParameterVariables(guiVariables);
+                foreach (var pass in subShader.passes)
+                    pass.ReplaceParameterVariables(guiVariables);
+            }
+        }
+
+
         protected string name;
         List<SubShaderPart> subShaders = new List<SubShaderPart>();
 
-        public override string ToString()
+        public void InsertShaderCodeInEachPass(int index,string shaderCode)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine("Shader \"" +name+'"');
+            foreach (var subShader in subShaders)
+                InsertShaderCodeInEachPass(index, shaderCode);
+        }
+
+        public void RemoveShaderCodeInEachPassContaining(string shaderCode)
+        {
+            foreach (var subShader in subShaders)
+                RemoveShaderCodeInEachPassContaining(shaderCode);
+        }
+
+        public new void ReplaceInclude(string filePath, string content)
+        {
+            base.ReplaceInclude(filePath, content);
+
+            foreach (var subShader in subShaders)
+                subShader.ReplaceInclude(filePath, content);
+        }
+
+        public string ToString(bool includeName = true)
+        {
+            var sb = new ShaderStringBuilder();
+            if(includeName)
+                sb.AppendLine("Shader \"" +name+'"');
             sb.AppendLine("{");
+            sb.IncreaseIndent();
 
             base.AppendContentTo(sb);
 
@@ -28,6 +75,7 @@ namespace UnityEditor.ShaderGraph.VFX
             {
                 subShader.AppendTo(sb);
             }
+            sb.IncreaseIndent();
             sb.AppendLine("}");
 
             return sb.ToString();
