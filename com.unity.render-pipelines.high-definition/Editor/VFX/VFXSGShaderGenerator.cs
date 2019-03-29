@@ -54,9 +54,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
         }
 
 
-        static bool AddCodeIfSlotExist(Graph graph,ShaderStringBuilder builder,string slotName,string existsFormat, string dontExistStr)
+        static bool AddCodeIfSlotExist(Graph graph,ShaderStringBuilder builder,string slotName,string existsFormat, string dontExistStr, IEnumerable<MaterialSlot> slots)
         {
-            var slot = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == slotName );
+            var slot = slots.FirstOrDefault(t => t.shaderOutputName == slotName );
 
             if (slot != null)
             {
@@ -90,6 +90,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             string shaderGraphCode;
 
             IEnumerable<MaterialSlot> usedSlots;
+            int currentPass = 0;
 
             PropertyCollector shaderProperties = new PropertyCollector();
             {   // inspired by GenerateSurfaceDescriptionFunction
@@ -100,7 +101,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 graph.graphData.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
 
                 ShaderGenerator sg = new ShaderGenerator();
-                int currentPass = 0;
 
                 GraphContext graphContext = new GraphContext("SurfaceDescriptionInputs");
 
@@ -127,23 +127,21 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                                                                                                         && t.shaderOutputName != "BentNormal"
                                                                                                         && t.shaderOutputName != "Emission"
                                                                                                         && t.shaderOutputName != "Alpha"
-                                                                                                        && t.shaderOutputName != "AlphaClipThreshold");
+                                                                                                        && t.shaderOutputName != "AlphaClipThreshold").Intersect(graph.passes[currentPass].pixel.slots);
 
-                if (graph.graphData.outputNode is IMasterNode)
+
+                foreach (var input in usedSlots)
                 {
-                    foreach (var input in usedSlots)
+                    if (input != null)
                     {
-                        if (input != null)
+                        var foundEdges = graph.graphData.GetEdges(input.slotReference).ToArray();
+                        if (foundEdges.Any())
                         {
-                            var foundEdges = graph.graphData.GetEdges(input.slotReference).ToArray();
-                            if (foundEdges.Any())
-                            {
-                                sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), graph.graphData.outputNode.GetSlotValue(input.id, GenerationMode.ForReals));
-                            }
-                            else
-                            {
-                                sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), input.GetDefaultValue(GenerationMode.ForReals));
-                            }
+                            sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), graph.graphData.outputNode.GetSlotValue(input.id, GenerationMode.ForReals));
+                        }
+                        else
+                        {
+                            sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), input.GetDefaultValue(GenerationMode.ForReals));
                         }
                     }
                 }
@@ -182,11 +180,11 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                 }
             }
 
-            getSurfaceDataFunction.Append("\t" + shaderGraphCode.Replace("\n", "\n\t"));
+            getSurfaceDataFunction.Append("    " + shaderGraphCode.Replace("\n", "\n    "));
 
 
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Alpha","\talpha = {0};\n", null);
-            bool alphaThresholdExist = AddCodeIfSlotExist(graph, getSurfaceDataFunction, "AlphaClipThreshold", "\tfloat alphaCutoff = {0};\n", null);
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Alpha", "\tfloat alphaSG = {0};\n alpha *= alphaSG;\n", null, graph.passes[currentPass].pixel.slots);
+            bool alphaThresholdExist = AddCodeIfSlotExist(graph, getSurfaceDataFunction, "AlphaClipThreshold", "\tfloat alphaCutoff = {0};\nDoAlphaTest(alpha, alphaCutoff);\n", null, graph.passes[currentPass].pixel.slots);
             if( alphaThresholdExist)
             {
                 guiVariables["_ZTestGBuffer"] = "Equal";
@@ -198,7 +196,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                 guiVariables["_ZTestGBuffer"] = "LEqual";
             }
 
-            var coatMask = graph.graphData.outputNode.GetInputSlots<MaterialSlot>().FirstOrDefault(t => t.shaderOutputName == "CoatMask");
+            var coatMask = graph.passes[currentPass].pixel.slots.FirstOrDefault(t => t.shaderOutputName == "CoatMask");
             if (coatMask != null)
             {
                 var foundEdges = graph.graphData.GetEdges(coatMask.slotReference).ToArray();
@@ -214,7 +212,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                 }
             }
 
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Normal", "\tfloat3 normalTS = {0};\n", "\tfloat3 normalTS = float3(0.0,0.0,1.0);");
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Normal", "\tfloat3 normalTS = {0};\n", "\tfloat3 normalTS = float3(0.0,0.0,1.0);", graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
     float3 bentNormalTS;
@@ -223,13 +221,13 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     GetNormalWS(input, normalTS, surfaceData.normalWS, doubleSidedConstants);
 ");
 
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "BentNormal", "\tbentNormalTS = {0};\n", "\tbentNormalWS = surfaceData.normalWS;");
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "BentNormal", "\tbentNormalTS = {0};\n", "\tbentNormalWS = surfaceData.normalWS;", graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
     GetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants);
 ");
 
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Emission", "\tbuiltinData.emissiveColor = {0};\n", null);
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Emission", "\tbuiltinData.emissiveColor = {0};\n", null, graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.Append(@"
     PostInit(input, surfaceData, builtinData, posInput,bentNormalWS,alpha,V);
