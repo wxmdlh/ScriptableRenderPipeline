@@ -165,7 +165,7 @@ namespace UnityEditor.ShaderGraph.VFX
 
 void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
-    FragInputForSG IN = InitializeStructs(input, surfaceData, builtinData);
+    FragInputForSG IN = InitializeStructs(input, posInput,V, surfaceData, builtinData);
 
     #ifdef _DOUBLESIDED_ON
         float3 doubleSidedConstants = _DoubleSidedConstants.xyz;
@@ -294,9 +294,6 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
             string[] standardShader = File.ReadAllLines("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader");
 
-            //File.WriteAllText("C:/unity/shaderDocument.txt",document.ToString());
-
-
             document.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
 
             document.InsertShaderLine(0,"#define UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID : SV_InstanceID;");
@@ -393,21 +390,16 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
 
     float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
 	float3 vPos = mul(elementToVFX,float4(inputMesh.positionOS,1.0f)).xyz;
-	#ifdef VARYINGS_NEED_POSITION_WS
-	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(vPos);
-    #endif
 			
 	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(vPos);
 
-    #ifdef ATTRIBUTES_NEED_NORMAL
-        float3 normalWS = TransformObjectToWorldNormal(inputMesh.normalOS);
-    #endif
-
-    #ifdef ATTRIBUTES_NEED_TANGENT
-        float4 tangentWS = float4(TransformObjectToWorldDir(inputMesh.tangentOS.xyz), inputMesh.tangentOS.w);
+	#ifdef VARYINGS_NEED_POSITION_WS
+	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(vPos);
     #endif
 
     #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
+        float3 normalWS = TransformObjectToWorldNormal(inputMesh.normalOS);
+        float4 tangentWS = float4(TransformObjectToWorldDir(inputMesh.tangentOS.xyz), inputMesh.tangentOS.w);
         varyingsType.vmesh.normalWS = normalWS;
         varyingsType.vmesh.tangentWS = tangentWS;
     #endif
