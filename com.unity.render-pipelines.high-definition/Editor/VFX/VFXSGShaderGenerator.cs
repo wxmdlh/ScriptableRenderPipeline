@@ -283,7 +283,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             string[] standardShader = File.ReadAllLines("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader");
 
 
-            document.InsertShaderLine(0,"#define UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID : SV_InstanceID;");
+            document.InsertShaderLine(0, "#define UNITY_VERTEX_INPUT_INSTANCE_ID nointerpolation uint instanceID : SV_InstanceID;");
             document.InsertShaderLine(1, "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl\"");
             document.InsertShaderLine(2, "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc\"");
             document.InsertShaderLine(3, "#include \"Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc\"");
