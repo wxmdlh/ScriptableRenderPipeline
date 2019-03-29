@@ -5,7 +5,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
     class PassPart : ShaderPart
     {
-        protected string name;
+        public string name;
         public int Parse(string document, RangeInt totalRange)
         {
             int startIndex = document.IndexOf('{',totalRange.start,totalRange.length);

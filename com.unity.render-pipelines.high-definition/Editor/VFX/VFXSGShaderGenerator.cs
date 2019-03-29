@@ -82,7 +82,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
         }
 
 
-        static string GenerateParticleGetSurfaceAndBuiltinData(Graph graph, ref VFXInfos vfxInfos, Dictionary<string, string> guiVariables,Dictionary<string, int> defines,ShaderDocument shaderDoc)
+        static string GenerateParticleGetSurfaceAndBuiltinData(Graph graph, ref VFXInfos vfxInfos, int currentPass, Dictionary<string, string> guiVariables,Dictionary<string, int> defines,ShaderDocument shaderDoc)
         {
             var getSurfaceDataFunction = new ShaderStringBuilder();
 
@@ -90,7 +90,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             string shaderGraphCode;
 
             IEnumerable<MaterialSlot> usedSlots;
-            int currentPass = 0;
 
             PropertyCollector shaderProperties = new PropertyCollector();
             {   // inspired by GenerateSurfaceDescriptionFunction
@@ -280,11 +279,9 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
             var defines = new Dictionary<string, int>();
 
-            string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, guiVariables, defines,document);
 
             string[] standardShader = File.ReadAllLines("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader");
 
-            document.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
 
             document.InsertShaderLine(0,"#define UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID : SV_InstanceID;");
             document.InsertShaderLine(1, "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl\"");
@@ -302,6 +299,12 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
             foreach (var pass in document.passes)
             {
+                int currentPass = Array.FindIndex(Graph.passInfos, t => t.name == pass.name);
+                if (currentPass == -1)
+                    continue;
+                string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass,guiVariables, defines, document);
+                pass.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
+
                 pass.InsertShaderCode(-1,sb.ToString());
                 pass.RemoveShaderCodeContaining("#pragma vertex Vert");
 
@@ -426,17 +429,7 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                 internal Function pixel;
             }
 
-
-
-            internal class PassName
-            {
-                public const int GBuffer = 0;
-                public const int ShadowCaster = 1;
-                public const int Depth = 2;
-                public const int Count = 3;
-            }
-
-            internal Pass[] passes = new Pass[PassName.Count];
+            internal Pass[] passes = new Pass[passInfos.Length];
 
             internal class PassInfo
             {
@@ -449,40 +442,6 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                 public readonly string name;
                 public readonly FunctionInfo pixel;
                 public readonly FunctionInfo vertex;
-
-                public const int PositionSlotId = 0;
-                public const int AlbedoSlotId = 1;
-                public const int NormalSlotId = 2;
-                public const int BentNormalSlotId = 3;
-                public const int TangentSlotId = 4;
-                public const int SubsurfaceMaskSlotId = 5;
-                public const int ThicknessSlotId = 6;
-                public const int DiffusionProfileHashSlotId = 7;
-                public const int IridescenceMaskSlotId = 8;
-                public const int IridescenceThicknessSlotId = 9;
-                public const int SpecularColorSlotId = 10;
-                public const int CoatMaskSlotId = 11;
-                public const int MetallicSlotId = 12;
-                public const int EmissionSlotId = 13;
-                public const int SmoothnessSlotId = 14;
-                public const int AmbientOcclusionSlotId = 15;
-                public const int AlphaSlotId = 16;
-                public const int AlphaThresholdSlotId = 17;
-                public const int AlphaThresholdDepthPrepassSlotId = 18;
-                public const int AlphaThresholdDepthPostpassSlotId = 19;
-                public const int AnisotropySlotId = 20;
-                public const int SpecularAAScreenSpaceVarianceSlotId = 21;
-                public const int SpecularAAThresholdSlotId = 22;
-                public const int RefractionIndexSlotId = 23;
-                public const int RefractionColorSlotId = 24;
-                public const int RefractionDistanceSlotId = 25;
-                public const int DistortionSlotId = 26;
-                public const int DistortionBlurSlotId = 27;
-                public const int SpecularOcclusionSlotId = 28;
-                public const int AlphaThresholdShadowSlotId = 29;
-                public const int LightingSlotId = 30;
-                public const int BackLightingSlotId = 31;
-                public const int DepthOffsetSlotId = 32;
             }
             internal class FunctionInfo
             {
@@ -496,29 +455,18 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
             internal readonly static PassInfo[] passInfos = new PassInfo[]
                 {
                 //GBuffer
-                new PassInfo("GBuffer",
-                    new FunctionInfo(new List<int>()
-                    {
-                        PassInfo.AlphaSlotId,
-                        PassInfo.AlphaThresholdSlotId,
-                        PassInfo.DepthOffsetSlotId,
-                    }),
-                    new FunctionInfo(new List<int>()
-                    {
-                        PassInfo.PositionSlotId
-                    }
-                    )), // hardcoded pbr pixel slots.
+                new PassInfo("GBuffer",new FunctionInfo(HDLitSubShader.passGBuffer.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passGBuffer.VertexShaderSlots)),
                 //ShadowCaster
-                new PassInfo("ShadowCaster",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("DepthOnly",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("SceneSelectionPass",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("META",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("MotionVectors",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("DistortionVectors",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("TransparentDepthPrepass",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("TransparentBackface",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("Forward",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
-                new PassInfo("TransparentDepthPostpass",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("ShadowCaster",new FunctionInfo(HDLitSubShader.passShadowCaster.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passShadowCaster.VertexShaderSlots)),
+                new PassInfo("DepthOnly",new FunctionInfo(HDLitSubShader.passDepthOnly.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passDepthOnly.VertexShaderSlots)),
+                new PassInfo("SceneSelectionPass",new FunctionInfo(HDLitSubShader.passSceneSelection.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passSceneSelection.VertexShaderSlots)),
+                new PassInfo("META",new FunctionInfo(HDLitSubShader.passMETA.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passMETA.VertexShaderSlots)),
+                new PassInfo("MotionVectors",new FunctionInfo(HDLitSubShader.passMotionVector.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passMotionVector.VertexShaderSlots)),
+                new PassInfo("DistortionVectors",new FunctionInfo(HDLitSubShader.passDistortion.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passDistortion.VertexShaderSlots)),
+                new PassInfo("TransparentDepthPrepass",new FunctionInfo(HDLitSubShader.passTransparentPrepass.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passTransparentPrepass.VertexShaderSlots)),
+                new PassInfo("TransparentBackface",new FunctionInfo(HDLitSubShader.passTransparentBackface.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passTransparentBackface.VertexShaderSlots)),
+                new PassInfo("Forward",new FunctionInfo(HDLitSubShader.passForward.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passForward.VertexShaderSlots)),
+                new PassInfo("TransparentDepthPostpass",new FunctionInfo(HDLitSubShader.passTransparentDepthPostpass.PixelShaderSlots),new FunctionInfo(HDLitSubShader.passTransparentDepthPostpass.VertexShaderSlots)),
                 };
         }
 
@@ -551,7 +499,7 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                 else
                     graph.slots.AddRange(activeNode.GetOutputSlots<MaterialSlot>());
             }
-            for(int currentPass = 0; currentPass < Graph.PassName.Count; ++currentPass)
+            for(int currentPass = 0; currentPass < Graph.passInfos.Length; ++currentPass)
             {
                 graph.passes[currentPass].pixel.nodes = ListPool<AbstractMaterialNode>.Get();
                 NodeUtils.DepthFirstCollectNodesFromNode(graph.passes[currentPass].pixel.nodes, ((AbstractMaterialNode)graph.graphData.outputNode), NodeUtils.IncludeSelf.Include, Graph.passInfos[currentPass].pixel.activeSlots);
