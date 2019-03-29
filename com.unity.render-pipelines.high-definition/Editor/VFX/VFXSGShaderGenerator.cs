@@ -154,7 +154,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
 void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
-    FragInputForSG IN = InitializeStructs(input, posInput,V, surfaceData, builtinData);
+    FragInputForSG IN = InitializeFragStructs(input, posInput,V, surfaceData, builtinData);
 
     #ifdef _DOUBLESIDED_ON
         float3 doubleSidedConstants = _DoubleSidedConstants.xyz;
@@ -288,8 +288,6 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             document.InsertShaderLine(2, "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc\"");
             document.InsertShaderLine(3, "#include \"Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc\"");
 
-            var sb = new StringBuilder();
-            GenerateParticleVert(vfxInfos, sb);
 
             document.RemoveShaderCodeContaining("#pragma shader_feature_local"); // remove all feature local that are used by the GUI to change some values
 
@@ -302,6 +300,8 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 int currentPass = Array.FindIndex(Graph.passInfos, t => t.name == pass.name);
                 if (currentPass == -1)
                     continue;
+                var sb = new StringBuilder();
+                GenerateParticleVert(vfxInfos, sb, currentPass);
                 string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass,guiVariables, defines, document);
                 pass.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
 
@@ -354,7 +354,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             return document.ToString(false);
         }
 
-        private static void GenerateParticleVert(VFXInfos vfxInfos, StringBuilder shader)
+        private static void GenerateParticleVert(VFXInfos vfxInfos, StringBuilder shader, int currentPass)
         {
             shader.Append(vfxInfos.vertexFunctions);
 
@@ -382,19 +382,19 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
 	#endif
 
     float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
-	float3 vPos = mul(elementToVFX,float4(inputMesh.positionOS,1.0f)).xyz;
-			
-	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(vPos);
+
+    float3 particlePos;
+    VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);
+	
+	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(particlePos);
 
 	#ifdef VARYINGS_NEED_POSITION_WS
-	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(vPos);
+	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(particlePos);
     #endif
 
     #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
-        float3 normalWS = TransformObjectToWorldNormal(inputMesh.normalOS);
-        float4 tangentWS = float4(TransformObjectToWorldDir(inputMesh.tangentOS.xyz), inputMesh.tangentOS.w);
-        varyingsType.vmesh.normalWS = normalWS;
-        varyingsType.vmesh.tangentWS = tangentWS;
+        varyingsType.vmesh.normalWS = IN.WorldSpaceNormal.xyz;
+        varyingsType.vmesh.tangentWS = float4(IN.WorldSpaceTangent.xyz,inputMesh.tangentOS.w);
     #endif
 
     PackedVaryingsType result = PackVaryingsType(varyingsType);

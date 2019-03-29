@@ -8,6 +8,107 @@
 
 ByteAddressBuffer attributeBuffer;
 
+
+struct VertInputForSG
+{
+    float4 posCS; // In case depth offset is use, positionRWS.w is equal to depth offset
+    float3 posWD; // Relative camera space position
+    float2 uv0;
+    float2 uv1;
+    float2 uv2;
+    float2 uv3;
+    float4 color; // vertex color
+
+    float3 ObjectSpaceNormal;
+    float3 ViewSpaceNormal;
+    float3 WorldSpaceNormal;
+    float3 TangentSpaceNormal;
+
+    float3 ObjectSpaceTangent;
+    float3 ViewSpaceTangent;
+    float3 WorldSpaceTangent;
+    float3 TangentSpaceTangent;
+
+    float3 ObjectSpaceBiTangent;
+    float3 ViewSpaceBiTangent;
+    float3 WorldSpaceBiTangent;
+    float3 TangentSpaceBiTangent;
+
+    float3 ObjectSpaceViewDirection;
+    float3 ViewSpaceViewDirection;
+    float3 WorldSpaceViewDirection;
+    float3 TangentSpaceViewDirection;
+
+    float3 ObjectSpacePosition;
+    float3 ViewSpacePosition;
+    float3 WorldSpacePosition;
+    float3 TangentSpacePosition;
+};
+
+VertInputForSG InitializeVertStructs(AttributesMesh input, float4x4 elementToVFX, out float3 particlePos)
+{
+    VertInputForSG fisg = (VertInputForSG)0;
+
+#ifdef ATTRIBUTES_NEED_TEXCOORD0
+    fisg.uv0 = input.uv0;
+#endif
+#ifdef ATTRIBUTES_NEED_TEXCOORD1
+    fisg.uv1 = input.uv1;
+#endif
+#ifdef ATTRIBUTES_NEED_TEXCOORD2
+    fisg.uv2 = input.uv2;
+#endif
+#ifdef ATTRIBUTES_NEED_TEXCOORD3
+    fisg.uv2 = input.uv2;
+#endif
+#ifdef ATTRIBUTES_NEED_COLOR
+    fisg.color = input.color;
+#endif
+#ifdef ATTRIBUTES_NEED_NORMAL
+    float3 particleSpaceNormal = mul(elementToVFX,float4(input.normalOS, 0) ).xyz;
+
+    fisg.WorldSpaceNormal = TransformObjectToWorldNormal(particleSpaceNormal);
+    fisg.ObjectSpaceNormal = input.normalOS;           
+    fisg.ViewSpaceNormal = mul(fisg.WorldSpaceNormal, (float3x3) UNITY_MATRIX_I_V);         // transposed multiplication by inverse matrix to handle normal scale
+    fisg.TangentSpaceNormal = float3(0.0f, 0.0f, 1.0f);
+#endif
+
+#ifdef ATTRIBUTES_NEED_TANGENT
+    float3 particleSpaceTangent = mul(elementToVFX,float4(input.tangentOS.xyz, 0)).xyz;
+
+    fisg.WorldSpaceTangent = TransformObjectToWorldDir(particleSpaceTangent);
+    fisg.ObjectSpaceTangent = input.tangentOS.xyz;
+    fisg.ViewSpaceTangent = TransformWorldToViewDir(fisg.WorldSpaceTangent);
+    fisg.TangentSpaceTangent = float3(1.0f, 0.0f, 0.0f);
+#endif
+
+
+#if defined(ATTRIBUTES_NEED_TANGENT) && defined(ATTRIBUTES_NEED_NORMAL)
+    float3 objectSpaceBiTangent = cross(particleSpaceNormal, particleSpaceTangent);
+    float3 particleSpaceBiTangent = mul(elementToVFX,float4(objectSpaceBiTangent, 0)).xyz;
+
+    fisg.WorldSpaceBiTangent = TransformObjectToWorldDir(particleSpaceBiTangent);
+    fisg.ObjectSpaceBiTangent = objectSpaceBiTangent;
+    fisg.ViewSpaceBiTangent = TransformWorldToViewDir(fisg.WorldSpaceBiTangent);
+    fisg.TangentSpaceBiTangent = float3(0.0f, 1.0f, 0.0f);
+
+#endif
+
+    particlePos = mul(elementToVFX,float4(input.positionOS, 1) ).xyz;
+
+    fisg.WorldSpacePosition = TransformObjectToWorld(particlePos);
+    fisg.ObjectSpacePosition = input.positionOS;
+    fisg.ViewSpacePosition = TransformWorldToView(particlePos);
+    fisg.TangentSpacePosition = float3(0.0f, 0.0f, 0.0f);
+
+    fisg.WorldSpaceViewDirection = GetWorldSpaceNormalizeViewDir(fisg.WorldSpacePosition);
+    fisg.ObjectSpaceViewDirection = TransformWorldToObjectDir(fisg.WorldSpaceViewDirection);
+    fisg.ViewSpaceViewDirection = TransformWorldToViewDir(fisg.WorldSpaceViewDirection);
+    float3x3 tangentSpaceTransform = float3x3(fisg.WorldSpaceTangent, fisg.WorldSpaceBiTangent, fisg.WorldSpaceNormal);
+    fisg.TangentSpaceViewDirection = mul(tangentSpaceTransform, fisg.WorldSpaceViewDirection);
+
+    return fisg;
+}
 struct FragInputForSG
 {
     float4 posCS; // In case depth offset is use, positionRWS.w is equal to depth offset
@@ -43,10 +144,11 @@ struct FragInputForSG
     float3 WorldSpacePosition;
     float3 TangentSpacePosition;
 };
-FragInputForSG InitializeStructs(inout FragInputs input, PositionInputs posInput, float3 V, out SurfaceData surfaceData, out BuiltinData builtinData)
+
+
+FragInputForSG InitializeFragStructs(inout FragInputs input, PositionInputs posInput, float3 V, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
     FragInputForSG fisg;
-    fisg.TangentSpaceNormal = float3(0.0f, 0.0f, 1.0f);
     fisg.posCS = input.positionSS;
     fisg.posWD = input.positionRWS;
     fisg.uv0 = input.texCoord0;
