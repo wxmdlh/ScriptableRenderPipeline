@@ -1,15 +1,8 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Globalization;
-using System.Text;
-using UnityEditor.Graphing;
-using UnityEditor.Graphing.Util;
 using UnityEngine;
-using UnityEngine.Rendering;
+using UnityEditor.ShaderGraph;
 
-namespace UnityEditor.ShaderGraph.VFX
+namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
     class SubShaderPart : ShaderPart
     {

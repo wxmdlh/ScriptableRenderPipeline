@@ -5,12 +5,27 @@ using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.VFX;
-using UnityEditor.ShaderGraph.VFX;
 
 using System.Text.RegularExpressions;
 
 namespace UnityEditor.VFX
 {
+    interface ISpecificGenerationOutput
+    {
+        StringBuilder GenerateShader(ref VFXInfos infos);
+    }
+    struct VFXInfos
+    {
+        public Dictionary<string, string> customParameterAccess;
+        public string vertexFunctions;
+        public string vertexShaderContent;
+        public string shaderName;
+        public string parameters;
+        public List<string> attributes;
+        public string loadAttributes;
+    }
+
+
     static class VFXCodeGenerator
     {
         private static string GetIndent(string src, int index)
@@ -500,13 +515,11 @@ namespace UnityEditor.VFX
             foreach (var includePath in uniqueIncludes)
                 perPassIncludeContent.WriteLine(string.Format("#include \"{0}\"", includePath));
 
-#if VFX_HAS_SHADERGRAPH
-            if ( context is VFXHDRPShaderGraphOutput && (context as VFXHDRPShaderGraphOutput).shaderGraph != null)
+            if ( context is ISpecificGenerationOutput)
             {
-                    //try
                     {
 
-                        GraphUtilForVFX.VFXInfos infos = new GraphUtilForVFX.VFXInfos();
+                        VFXInfos infos = new VFXInfos();
                         infos.customParameterAccess = null;
                         infos.vertexFunctions = blockFunction.ToString();
                         infos.vertexShaderContent = blockCallFunction.ToString();
@@ -519,15 +532,10 @@ namespace UnityEditor.VFX
 
                         infos.parameters = parameters.ToString();
 
-                        return new StringBuilder(GraphUtilForVFX.NewGenerateShader((context as VFXHDRPShaderGraphOutput).shaderGraph, ref infos));
+                        return (context as ISpecificGenerationOutput).GenerateShader(ref infos);
 
                     }
-                    /*catch(Exception e)
-                    {
-                        Debug.LogException(e);
-                    }*/
             }
-#endif
 
             ReplaceMultiline(stringBuilder, "${VFXGlobalInclude}", globalIncludeContent.builder);
             ReplaceMultiline(stringBuilder, "${VFXGlobalDeclaration}", globalDeclaration.builder);

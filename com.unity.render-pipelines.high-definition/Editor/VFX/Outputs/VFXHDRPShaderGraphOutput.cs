@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using System.Text;
+using UnityEditor.VFX;
 using UnityEngine.Experimental.VFX;
-using UnityEditor.ShaderGraph.VFX;
 
-namespace UnityEditor.VFX
+namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
     [VFXInfo]
-    class VFXHDRPShaderGraphOutput : VFXAbstractParticleOutput
+    class VFXHDRPShaderGraphOutput : VFXAbstractParticleOutput, ISpecificGenerationOutput
     {
         public override string name { get { return "Shader Graph Mesh Output"; } }
         public override string codeGeneratorTemplate { get { return RenderPipeTemplate("VFXParticleLitMesh"); } }
@@ -74,15 +75,22 @@ namespace UnityEditor.VFX
             { "Gradient" , typeof(Gradient) },
         };
 
+        public StringBuilder GenerateShader(ref VFXInfos infos)
+        {
+            var sb = new StringBuilder();
+            sb.Append(VFXSGShaderGenerator.NewGenerateShader(shaderGraph, ref infos));
+            return sb;
+        }
+
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
                 if( shaderGraph != null)
                 {
-                    var graph = GraphUtilForVFX.LoadShaderGraph(shaderGraph);
+                    var graph = VFXSGShaderGenerator.LoadShaderGraph(shaderGraph);
                     if( graph != null)
                     {
-                        List<string> sgDeclarations = GraphUtilForVFX.GetPropertiesExcept(graph,attributes.Select(t => t.attrib.name).ToList());
+                        List<string> sgDeclarations = VFXSGShaderGenerator.GetPropertiesExcept(graph,attributes.Select(t => t.attrib.name).ToList());
 
                         foreach (var decl in sgDeclarations)
                         {
@@ -109,10 +117,10 @@ namespace UnityEditor.VFX
                 yield return exp;
             if (shaderGraph != null)
             {
-                var graph = GraphUtilForVFX.LoadShaderGraph(shaderGraph);
+                var graph = VFXSGShaderGenerator.LoadShaderGraph(shaderGraph);
                 if (graph != null)
                 {
-                    List<string> sgDeclarations = GraphUtilForVFX.GetPropertiesExcept(graph, attributes.Select(t => t.attrib.name).ToList());
+                    List<string> sgDeclarations = VFXSGShaderGenerator.GetPropertiesExcept(graph, attributes.Select(t => t.attrib.name).ToList());
 
                     foreach (var decl in sgDeclarations)
                     {

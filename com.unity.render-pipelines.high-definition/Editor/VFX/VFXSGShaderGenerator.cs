@@ -8,22 +8,14 @@ using UnityEditor.Graphing;
 using UnityEditor.Graphing.Util;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEditor.ShaderGraph;
+using UnityEditor.VFX;
 
-namespace UnityEditor.ShaderGraph.VFX
+namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
     //Small methods usable by the VFX since they are public
-    public static class GraphUtilForVFX
+    public static class VFXSGShaderGenerator
     {
-        public struct VFXInfos
-        {
-            public Dictionary<string, string> customParameterAccess;
-            public string vertexFunctions;
-            public string vertexShaderContent;
-            public string shaderName;
-            public string parameters;
-            public List<string> attributes;
-            public string loadAttributes;
-        }
 
         public static List<string> GetPropertiesExcept(Graph graph, List<string> attributes)
         {
@@ -176,7 +168,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     
     surfaceData.geomNormalWS = input.worldToTangent[2];
 ");
-            getSurfaceDataFunction.Append("\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t"));
+            getSurfaceDataFunction.Append("    " + vfxInfos.loadAttributes.Replace("\n", "\n    "));
 
             foreach (var prop in shaderProperties.properties)
             {
@@ -252,7 +244,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
         }
 
 
-        public static string NewGenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
+        internal static string NewGenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
         {
             Graph graph = LoadShaderGraph(shaderGraph);
 
@@ -459,6 +451,40 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                 public readonly string name;
                 public readonly FunctionInfo pixel;
                 public readonly FunctionInfo vertex;
+
+                public const int PositionSlotId = 0;
+                public const int AlbedoSlotId = 1;
+                public const int NormalSlotId = 2;
+                public const int BentNormalSlotId = 3;
+                public const int TangentSlotId = 4;
+                public const int SubsurfaceMaskSlotId = 5;
+                public const int ThicknessSlotId = 6;
+                public const int DiffusionProfileHashSlotId = 7;
+                public const int IridescenceMaskSlotId = 8;
+                public const int IridescenceThicknessSlotId = 9;
+                public const int SpecularColorSlotId = 10;
+                public const int CoatMaskSlotId = 11;
+                public const int MetallicSlotId = 12;
+                public const int EmissionSlotId = 13;
+                public const int SmoothnessSlotId = 14;
+                public const int AmbientOcclusionSlotId = 15;
+                public const int AlphaSlotId = 16;
+                public const int AlphaThresholdSlotId = 17;
+                public const int AlphaThresholdDepthPrepassSlotId = 18;
+                public const int AlphaThresholdDepthPostpassSlotId = 19;
+                public const int AnisotropySlotId = 20;
+                public const int SpecularAAScreenSpaceVarianceSlotId = 21;
+                public const int SpecularAAThresholdSlotId = 22;
+                public const int RefractionIndexSlotId = 23;
+                public const int RefractionColorSlotId = 24;
+                public const int RefractionDistanceSlotId = 25;
+                public const int DistortionSlotId = 26;
+                public const int DistortionBlurSlotId = 27;
+                public const int SpecularOcclusionSlotId = 28;
+                public const int AlphaThresholdShadowSlotId = 29;
+                public const int LightingSlotId = 30;
+                public const int BackLightingSlotId = 31;
+                public const int DepthOffsetSlotId = 32;
             }
             internal class FunctionInfo
             {
@@ -472,10 +498,29 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
             internal readonly static PassInfo[] passInfos = new PassInfo[]
                 {
                 //GBuffer
-                new PassInfo("GBuffer",new FunctionInfo(Enumerable.Range(1, 31).ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())), // hardcoded pbr pixel slots.
+                new PassInfo("GBuffer",
+                    new FunctionInfo(new List<int>()
+                    {
+                        PassInfo.AlphaSlotId,
+                        PassInfo.AlphaThresholdSlotId,
+                        PassInfo.DepthOffsetSlotId,
+                    }),
+                    new FunctionInfo(new List<int>()
+                    {
+                        PassInfo.PositionSlotId
+                    }
+                    )), // hardcoded pbr pixel slots.
                 //ShadowCaster
                 new PassInfo("ShadowCaster",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
                 new PassInfo("DepthOnly",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("SceneSelectionPass",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("META",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("MotionVectors",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("DistortionVectors",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("TransparentDepthPrepass",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("TransparentBackface",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("Forward",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
+                new PassInfo("TransparentDepthPostpass",new FunctionInfo(new[]{1,13,18 }.ToList()),new FunctionInfo(Enumerable.Range(0,1).ToList())),
                 };
         }
 

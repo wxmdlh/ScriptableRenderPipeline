@@ -51,10 +51,8 @@ namespace UnityEditor.VFX
         [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
         protected bool onlyAmbientLighting = false;
 
-#if VFX_HAS_HDRP
         [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
         protected UnityEngine.Experimental.Rendering.HDPipeline.DiffusionProfileSettings diffusionProfileAsset;
-#endif
 
         [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
         protected bool multiplyThicknessWithAlpha = false;
