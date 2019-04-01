@@ -126,7 +126,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                                                                                                         && t.shaderOutputName != "BentNormal"
                                                                                                         && t.shaderOutputName != "Emission"
                                                                                                         && t.shaderOutputName != "Alpha"
-                                                                                                        && t.shaderOutputName != "AlphaClipThreshold").Intersect(graph.passes[currentPass].pixel.slots);
+                                                                                                        && t.shaderOutputName != "AlphaClipThreshold"
+                                                                                                        && t.shaderOutputName != "DepthOffset").Intersect(graph.passes[currentPass].pixel.slots);
 
 
                 foreach (var input in usedSlots)
@@ -200,6 +201,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             {
                 guiVariables["_ZTestGBuffer"] = "LEqual";
             }
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "DepthOffset", "float depthOffset = {0};\nApplyDepthOffsetPositionInput(V, depthOffset, GetViewForwardDir(), GetWorldToHClipMatrix(), posInput);\n", null, graph.passes[currentPass].pixel.slots);
 
             var coatMask = graph.passes[currentPass].pixel.slots.FirstOrDefault(t => t.shaderOutputName == "CoatMask");
             if (coatMask != null)
@@ -311,6 +313,11 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                         defines["_DOUBLESIDED_FLIP"] = 1;
                     else if (masterNode.doubleSidedMode == DoubleSidedMode.MirroredNormals)
                         defines["_DOUBLESIDED_MIRROR"] = 1;
+                }
+
+                if( masterNode.depthOffset.isOn)
+                {
+                    defines["_DEPTHOFFSET_ON"] = 1;
                 }
             }
 
