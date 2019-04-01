@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [5.14.0-preview] - 2019-XX-XX
 ### Fixed
 - Improve AA line rendering
+- Fix screen space size block
 
 ## [5.13.0-preview] - 2019-04-15
 
