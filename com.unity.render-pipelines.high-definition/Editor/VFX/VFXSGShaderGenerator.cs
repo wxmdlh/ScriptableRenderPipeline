@@ -157,7 +157,13 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     FragInputForSG IN = InitializeFragStructs(input, posInput,V, surfaceData, builtinData);
 
     #ifdef _DOUBLESIDED_ON
-        float3 doubleSidedConstants = _DoubleSidedConstants.xyz;
+      #ifdef _DOUBLESIDED_FLIP
+        float3 doubleSidedConstants = float3(-1.0, -1.0, -1.0);
+      #elif defined(_DOUBLESIDED_MIRROR)
+        float3 doubleSidedConstants = float3(1.0, 1.0, -1.0);
+      #else
+        float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
+      #endif
     #else
         float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
     #endif
@@ -292,6 +298,21 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             document.RemoveShaderCodeContaining("#pragma shader_feature_local"); // remove all feature local that are used by the GUI to change some values
 
 
+            var masterNode = graph.graphData.outputNode as HDLitMasterNode;
+
+            if( masterNode != null)
+            {
+                if( masterNode.doubleSidedMode != DoubleSidedMode.Disabled)
+                {
+                    defines["_DOUBLESIDED_ON"] = 1;
+                    guiVariables["_CullMode"] = "Off";
+                    guiVariables["_CullModeForward"] = "Off";
+                    if (masterNode.doubleSidedMode == DoubleSidedMode.FlippedNormals)
+                        defines["_DOUBLESIDED_FLIP"] = 1;
+                    else if (masterNode.doubleSidedMode == DoubleSidedMode.MirroredNormals)
+                        defines["_DOUBLESIDED_MIRROR"] = 1;
+                }
+            }
 
             foreach (var pass in document.passes)
             {
