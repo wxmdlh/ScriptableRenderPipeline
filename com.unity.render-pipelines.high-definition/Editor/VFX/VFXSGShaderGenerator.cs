@@ -230,20 +230,10 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             DecalSurfaceData decalSurfaceData = GetDecalSurfaceData(posInput, alpha);
             ApplyDecalToSurfaceData(decalSurfaceData, surfaceData);
         }
-#endif
-
-    #if defined(_SPECULAR_OCCLUSION_CUSTOM)");
+#endif");
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "SpecularOcclusion", "surfaceData.specularOcclusion = {0}", "", graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
-    #elif defined(_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL)
-            // If we have bent normal and ambient occlusion, process a specular occlusion
-            surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData.normalWS, surfaceData.ambientOcclusion, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
-    #elif defined(_AMBIENT_OCCLUSION) && defined(_SPECULAR_OCCLUSION_FROM_AO)
-            surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(dot(surfaceData.normalWS, V)), surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
-    #endif
-    
-
     float3 bentNormalTS;
     bentNormalTS = normalTS;
     float3 bentNormalWS;
@@ -257,8 +247,18 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
 ");
 
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Emission", "\tbuiltinData.emissiveColor = {0};\n", null, graph.passes[currentPass].pixel.slots);
+            
+            getSurfaceDataFunction.AppendLine(@"
+    #if defined(_SPECULAR_OCCLUSION_CUSTOM)");
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "SpecularOcclusion", "surfaceData.specularOcclusion = {0}", "", graph.passes[currentPass].pixel.slots);
+            getSurfaceDataFunction.AppendLine(@"
+    #elif defined(_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL)
+            // If we have bent normal and ambient occlusion, process a specular occlusion
+            surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData.normalWS, surfaceData.ambientOcclusion, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
+    #elif defined(_AMBIENT_OCCLUSION) && defined(_SPECULAR_OCCLUSION_FROM_AO)
+            surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(dot(surfaceData.normalWS, V)), surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
+    #endif
 
-            getSurfaceDataFunction.Append(@"
     PostInit(input, surfaceData, builtinData, posInput,bentNormalWS,alpha,V);
 }
 void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3 positionRWS, float4 time)
