@@ -42,8 +42,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             {
                 {"Albedo" ,"baseColor"},
                 {"Smoothness", "perceptualSmoothness" },
-                {"Occlusion", "ambientOcclusion" }
-            };
+                {"Occlusion", "ambientOcclusion" },
+                {"Specular", "specularColor" }
+        };
 
         static string ShaderGraphToSurfaceDescriptionName(string name)
         {
@@ -363,6 +364,27 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                         defines["_SPECULAR_OCCLUSION_FROM_AO"] = 1;
                     break;
                 }
+
+                switch(masterNode.materialType)
+                {
+                    case HDLitMasterNode.MaterialType.SubsurfaceScattering:
+                        defines["_MATERIAL_FEATURE_SUBSURFACE_SCATTERING"] = 1;
+                        if (masterNode.sssTransmission.isOn)
+                            defines["_MATERIAL_FEATURE_TRANSMISSION"] = 1;
+                        break;
+                    case HDLitMasterNode.MaterialType.Anisotropy:
+                        defines["_MATERIAL_FEATURE_ANISOTROPY"] = 1;
+                        break;
+                    case HDLitMasterNode.MaterialType.Iridescence:
+                        defines["_MATERIAL_FEATURE_IRIDESCENCE"] = 1;
+                        break;
+                    case HDLitMasterNode.MaterialType.SpecularColor:
+                        defines["_MATERIAL_FEATURE_SPECULAR_COLOR"] = 1;
+                        break;
+                    case HDLitMasterNode.MaterialType.Translucent:
+                        defines["_MATERIAL_FEATURE_TRANSMISSION"] = 1;
+                        break;
+                }
             }
 
             foreach (var pass in document.passes)
@@ -420,7 +442,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 }
             }
             foreach (var define in defines)
-                document.InsertShaderCode(-1, string.Format("#define {0} {1}", define.Key, define.Value));
+                document.InsertShaderCode(0, string.Format("#define {0} {1}", define.Key, define.Value));
 
             document.ReplaceParameterVariables(guiVariables);
             
