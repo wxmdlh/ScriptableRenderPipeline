@@ -42,6 +42,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
         public void AddTag(string key,string value)
         {
+            if (parameters.tags == null)
+                parameters.tags = new Dictionary<string, string>();
             parameters.tags[key] = value;
         }
 

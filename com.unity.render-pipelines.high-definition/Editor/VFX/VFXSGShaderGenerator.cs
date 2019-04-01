@@ -82,7 +82,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
         }
 
 
-        static string GenerateParticleGetSurfaceAndBuiltinData(Graph graph, ref VFXInfos vfxInfos, int currentPass, Dictionary<string, string> guiVariables,Dictionary<string, int> defines,ShaderDocument shaderDoc)
+        static string GenerateParticleGetSurfaceAndBuiltinData(Graph graph, ref VFXInfos vfxInfos, int currentPass, PassPart pass,Dictionary<string, string> guiVariables,Dictionary<string, int> defines)
         {
             var getSurfaceDataFunction = new ShaderStringBuilder();
 
@@ -187,8 +187,8 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             if( alphaThresholdExist)
             {
                 guiVariables["_ZTestGBuffer"] = "Equal";
-                shaderDoc.AddTag("Queue", "AlphaTest + 0");
-                defines.Add("_ALPHATEST_ON", 1);
+                pass.AddTag("Queue", "AlphaTest + 0");
+                defines["_ALPHATEST_ON"] = 1;
             }
             else
             {
@@ -201,13 +201,13 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                 var foundEdges = graph.graphData.GetEdges(coatMask.slotReference).ToArray();
                 if (foundEdges.Any())
                 {
-                    defines.Add("_MATERIAL_FEATURE_CLEAR_COAT", 1);
+                    defines["_MATERIAL_FEATURE_CLEAR_COAT"]= 1;
                 }
                 else
                 {
                     float value;
                     if (float.TryParse(coatMask.GetDefaultValue(GenerationMode.ForReals), out value) && value > 0)
-                        defines.Add("_MATERIAL_FEATURE_CLEAR_COAT", 1);
+                        defines["_MATERIAL_FEATURE_CLEAR_COAT"] = 1;
                 }
             }
 
@@ -292,8 +292,6 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             document.RemoveShaderCodeContaining("#pragma shader_feature_local"); // remove all feature local that are used by the GUI to change some values
 
 
-            foreach (var define in defines)
-                document.InsertShaderCode(-1,string.Format("#define {0} {1}", define.Key, define.Value));
 
             foreach (var pass in document.passes)
             {
@@ -302,7 +300,8 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                     continue;
                 var sb = new StringBuilder();
                 GenerateParticleVert(graph, vfxInfos, sb, currentPass);
-                string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass,guiVariables, defines, document);
+                string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass, pass, guiVariables, defines);
+
                 pass.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
 
                 pass.InsertShaderCode(-1,sb.ToString());
@@ -348,6 +347,8 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
                 }
             }
+            foreach (var define in defines)
+                document.InsertShaderCode(-1, string.Format("#define {0} {1}", define.Key, define.Value));
 
             document.ReplaceParameterVariables(guiVariables);
             
