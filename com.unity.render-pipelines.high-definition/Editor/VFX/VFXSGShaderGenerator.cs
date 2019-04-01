@@ -127,6 +127,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                                                                                                         && t.shaderOutputName != "Emission"
                                                                                                         && t.shaderOutputName != "Alpha"
                                                                                                         && t.shaderOutputName != "AlphaClipThreshold"
+                                                                                                        && t.shaderOutputName != "SpecularOcclusion"
                                                                                                         && t.shaderOutputName != "DepthOffset").Intersect(graph.passes[currentPass].pixel.slots);
 
 
@@ -222,6 +223,27 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Normal", "\tfloat3 normalTS = {0};\n", "\tfloat3 normalTS = float3(0.0,0.0,1.0);", graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
+
+#if HAVE_DECALS
+        if (_EnableDecals)
+        {
+            DecalSurfaceData decalSurfaceData = GetDecalSurfaceData(posInput, alpha);
+            ApplyDecalToSurfaceData(decalSurfaceData, surfaceData);
+        }
+#endif
+
+    #if defined(_SPECULAR_OCCLUSION_CUSTOM)");
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "SpecularOcclusion", "surfaceData.specularOcclusion = {0}", "", graph.passes[currentPass].pixel.slots);
+
+            getSurfaceDataFunction.AppendLine(@"
+    #elif defined(_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL)
+            // If we have bent normal and ambient occlusion, process a specular occlusion
+            surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData.normalWS, surfaceData.ambientOcclusion, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
+    #elif defined(_AMBIENT_OCCLUSION) && defined(_SPECULAR_OCCLUSION_FROM_AO)
+            surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(dot(surfaceData.normalWS, V)), surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
+    #endif
+    
+
     float3 bentNormalTS;
     bentNormalTS = normalTS;
     float3 bentNormalWS;
@@ -318,6 +340,27 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 if( masterNode.depthOffset.isOn)
                 {
                     defines["_DEPTHOFFSET_ON"] = 1;
+                }
+                if( !masterNode.receiveDecals.isOn)
+                {
+                    defines["_DISABLE_DECALS"] = 1;
+                }
+
+                if( !masterNode.receiveSSR.isOn)
+                {
+                    defines["_DISABLE_SSR"] = 1;
+                }
+                switch (masterNode.specularOcclusionMode)
+                {
+                    case SpecularOcclusionMode.Custom:
+                        defines["_SPECULAR_OCCLUSION_CUSTOM"] = 1;
+                    break;
+                    case SpecularOcclusionMode.FromAOAndBentNormal:
+                        defines["_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL"] = 1;
+                    break;
+                    case SpecularOcclusionMode.FromAO:
+                        defines["_SPECULAR_OCCLUSION_FROM_AO"] = 1;
+                    break;
                 }
             }
 
@@ -487,6 +530,7 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
             }
 
             shader.Append(@"
+
 	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(particlePos);
 
 	#ifdef VARYINGS_NEED_POSITION_WS
