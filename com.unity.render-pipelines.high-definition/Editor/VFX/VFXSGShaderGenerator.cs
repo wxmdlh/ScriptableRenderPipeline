@@ -301,7 +301,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 if (currentPass == -1)
                     continue;
                 var sb = new StringBuilder();
-                GenerateParticleVert(vfxInfos, sb, currentPass);
+                GenerateParticleVert(graph, vfxInfos, sb, currentPass);
                 string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass,guiVariables, defines, document);
                 pass.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
 
@@ -354,9 +354,66 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             return document.ToString(false);
         }
 
-        private static void GenerateParticleVert(VFXInfos vfxInfos, StringBuilder shader, int currentPass)
+        private static void GenerateParticleVert(Graph graph,VFXInfos vfxInfos, StringBuilder shader, int currentPass)
         {
             shader.Append(vfxInfos.vertexFunctions);
+
+            PropertyCollector shaderProperties = new PropertyCollector();
+            var sb = new StringBuilder();
+            {   // inspired by GenerateSurfaceDescriptionFunction
+
+                ShaderStringBuilder functionsString = new ShaderStringBuilder();
+                FunctionRegistry functionRegistry = new FunctionRegistry(functionsString);
+
+                graph.graphData.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
+
+                ShaderGenerator sg = new ShaderGenerator();
+
+                GraphContext graphContext = new GraphContext("SurfaceDescriptionInputs");
+
+                foreach (var activeNode in graph.passes[currentPass].vertex.nodes.OfType<AbstractMaterialNode>())
+                {
+                    if (activeNode is IGeneratesFunction)
+                    {
+                        functionRegistry.builder.currentNode = activeNode;
+                        (activeNode as IGeneratesFunction).GenerateNodeFunction(functionRegistry, graphContext, GenerationMode.ForReals);
+                    }
+                    if (activeNode is IGeneratesBodyCode)
+                        (activeNode as IGeneratesBodyCode).GenerateNodeCode(sg, graphContext, GenerationMode.ForReals);
+
+                    activeNode.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
+                }
+
+                shader.AppendLine(functionsString.ToString());
+                functionRegistry.builder.currentNode = null;
+
+                sb.Append(sg.GetShaderString(0));
+                var usedSlots = /*slots ?? */graph.graphData.outputNode.GetInputSlots<MaterialSlot>().Where(t => t.shaderOutputName != "Position"
+                                                                                                        && t.shaderOutputName != "Normal"
+                                                                                                        && t.shaderOutputName != "BentNormal"
+                                                                                                        && t.shaderOutputName != "Emission"
+                                                                                                        && t.shaderOutputName != "Alpha"
+                                                                                                        && t.shaderOutputName != "AlphaClipThreshold").Intersect(graph.passes[currentPass].vertex.slots);
+
+                foreach (var input in usedSlots)
+                {
+                    if (input != null)
+                    {
+                        var foundEdges = graph.graphData.GetEdges(input.slotReference).ToArray();
+                        if (foundEdges.Any())
+                        {
+                            sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), graph.graphData.outputNode.GetSlotValue(input.id, GenerationMode.ForReals));
+                        }
+                        else
+                        {
+                            sb.AppendFormat("surfaceData.{0} = {1};\n", ShaderGraphToSurfaceDescriptionName(NodeUtils.GetHLSLSafeName(input.shaderOutputName)), input.GetDefaultValue(GenerationMode.ForReals));
+                        }
+                    }
+                }
+
+            }
+
+
 
             shader.AppendLine(@"
 PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
@@ -381,11 +438,26 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
 	size3.z *= scaleZ;
 	#endif
 
-    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
+	float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
 
-    float3 particlePos;
-    VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);
-	
+	float3 particlePos;
+	VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);");
+
+            // add shader code to compute Position if any
+            shader.AppendLine(sb.ToString());
+
+            // add shader code to take new objectPos into account if the position slot is linked to something
+            var slot = graph.passes[currentPass].vertex.slots.FirstOrDefault(t => t.shaderOutputName == "Position");
+            if (slot != null)
+            {
+                var foundEdges = graph.graphData.GetEdges(slot.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    shader.AppendFormat("float3 objectPos = {0};\nparticlePos = mul(elementToVFX,float4(objectPos,1)).xyz; \n", graph.graphData.outputNode.GetSlotValue(slot.id, GenerationMode.ForReals));
+                }
+            }
+
+            shader.Append(@"
 	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(particlePos);
 
 	#ifdef VARYINGS_NEED_POSITION_WS
