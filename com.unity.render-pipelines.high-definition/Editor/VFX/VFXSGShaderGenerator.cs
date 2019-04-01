@@ -339,6 +339,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
                 if( masterNode.depthOffset.isOn)
                 {
+                    defines["_PIXEL_DISPLACEMENT"] = 1;
                     defines["_DEPTHOFFSET_ON"] = 1;
                 }
                 if( !masterNode.receiveDecals.isOn)
