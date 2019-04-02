@@ -132,7 +132,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                                                                                                         && t.shaderOutputName != "AlphaClipThreshold"
                                                                                                         && t.shaderOutputName != "SpecularOcclusion"
                                                                                                         && t.shaderOutputName != "Tangent"
-                                                                                                        && t.shaderOutputName != "DepthOffset").Intersect(graph.passes[currentPass].pixel.slots);
+                                                                                                        && t.shaderOutputName != "DepthOffset"
+                                                                                                        && t.shaderOutputName != "SpecularAAScreenSpaceVariance"
+                                                                                                        && t.shaderOutputName != "SpecularAAThreshold").Intersect(graph.passes[currentPass].pixel.slots);
 
 
                 foreach (var input in usedSlots)
@@ -249,6 +251,34 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             getSurfaceDataFunction.AppendLine(@"
     GetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants);
 ");
+
+            var SAAVariance = graph.passes[currentPass].pixel.slots.FirstOrDefault(t => t.shaderOutputName == "SpecularAAScreenSpaceVariance");
+            var SSAThreshold = graph.passes[currentPass].pixel.slots.FirstOrDefault(t => t.shaderOutputName == "SpecularAAThreshold");
+            if (SAAVariance != null && SSAThreshold != null)
+            {
+                string SAAVarianceValue;
+                var foundEdges = graph.graphData.GetEdges(SAAVariance.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    SAAVarianceValue = graph.graphData.outputNode.GetSlotValue(SAAVariance.id, GenerationMode.ForReals);
+                }
+                else
+                {
+                    SAAVarianceValue = SAAVariance.GetDefaultValue(GenerationMode.ForReals);
+                }
+                string SAAThresholdValue;
+                foundEdges = graph.graphData.GetEdges(SSAThreshold.slotReference).ToArray();
+                if (foundEdges.Any())
+                {
+                    SAAThresholdValue = graph.graphData.outputNode.GetSlotValue(SSAThreshold.id, GenerationMode.ForReals);
+                }
+                else
+                {
+                    SAAThresholdValue = SSAThreshold.GetDefaultValue(GenerationMode.ForReals);
+                }
+
+                getSurfaceDataFunction.AppendLine("surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, input.worldToTangent[2], {0}, {1});", SAAVarianceValue, SAAThresholdValue);
+            }
 
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Emission", "\tbuiltinData.emissiveColor = {0};\n", null, graph.passes[currentPass].pixel.slots);
 
@@ -432,6 +462,10 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 guiVariables["_StencilRefDistortionVec"] = ((int)HDRenderPipeline.StencilBitMask.DistortionVectors).ToString();
                 guiVariables["_StencilWriteMaskDistortionVec"] =  ((int)HDRenderPipeline.StencilBitMask.DistortionVectors).ToString();
 
+
+                if (masterNode.specularAA.isOn)
+                    defines["_ENABLE_GEOMETRIC_SPECULAR_AA"] = 1;
+
                 if (masterNode.surfaceType == SurfaceType.Opaque)
                 {
                     guiVariables["_SrcBlend"] = "One";
@@ -444,18 +478,20 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                     guiVariables["_ZTestDepthEqualForOpaque"] = "LEqual";
                     defines["_SURFACE_TYPE_TRANSPARENT"] = 1;
 
-                    if( masterNode.blendPreserveSpecular.isOn)
+                    if( masterNode.transparentWritesMotionVec.isOn)
+                        defines["_WRITE_TRANSPARENT_MOTION_VECTOR"] = 1;
+
+                    if ( masterNode.blendPreserveSpecular.isOn)
                         defines["_BLENDMODE_PRESERVE_SPECULAR_LIGHTING"] = 1;
 
                     if (!masterNode.alphaTestDepthPrepass.isOn)
-                    {
                         document.RemovePass("TransparentDepthPrepass");
-                    }
-                    if (!masterNode.alphaTestDepthPostpass.isOn)
-                    {
-                        document.RemovePass("TransparentDepthPostpass");
-                    }
 
+                    if (!masterNode.alphaTestDepthPostpass.isOn)
+                        document.RemovePass("TransparentDepthPostpass");
+
+                    if (masterNode.transparencyFog.isOn)
+                        defines["_ENABLE_FOG_ON_TRANSPARENT"] = 1;
 
                     foreach (var subshader in document.subShaders)
                     {
