@@ -56,6 +56,25 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
         }
 
 
+        static string GetSlotValue(string slotName, IEnumerable<MaterialSlot> slots, Graph graph)
+        {
+            var slot = slots.FirstOrDefault(t => t.shaderOutputName == slotName);
+            if (slot == null)
+                return null;
+            return GetSlotValue(slot, graph);
+        }
+
+        static string GetSlotValue(MaterialSlot slot, Graph graph)
+        {
+            string value;
+            var foundEdges = graph.graphData.GetEdges(slot.slotReference).ToArray();
+            if (foundEdges.Any())
+                value = graph.graphData.outputNode.GetSlotValue(slot.id, GenerationMode.ForReals);
+            else
+                value = slot.GetDefaultValue(GenerationMode.ForReals);
+            return value;
+        }
+
         static bool AddCodeIfSlotExist(Graph graph,ShaderStringBuilder builder,string slotName,string existsFormat, string dontExistStr, IEnumerable<MaterialSlot> slots)
         {
             var slot = slots.FirstOrDefault(t => t.shaderOutputName == slotName );
@@ -63,23 +82,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             if (slot != null)
             {
                 if(existsFormat != null )
-                {
-                    var foundEdges = graph.graphData.GetEdges(slot.slotReference).ToArray();
-                    if (foundEdges.Any())
-                    {
-                        builder.AppendLine(existsFormat, graph.graphData.outputNode.GetSlotValue(slot.id, GenerationMode.ForReals));
-                    }
-                    else
-                    {
-                        builder.AppendLine(existsFormat, slot.GetDefaultValue(GenerationMode.ForReals));
-                    }
-                }
+                    builder.AppendLine(existsFormat, GetSlotValue(slot, graph));
                 return true;
             }
             else if(dontExistStr != null)
-            {
                 builder.AppendLine(dontExistStr);
-            }
             return false;
         }
 
@@ -134,7 +141,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                                                                                                         && t.shaderOutputName != "Tangent"
                                                                                                         && t.shaderOutputName != "DepthOffset"
                                                                                                         && t.shaderOutputName != "SpecularAAScreenSpaceVariance"
-                                                                                                        && t.shaderOutputName != "SpecularAAThreshold").Intersect(graph.passes[currentPass].pixel.slots);
+                                                                                                        && t.shaderOutputName != "SpecularAAThreshold"
+                                                                                                        && t.shaderOutputName != "RefractionIndex"
+                                                                                                        && t.shaderOutputName != "RefractionColor"
+                                                                                                        && t.shaderOutputName != "RefractionDistance").Intersect(graph.passes[currentPass].pixel.slots);
 
 
                 foreach (var input in usedSlots)
@@ -215,9 +225,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             {
                 var foundEdges = graph.graphData.GetEdges(coatMask.slotReference).ToArray();
                 if (foundEdges.Any())
-                {
                     defines["_MATERIAL_FEATURE_CLEAR_COAT"]= 1;
-                }
                 else
                 {
                     float value;
@@ -252,32 +260,40 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     GetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants);
 ");
 
-            var SAAVariance = graph.passes[currentPass].pixel.slots.FirstOrDefault(t => t.shaderOutputName == "SpecularAAScreenSpaceVariance");
-            var SSAThreshold = graph.passes[currentPass].pixel.slots.FirstOrDefault(t => t.shaderOutputName == "SpecularAAThreshold");
-            if (SAAVariance != null && SSAThreshold != null)
+            var SAAVariance = GetSlotValue("SpecularAAScreenSpaceVariance", graph.passes[currentPass].pixel.slots, graph);
+            var SAAThreshold = GetSlotValue("SpecularAAThreshold", graph.passes[currentPass].pixel.slots, graph);
+            if (SAAVariance != null && SAAThreshold != null)
             {
-                string SAAVarianceValue;
-                var foundEdges = graph.graphData.GetEdges(SAAVariance.slotReference).ToArray();
-                if (foundEdges.Any())
-                {
-                    SAAVarianceValue = graph.graphData.outputNode.GetSlotValue(SAAVariance.id, GenerationMode.ForReals);
-                }
-                else
-                {
-                    SAAVarianceValue = SAAVariance.GetDefaultValue(GenerationMode.ForReals);
-                }
-                string SAAThresholdValue;
-                foundEdges = graph.graphData.GetEdges(SSAThreshold.slotReference).ToArray();
-                if (foundEdges.Any())
-                {
-                    SAAThresholdValue = graph.graphData.outputNode.GetSlotValue(SSAThreshold.id, GenerationMode.ForReals);
-                }
-                else
-                {
-                    SAAThresholdValue = SSAThreshold.GetDefaultValue(GenerationMode.ForReals);
-                }
+                getSurfaceDataFunction.AppendLine("surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, input.worldToTangent[2], {0}, {1});", SAAVariance, SAAThreshold);
+            }
 
-                getSurfaceDataFunction.AppendLine("surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, input.worldToTangent[2], {0}, {1});", SAAVarianceValue, SAAThresholdValue);
+            var refractionIndex = GetSlotValue("RefractionIndex", graph.passes[currentPass].pixel.slots, graph);
+            var refractionColor = GetSlotValue("RefractionColor", graph.passes[currentPass].pixel.slots, graph);
+            var refractionDistance = GetSlotValue("RefractionDistance", graph.passes[currentPass].pixel.slots, graph);
+
+            if (refractionIndex != null && refractionColor != null && refractionDistance != null)
+            {
+                getSurfaceDataFunction.AppendLine(@"
+#ifdef _HAS_REFRACTION
+if (_EnableSSRefraction)
+{{
+    surfaceData.ior =                       {0};
+    surfaceData.transmittanceColor =        {1};
+    surfaceData.atDistance =                {2};
+        
+    surfaceData.transmittanceMask = (1.0 - alpha);
+    alpha = 1.0;
+}}
+else
+{{
+    surfaceData.ior = 1.0;
+    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
+    surfaceData.atDistance = 1.0;
+    surfaceData.transmittanceMask = 0.0;
+    alpha = 1.0;
+}}
+#endif
+", refractionIndex, refractionColor, refractionDistance);
             }
 
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Emission", "\tbuiltinData.emissiveColor = {0};\n", null, graph.passes[currentPass].pixel.slots);
@@ -493,9 +509,19 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                     if (masterNode.transparencyFog.isOn)
                         defines["_ENABLE_FOG_ON_TRANSPARENT"] = 1;
 
+
+                    if( masterNode.refractionModel != ScreenSpaceRefraction.RefractionModel.None)
+                    {
+                        defines["_HAS_REFRACTION"] = 1;
+                        if( masterNode.refractionModel == ScreenSpaceRefraction.RefractionModel.Box)
+                            defines["_REFRACTION_PLANE"] = 1;
+                        else
+                            defines["_REFRACTION_SPHERE"] = 1;
+                    }
+
                     foreach (var subshader in document.subShaders)
                     {
-                        subshader.AddTag("Queue", "Transparent");
+                        subshader.AddTag("Queue", "Transparent+"+masterNode.sortPriority.ToString());
                     }
 
                     guiVariables["_ZWrite"] = "Off";
@@ -651,12 +677,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 functionRegistry.builder.currentNode = null;
 
                 sb.Append(sg.GetShaderString(0));
-                var usedSlots = /*slots ?? */graph.graphData.outputNode.GetInputSlots<MaterialSlot>().Where(t => t.shaderOutputName != "Position"
-                                                                                                        && t.shaderOutputName != "Normal"
-                                                                                                        && t.shaderOutputName != "BentNormal"
-                                                                                                        && t.shaderOutputName != "Emission"
-                                                                                                        && t.shaderOutputName != "Alpha"
-                                                                                                        && t.shaderOutputName != "AlphaClipThreshold").Intersect(graph.passes[currentPass].vertex.slots);
+                var usedSlots = /*slots ?? */graph.graphData.outputNode.GetInputSlots<MaterialSlot>().Where(t => t.shaderOutputName != "Position").Intersect(graph.passes[currentPass].vertex.slots);
 
                 foreach (var input in usedSlots)
                 {
