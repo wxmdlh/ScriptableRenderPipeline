@@ -123,13 +123,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
                 var sb = new StringBuilder();
                 sb.Append(sg.GetShaderString(0));
-                usedSlots = /*slots ?? */graph.graphData.outputNode.GetInputSlots<MaterialSlot>().Where(t => t.shaderOutputName != "Position"
-                                                                                                        && t.shaderOutputName != "Normal"
+
+                //Explicitely excluded slots are used later in a custom fashion.
+                usedSlots = /*slots ?? */graph.graphData.outputNode.GetInputSlots<MaterialSlot>().Where(t => t.shaderOutputName != "Normal"
                                                                                                         && t.shaderOutputName != "BentNormal"
                                                                                                         && t.shaderOutputName != "Emission"
                                                                                                         && t.shaderOutputName != "Alpha"
                                                                                                         && t.shaderOutputName != "AlphaClipThreshold"
                                                                                                         && t.shaderOutputName != "SpecularOcclusion"
+                                                                                                        && t.shaderOutputName != "Tangent"
                                                                                                         && t.shaderOutputName != "DepthOffset").Intersect(graph.passes[currentPass].pixel.slots);
 
 
@@ -249,7 +251,9 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
 ");
 
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Emission", "\tbuiltinData.emissiveColor = {0};\n", null, graph.passes[currentPass].pixel.slots);
-            
+
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Tangent", "TransformTangentToWorld({0}, input.worldToTangent);", null, graph.passes[currentPass].pixel.slots);
+
             getSurfaceDataFunction.AppendLine(@"
     #if defined(_SPECULAR_OCCLUSION_CUSTOM)");
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "SpecularOcclusion", "surfaceData.specularOcclusion = {0}", "", graph.passes[currentPass].pixel.slots);
@@ -485,7 +489,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
             document.ReplaceParameterVariables(guiVariables);
             
-            return document.ToString(false);
+            return document.ToString(false).Replace("\r","");
         }
 
         private static void GenerateParticleVert(Graph graph,VFXInfos vfxInfos, StringBuilder shader, int currentPass)
