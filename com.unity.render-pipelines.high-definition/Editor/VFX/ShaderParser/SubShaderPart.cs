@@ -20,6 +20,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             foreach (var pass in passes)
                 InsertShaderCode(index, shaderCode);
         }
+
+        public void RemovePass(string name)
+        {
+            int index = passes.RemoveAll(t => t.name == name);
+        }
+
         public void RemoveShaderCodeInEachPassContaining(string shaderCode)
         {
             foreach (var pass in passes)

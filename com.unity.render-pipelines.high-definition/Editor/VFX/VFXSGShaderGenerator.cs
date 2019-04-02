@@ -298,6 +298,8 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 {"_CullModeForward","Back" },
                 {"_SrcBlend","One" },
                 {"_DstBlend","Zero" },
+                {"_AlphaSrcBlend","One" },
+                {"_AlphaDstBlend","Zero" },
                 {"_ZWrite","On" },
                 {"_ColorMaskTransparentVel","RGBA" },
                 {"_ZTestDepthEqualForOpaque","Equal" },
@@ -314,6 +316,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             document.Parse(File.ReadAllText("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader"));
 
             var defines = new Dictionary<string, int>();
+            var killPasses = new HashSet<string>();
 
 
             string[] standardShader = File.ReadAllLines("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.shader");
@@ -428,6 +431,92 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                 guiVariables["_StencilWriteMaskMV"] = stencilWriteMaskMV.ToString();
                 guiVariables["_StencilRefDistortionVec"] = ((int)HDRenderPipeline.StencilBitMask.DistortionVectors).ToString();
                 guiVariables["_StencilWriteMaskDistortionVec"] =  ((int)HDRenderPipeline.StencilBitMask.DistortionVectors).ToString();
+
+                if (masterNode.surfaceType == SurfaceType.Opaque)
+                {
+                    guiVariables["_SrcBlend"] = "One";
+                    guiVariables["_DstBlend"]= "Zero";
+                    guiVariables["_ZWrite"] = "On";
+                    guiVariables["_ZTestDepthEqualForOpaque"] = "Equal";
+                }
+                else
+                {
+                    guiVariables["_ZTestDepthEqualForOpaque"] = "LEqual";
+                    defines["_SURFACE_TYPE_TRANSPARENT"] = 1;
+
+                    if( masterNode.blendPreserveSpecular.isOn)
+                        defines["_BLENDMODE_PRESERVE_SPECULAR_LIGHTING"] = 1;
+
+                    if (!masterNode.alphaTestDepthPrepass.isOn)
+                    {
+                        document.RemovePass("TransparentDepthPrepass");
+                    }
+                    if (!masterNode.alphaTestDepthPostpass.isOn)
+                    {
+                        document.RemovePass("TransparentDepthPostpass");
+                    }
+
+
+                    foreach (var subshader in document.subShaders)
+                    {
+                        subshader.AddTag("Queue", "Transparent");
+                    }
+
+                    guiVariables["_ZWrite"] = "Off";
+
+                    var blendMode = masterNode.alphaMode;
+
+                    if (blendMode == AlphaMode.Alpha)
+                        defines["_BLENDMODE_ALPHA"] = 1;
+                    if (blendMode == AlphaMode.Additive)
+                        defines["_BLENDMODE_ADD"] = 1;
+                    if (blendMode == AlphaMode.Premultiply)
+                        defines["_BLENDMODE_PRE_MULTIPLY"] = 1;
+
+                    // When doing off-screen transparency accumulation, we change blend factors as described here: https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch23.html
+                    switch (blendMode)
+                    {
+                    // PremultipliedAlpha
+                    // color: src * src_a + dst * (1 - src_a)
+                    // src is supposed to have been multiplied by alpha in the texture on artists side.
+                    case AlphaMode.Premultiply:
+                    // Alpha
+                    // color: src * src_a + dst * (1 - src_a)
+                    // src * src_a is done in the shader as it allow to reduce precision issue when using _BLENDMODE_PRESERVE_SPECULAR_LIGHTING (See Material.hlsl)
+                    case AlphaMode.Alpha:
+                        guiVariables["_SrcBlend"] = "One";
+                        guiVariables["_DstBlend"] = "OneMinusSrcAlpha";
+                        if (masterNode.renderingPass == HDRenderQueue.RenderQueueType.LowTransparent)
+                        {
+                            guiVariables["_AlphaSrcBlend"] = "Zero";
+                            guiVariables["_AlphaDstBlend"] = "OneMinusSrcAlpha";
+                        }
+                        else
+                        {
+                            guiVariables["_AlphaSrcBlend"] = "One";
+                            guiVariables["_AlphaDstBlend"] = "OneMinusSrcAlpha";
+                        }
+                        break;
+
+                    // Additive
+                    // color: src * src_a + dst
+                    // src * src_a is done in the shader
+                    case AlphaMode.Additive:
+                        guiVariables["_SrcBlend"] = "One";
+                        guiVariables["_DstBlend"] = "One";
+                        if (masterNode.renderingPass == HDRenderQueue.RenderQueueType.LowTransparent)
+                        {
+                            guiVariables["_AlphaSrcBlend"] = "Zero";
+                            guiVariables["_AlphaDstBlend"] = "One";
+                        }
+                        else
+                        {
+                            guiVariables["_AlphaSrcBlend"] = "One";
+                            guiVariables["_AlphaDstBlend"] = "One";
+                        }
+                        break;
+                    }
+                }
             }
 
             foreach (var pass in document.passes)

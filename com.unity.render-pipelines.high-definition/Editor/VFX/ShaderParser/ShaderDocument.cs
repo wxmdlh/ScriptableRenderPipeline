@@ -10,7 +10,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
         {
             get
             {
-                foreach( var subShader in subShaders)
+                foreach (var subShader in subShaders)
                 {
                     foreach (var pass in subShader.passes)
                         yield return pass;
@@ -30,9 +30,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             }
         }
 
+        public void RemovePass(string name)
+        {
+            foreach( var subShader in subShaders)
+                subShader.RemovePass(name);
+        }
 
-        protected string name;
-        List<SubShaderPart> subShaders = new List<SubShaderPart>();
+
+        public string name;
+        public List<SubShaderPart> subShaders = new List<SubShaderPart>();
 
         public void InsertShaderCodeInEachPass(int index,string shaderCode)
         {

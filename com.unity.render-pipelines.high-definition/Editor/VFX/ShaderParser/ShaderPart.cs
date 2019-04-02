@@ -31,7 +31,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
         public Dictionary<string, string> tags;
         public Dictionary<string, string> parameters;
 
-        public static readonly string[] s_ShaderParameters = {"Cull", "ZTest", "ZWrite", "ZClip","ColorMask"};
+        public static readonly string[] s_ShaderParameters = {"Cull", "ZTest", "ZWrite", "ZClip","ColorMask","Blend"};
 
         public StencilParameters stencilParameters;
     }
@@ -54,10 +54,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 foreach (var parameter in parameters.parameters.ToList())
                 {
                     foreach (var variable in guiVariables)
-                        if (parameter.Value == "[" + variable.Key + "]")
-                        {
-                            parameters.parameters[parameter.Key] = variable.Value;
-                        }
+                        parameters.parameters[parameter.Key] = parameters.parameters[parameter.Key].Replace("[" + variable.Key + "]", variable.Value);
                 }
             }
             if (parameters.stencilParameters.parameters != null)
@@ -242,7 +239,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
             bool wasEscapeChar = false;
             bool inQuotes = false;
-            bool noSurrounding = false;
+            bool singleLine = false;
             int bracketLevel = 0;
 
             int valueStartIndex = localEndIndex;
@@ -251,9 +248,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
             foreach ( var charac in statement.Take(totalRange.end).Skip(valueStartIndex))
             {
-                if (noSurrounding && char.IsWhiteSpace(charac))
+                if (singleLine && charac == '\n')
                     break;
                 valueEndIndex++;
+                if (singleLine)
+                    continue;
 
                 if (inQuotes)
                 {
@@ -293,10 +292,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                             break;
                     }
                 }
-                if (!noSurrounding && !inQuotes && bracketLevel == 0 && !char.IsWhiteSpace(charac)) // Parameter without quote or bracket ( Cull ... )
+                if (!singleLine && !inQuotes && bracketLevel == 0 && !char.IsWhiteSpace(charac)) // Parameter without quote or bracket ( Cull ... )
                 {
                     dataStartIndex = valueEndIndex - 1;
-                    noSurrounding = true;
+                    singleLine = true;
                 }
             }
 
