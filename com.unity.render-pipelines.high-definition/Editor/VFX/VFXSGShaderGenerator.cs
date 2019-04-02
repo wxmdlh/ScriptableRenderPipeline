@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor.ShaderGraph;
 using UnityEditor.VFX;
+using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
@@ -385,6 +386,44 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
                         defines["_MATERIAL_FEATURE_TRANSMISSION"] = 1;
                         break;
                 }
+
+                // Taken from BaseUI.cs
+                int stencilRef = (int)StencilLightingUsage.RegularLighting; // Forward case
+                int stencilWriteMask = (int)HDRenderPipeline.StencilBitMask.LightingMask;
+                int stencilRefDepth = 0;
+                int stencilWriteMaskDepth = 0;
+                int stencilRefGBuffer = (int)StencilLightingUsage.RegularLighting;
+                int stencilWriteMaskGBuffer = (int)HDRenderPipeline.StencilBitMask.LightingMask;
+                int stencilRefMV = (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors;
+                int stencilWriteMaskMV = (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors;
+
+                if (masterNode.materialType == HDLitMasterNode.MaterialType.SubsurfaceScattering)
+                {
+                    stencilRefGBuffer = stencilRef = (int)StencilLightingUsage.SplitLighting;
+                }
+
+                if (masterNode.receiveSSR.isOn)
+                {
+                    stencilRefDepth |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
+                    stencilRefGBuffer |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
+                    stencilRefMV |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
+                }
+
+                stencilWriteMaskDepth |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR | (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
+                stencilWriteMaskGBuffer |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR | (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
+                stencilWriteMaskMV |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR | (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
+
+                // As we tag both during motion vector pass and Gbuffer pass we need a separate state and we need to use the write mask
+                guiVariables["_StencilRef"] = stencilRef.ToString();
+                guiVariables["_StencilWriteMask"] = stencilWriteMask.ToString();
+                guiVariables["_StencilRefDepth"] = stencilRefDepth.ToString();
+                guiVariables["_StencilWriteMaskDepth"] = stencilWriteMaskDepth.ToString();
+                guiVariables["_StencilRefGBuffer"] = stencilRefGBuffer.ToString();
+                guiVariables["_StencilWriteMaskGBuffer"] = stencilWriteMaskGBuffer.ToString();
+                guiVariables["_StencilRefMV"] = stencilRefMV.ToString();
+                guiVariables["_StencilWriteMaskMV"] = stencilWriteMaskMV.ToString();
+                guiVariables["_StencilRefDistortionVec"] = ((int)HDRenderPipeline.StencilBitMask.DistortionVectors).ToString();
+                guiVariables["_StencilWriteMaskDistortionVec"] =  ((int)HDRenderPipeline.StencilBitMask.DistortionVectors).ToString();
             }
 
             foreach (var pass in document.passes)

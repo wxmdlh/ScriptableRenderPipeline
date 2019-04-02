@@ -226,8 +226,6 @@ void PostInit(FragInputs input, inout SurfaceData surfaceData, inout BuiltinData
 
     InitBuiltinData(posInput, alpha, bentNormalWS, -input.worldToTangent[2], input.texCoord1, input.texCoord2, builtinData);
 
-    //builtinData.depthOffset = depthOffset;
-
     PostInitBuiltinData(V, posInput, surfaceData, builtinData);
 }
 
