@@ -14,7 +14,7 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
-    public static class VFXSGShaderGenerator
+    public static class VFXSGHDRPShaderGenerator
     {
         public static Graph LoadShaderGraph(Shader shader)
         {

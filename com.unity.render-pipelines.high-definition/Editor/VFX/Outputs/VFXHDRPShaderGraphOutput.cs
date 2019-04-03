@@ -81,7 +81,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 return null;
 
             var sb = new StringBuilder();
-            sb.Append(VFXSGShaderGenerator.NewGenerateShader(shaderGraph, ref infos));
+            sb.Append(VFXSGHDRPShaderGenerator.NewGenerateShader(shaderGraph, ref infos));
             return sb;
         }
 
@@ -90,10 +90,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             get {
                 if( shaderGraph != null)
                 {
-                    var graph = VFXSGShaderGenerator.LoadShaderGraph(shaderGraph);
+                    var graph = VFXSGHDRPShaderGenerator.LoadShaderGraph(shaderGraph);
                     if( graph != null)
                     {
-                        List<string> sgDeclarations = VFXSGShaderGenerator.GetPropertiesExcept(graph,attributes.Select(t => t.attrib.name).ToList());
+                        List<string> sgDeclarations = VFXSGHDRPShaderGenerator.GetPropertiesExcept(graph,attributes.Select(t => t.attrib.name).ToList());
 
                         foreach (var decl in sgDeclarations)
                         {
@@ -120,10 +120,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 yield return exp;
             if (shaderGraph != null)
             {
-                var graph = VFXSGShaderGenerator.LoadShaderGraph(shaderGraph);
+                var graph = VFXSGHDRPShaderGenerator.LoadShaderGraph(shaderGraph);
                 if (graph != null)
                 {
-                    List<string> sgDeclarations = VFXSGShaderGenerator.GetPropertiesExcept(graph, attributes.Select(t => t.attrib.name).ToList());
+                    List<string> sgDeclarations = VFXSGHDRPShaderGenerator.GetPropertiesExcept(graph, attributes.Select(t => t.attrib.name).ToList());
 
                     foreach (var decl in sgDeclarations)
                     {
