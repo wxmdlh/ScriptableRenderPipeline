@@ -535,7 +535,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     
     surfaceData.geomNormalWS = input.worldToTangent[2];
 ");
-            getSurfaceDataFunction.Append("    " + vfxInfos.loadAttributes.Replace("\n", "\n    "));
+            getSurfaceDataFunction.AppendLine("    " + vfxInfos.loadAttributes.Replace("\n", "\n    "));
 
             foreach (var prop in shaderProperties.properties)
             {
@@ -543,15 +543,15 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                 if (matchingAttribute != null)
                 {
                     if (matchingAttribute == "color")
-                        getSurfaceDataFunction.AppendLine(prop.GetPropertyDeclarationString("") + " = float4(color,1);");
+                        getSurfaceDataFunction.AppendLine("    " + prop.GetPropertyDeclarationString("") + " = float4(color,1);");
                     else
-                        getSurfaceDataFunction.AppendLine(prop.GetPropertyDeclarationString("") + " = " + matchingAttribute + ";");
+                        getSurfaceDataFunction.AppendLine("    " + prop.GetPropertyDeclarationString("") + " = " + matchingAttribute + ";");
                 }
             }
 
-            getSurfaceDataFunction.Append("    " + shaderGraphCode.Replace("\n", "\n    "));
+            getSurfaceDataFunction.AppendLine("\n    " + shaderGraphCode.Replace("\n", "\n    "));
 
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Alpha", "\tfloat alphaSG = {0};\n alpha *= alphaSG;\n", null, graph.passes[currentPass].pixel.slots);
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Alpha", "    float alphaSG = {0};\n    alpha *= alphaSG;\n", null, graph.passes[currentPass].pixel.slots);
             bool alphaThresholdExist = AddCodeIfSlotExist(graph, getSurfaceDataFunction, "AlphaClipThreshold", "\tfloat alphaCutoff = {0};\nDoAlphaTest(alpha, alphaCutoff);\n", null, graph.passes[currentPass].pixel.slots);
             if( alphaThresholdExist)
             {
@@ -563,7 +563,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             {
                 guiVariables["_ZTestGBuffer"] = "LEqual";
             }
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "DepthOffset", "float depthOffset = {0};\nApplyDepthOffsetPositionInput(V, depthOffset, GetViewForwardDir(), GetWorldToHClipMatrix(), posInput);\n", null, graph.passes[currentPass].pixel.slots);
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "DepthOffset", "    float depthOffset = {0};\n    ApplyDepthOffsetPositionInput(V, depthOffset, GetViewForwardDir(), GetWorldToHClipMatrix(), posInput);\n", null, graph.passes[currentPass].pixel.slots);
 
             var coatMask = graph.passes[currentPass].pixel.slots.FirstOrDefault(t => t.shaderOutputName == "CoatMask");
             if (coatMask != null)
@@ -579,17 +579,17 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
                 }
             }
 
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Normal", "\tfloat3 normalTS = {0};\n", "\tfloat3 normalTS = float3(0.0,0.0,1.0);", graph.passes[currentPass].pixel.slots);
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Normal", "    float3 normalTS = {0};\n", "    float3 normalTS = float3(0.0,0.0,1.0);", graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
 
-#if HAVE_DECALS
-        if (_EnableDecals)
-        {
-            DecalSurfaceData decalSurfaceData = GetDecalSurfaceData(posInput, alpha);
-            ApplyDecalToSurfaceData(decalSurfaceData, surfaceData);
-        }
-#endif");
+    #if HAVE_DECALS
+            if (_EnableDecals)
+            {
+                DecalSurfaceData decalSurfaceData = GetDecalSurfaceData(posInput, alpha);
+                ApplyDecalToSurfaceData(decalSurfaceData, surfaceData);
+            }
+    #endif");
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "SpecularOcclusion", "surfaceData.specularOcclusion = {0}", "", graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
@@ -599,7 +599,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
     GetNormalWS(input, normalTS, surfaceData.normalWS, doubleSidedConstants);
 ");
 
-            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "BentNormal", "\tbentNormalTS = {0};\n", "\tbentNormalWS = surfaceData.normalWS;", graph.passes[currentPass].pixel.slots);
+            AddCodeIfSlotExist(graph, getSurfaceDataFunction, "BentNormal", "    bentNormalTS = {0};", "    bentNormalWS = surfaceData.normalWS;", graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
     GetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants);
@@ -646,15 +646,15 @@ else
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Tangent", "TransformTangentToWorld({0}, input.worldToTangent);", null, graph.passes[currentPass].pixel.slots);
 
             getSurfaceDataFunction.AppendLine(@"
-    #if defined(_SPECULAR_OCCLUSION_CUSTOM)");
+ #if defined(_SPECULAR_OCCLUSION_CUSTOM)");
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "SpecularOcclusion", "surfaceData.specularOcclusion = {0}", "", graph.passes[currentPass].pixel.slots);
             getSurfaceDataFunction.AppendLine(@"
-    #elif defined(_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL)
-            // If we have bent normal and ambient occlusion, process a specular occlusion
-            surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData.normalWS, surfaceData.ambientOcclusion, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
-    #elif defined(_AMBIENT_OCCLUSION) && defined(_SPECULAR_OCCLUSION_FROM_AO)
-            surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(dot(surfaceData.normalWS, V)), surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
-    #endif
+ #elif defined(_SPECULAR_OCCLUSION_FROM_AO_BENT_NORMAL)
+    // If we have bent normal and ambient occlusion, process a specular occlusion
+    surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData.normalWS, surfaceData.ambientOcclusion, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
+ #elif defined(_AMBIENT_OCCLUSION) && defined(_SPECULAR_OCCLUSION_FROM_AO)
+    surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(dot(surfaceData.normalWS, V)), surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
+ #endif
 
     PostInit(input, surfaceData, builtinData, posInput,bentNormalWS,alpha,V);
 }
