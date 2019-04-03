@@ -77,6 +77,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
         public StringBuilder GenerateShader(ref VFXInfos infos)
         {
+            if (shaderGraph == null)
+                return null;
+
             var sb = new StringBuilder();
             sb.Append(VFXSGShaderGenerator.NewGenerateShader(shaderGraph, ref infos));
             return sb;
