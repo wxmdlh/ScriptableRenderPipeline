@@ -264,7 +264,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                     stencilRefGBuffer = stencilRef = (int)StencilLightingUsage.SplitLighting;
                 }
 
-                if (masterNode.receiveSSR.isOn)
+                if (!masterNode.receiveSSR.isOn)
                 {
                     stencilRefDepth |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
                     stencilRefGBuffer |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
@@ -392,10 +392,36 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
             foreach (var pass in document.passes)
             {
+
+                Dictionary<string, int> passDefines = new Dictionary<string, int>();
                 int currentPass = Array.FindIndex(Graph.passInfos, t => t.name == pass.name);
                 if (currentPass == -1)
                     continue;
+
+                for(int i = 0; i < 4; ++i)
+                {
+                    if (graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains((UVChannel)i))
+                    {
+                        passDefines["ATTRIBUTES_NEED_TEXCOORD" + i] = 1;
+                        passDefines["VARYINGS_NEED_TEXCOORD" + i] = 1;
+                    }
+                    else if(graph.passes[currentPass].vertex.requirements.requiresMeshUVs.Contains((UVChannel)i))
+                        passDefines["ATTRIBUTES_NEED_TEXCOORD" + i] = 1;
+                    
+                }
+                if (graph.passes[currentPass].pixel.requirements.requiresVertexColor)
+                {
+                    passDefines["ATTRIBUTES_NEED_COLOR"] = 1;
+                    passDefines["VARYINGS_NEED_COLOR"] = 1;
+                }
+
+
+
                 var sb = new StringBuilder();
+
+                foreach( var define in passDefines)
+                    pass.InsertShaderCode(0, string.Format("#define {0} {1}", define.Key, define.Value));
+
                 GenerateParticleVert(graph, vfxInfos, sb, currentPass);
                 string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass, pass, guiVariables, defines);
 
@@ -641,6 +667,9 @@ else
 ", refractionIndex, refractionColor, refractionDistance);
             }
 
+            getSurfaceDataFunction.AppendLine(@"
+    InitBuiltinData(posInput, alpha, bentNormalWS, -input.worldToTangent[2], input.texCoord1, input.texCoord2, builtinData); ");
+
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Emission", "\tbuiltinData.emissiveColor = {0};\n", null, graph.passes[currentPass].pixel.slots);
 
             AddCodeIfSlotExist(graph, getSurfaceDataFunction, "Tangent", "TransformTangentToWorld({0}, input.worldToTangent);", null, graph.passes[currentPass].pixel.slots);
@@ -733,13 +762,11 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
     #endif
     #if VFX_USE_SCALEZ_CURRENT
     size3.z *= scaleZ;
-    #endif
+    #endif");
 
-    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
 
-    float3 particlePos;
-    VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);");
 
+            shader.Append("\t" + vfxInfos.vertexShaderContent.Replace("\n", "\n\t"));
             // add shader code to compute Position if any
             shader.AppendLine(sb.ToString());
 
@@ -753,6 +780,11 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                     shader.AppendFormat("float3 objectPos = {0};\nparticlePos = mul(elementToVFX,float4(objectPos,1)).xyz; \n", graph.graphData.outputNode.GetSlotValue(slot.id, GenerationMode.ForReals));
                 }
             }
+            shader.AppendLine(@"
+    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
+
+    float3 particlePos;
+    VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);");
 
             shader.Append(@"
 
@@ -769,10 +801,6 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
 
     PackedVaryingsType result = PackVaryingsType(varyingsType);
     result.vmesh.instanceID = inputMesh.instanceID; // transmit the instanceID to the pixel shader through the varyings
-");
-            shader.Append("\t" + vfxInfos.vertexShaderContent.Replace("\n","\n\t"));
-            shader.Append(@"
-
 
     return result;
 }

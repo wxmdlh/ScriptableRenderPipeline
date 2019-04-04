@@ -117,7 +117,7 @@ struct FragInputForSG
     float4 uv1;
     float4 uv2;
     float4 uv3;
-    float4 color; // vertex color
+    float4 VertexColor; // vertex color
 
     float3 ObjectSpaceNormal;
     float3 ViewSpaceNormal;
@@ -155,7 +155,7 @@ FragInputForSG InitializeFragStructs(inout FragInputs input, PositionInputs posI
     fisg.uv1 = input.texCoord1;
     fisg.uv2 = input.texCoord2;
     fisg.uv3 = input.texCoord3;
-    fisg.color = input.color;
+    fisg.VertexColor = input.color;
 
     fisg.WorldSpaceNormal =            normalize(input.worldToTangent[2].xyz);
     fisg.ObjectSpaceNormal =           mul(fisg.WorldSpaceNormal, (float3x3) UNITY_MATRIX_M);           // transposed multiplication by inverse matrix to handle normal scale
@@ -178,6 +178,7 @@ FragInputForSG InitializeFragStructs(inout FragInputs input, PositionInputs posI
     fisg.ObjectSpacePosition =         TransformWorldToObject(input.positionRWS);
     fisg.ViewSpacePosition =           TransformWorldToView(input.positionRWS);
     fisg.TangentSpacePosition =        float3(0.0f, 0.0f, 0.0f);
+    fisg.VertexColor = input.color;
 
     surfaceData = (SurfaceData)0;
     builtinData = (BuiltinData)0;
@@ -223,8 +224,6 @@ FragInputForSG InitializeFragStructs(inout FragInputs input, PositionInputs posI
 void PostInit(FragInputs input, inout SurfaceData surfaceData, inout BuiltinData builtinData, PositionInputs posInput,float3 bentNormalWS, float alpha, float3 V)
 {
     surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
-
-    InitBuiltinData(posInput, alpha, bentNormalWS, -input.worldToTangent[2], input.texCoord1, input.texCoord2, builtinData);
 
     PostInitBuiltinData(V, posInput, surfaceData, builtinData);
 }
