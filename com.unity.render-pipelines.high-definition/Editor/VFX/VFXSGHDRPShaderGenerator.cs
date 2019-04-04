@@ -721,24 +721,24 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
     varyingsType.vmesh = VertMesh(inputMesh);
     uint index = inputMesh.instanceID;
 ".Replace("\n", "\n"));
-            shader.Append("\t" + vfxInfos.loadAttributes.Replace("\n", "\n\t"));
+            shader.Append("    " + vfxInfos.loadAttributes.Replace("\n", "\n    "));
 
             shader.AppendLine(@"
     float3 size3 = float3(size,size,size);
-	#if VFX_USE_SCALEX_CURRENT
-	size3.x *= scaleX;
-	#endif
-	#if VFX_USE_SCALEY_CURRENT
-	size3.y *= scaleY;
-	#endif
-	#if VFX_USE_SCALEZ_CURRENT
-	size3.z *= scaleZ;
-	#endif
+    #if VFX_USE_SCALEX_CURRENT
+    size3.x *= scaleX;
+    #endif
+    #if VFX_USE_SCALEY_CURRENT
+    size3.y *= scaleY;
+    #endif
+    #if VFX_USE_SCALEZ_CURRENT
+    size3.z *= scaleZ;
+    #endif
 
-	float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
+    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
 
-	float3 particlePos;
-	VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);");
+    float3 particlePos;
+    VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);");
 
             // add shader code to compute Position if any
             shader.AppendLine(sb.ToString());
@@ -756,10 +756,10 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
 
             shader.Append(@"
 
-	varyingsType.vmesh.positionCS = TransformPositionVFXToClip(particlePos);
+    varyingsType.vmesh.positionCS = TransformPositionVFXToClip(particlePos);
 
-	#ifdef VARYINGS_NEED_POSITION_WS
-	    varyingsType.vmesh.positionRWS = TransformObjectToWorld(particlePos);
+    #ifdef VARYINGS_NEED_POSITION_WS
+        varyingsType.vmesh.positionRWS = TransformObjectToWorld(particlePos);
     #endif
 
     #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
