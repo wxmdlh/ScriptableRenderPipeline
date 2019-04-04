@@ -477,20 +477,25 @@ namespace UnityEditor.VFX
             Profiler.BeginSample("VFXEditor.SaveShaderFiles");
             try
             {
-                VFXShaderSourceDesc[] descs = new VFXShaderSourceDesc[generatedCodeData.Count];
+                VFXShaderSourceDesc[] descs = new VFXShaderSourceDesc[generatedCodeData.Where(t=>t.content != null).Count()];
 
+                int cpt = 0;
                 for (int i = 0; i < generatedCodeData.Count; ++i)
                 {
                     var generated = generatedCodeData[i];
                     var fileName = generated.context.fileName;
 
+                    if (generated.content == null)
+                        continue;
+
                     if( ! generated.computeShader)
                     {
                         generated.content.Insert(0,"Shader \""+generated.context.shaderName + "\"\n") ;
                     }
-                    descs[i].source = generated.content.ToString();
-                    descs[i].name = fileName;
-                    descs[i].compute = generated.computeShader;
+                    descs[cpt].source = generated.content.ToString();
+                    descs[cpt].name = fileName;
+                    descs[cpt].compute = generated.computeShader;
+                    ++cpt;
                 }
 
                 resource.shaderSources = descs;

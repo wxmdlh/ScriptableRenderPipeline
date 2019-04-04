@@ -81,7 +81,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 return null;
 
             var sb = new StringBuilder();
-            sb.Append(VFXSGHDRPShaderGenerator.NewGenerateShader(shaderGraph, ref infos));
+            string result = VFXSGHDRPShaderGenerator.NewGenerateShader(shaderGraph, ref infos);
+            if( result != null)
+                sb.Append( result);
             return sb;
         }
 
@@ -113,7 +115,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 {
                     yield return prop;
                 }
-        } }
+            }
+        }
         protected override IEnumerable<VFXNamedExpression> CollectGPUExpressions(IEnumerable<VFXNamedExpression> slotExpressions)
         {
             foreach (var exp in base.CollectGPUExpressions(slotExpressions))
@@ -151,15 +154,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             switch (target)
             {
                 case VFXDeviceTarget.CPU:
-                {
                     mapper.AddExpression(inputSlots.First(s => s.name == "mesh").GetExpression(), "mesh", -1);
                     mapper.AddExpression(inputSlots.First(s => s.name == "subMeshMask").GetExpression(), "subMeshMask", -1);
                     break;
-                }
                 default:
-                {
                     break;
-                }
             }
 
             return mapper;
