@@ -15,9 +15,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [GenerateHLSL(PackingRules.Exact, false)]
         public struct ViewConstants
         {
-            public Matrix4x4 viewMatrix;
+        public Matrix4x4 viewMatrix;
             public Matrix4x4 invViewMatrix;
-            public Matrix4x4 projMatrix;
+        public Matrix4x4 projMatrix;
             public Matrix4x4 invProjMatrix;
             public Matrix4x4 viewProjMatrix;
             public Matrix4x4 invViewProjMatrix;
@@ -27,11 +27,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Matrix4x4 prevViewProjMatrix;
             public Matrix4x4 prevViewProjMatrixNoCameraTrans;
 
-            public Vector3 worldSpaceCameraPos;
+        public Vector3   worldSpaceCameraPos;
             public float pad0;
             public Vector3 worldSpaceCameraPosViewOffset;
             public float pad1;
-            public Vector3 prevWorldSpaceCameraPos;
+        public Vector3   prevWorldSpaceCameraPos;
             public float pad2;
         };
 
@@ -85,6 +85,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // This is the viewport size actually used for this camera (as it can be altered by VR for example)
         int m_ActualWidth;
         int m_ActualHeight;
+        Vector2Int m_NonScaledViewportSize;
         // And for the previous frame...
         Vector2Int m_ViewportSizePrevFrame;
 
@@ -330,16 +331,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 finalViewport = new Rect(camera.pixelRect.x, camera.pixelRect.y, camera.pixelWidth, camera.pixelHeight);
 
-                m_ViewportSizePrevFrame = new Vector2Int(m_ActualWidth, m_ActualHeight);
+            m_ViewportSizePrevFrame = new Vector2Int(m_ActualWidth, m_ActualHeight);
                 m_ActualWidth = Math.Max((int)finalViewport.size.x, 1);
                 m_ActualHeight = Math.Max((int)finalViewport.size.y, 1);
             }
 
-            Vector2Int nonScaledSize = new Vector2Int(m_ActualWidth, m_ActualHeight);
+            // Have to keep track of non scaled size to update the RTHandle system.
+            m_NonScaledViewportSize = new Vector2Int(m_ActualWidth, m_ActualHeight);
             if (isMainGameView)
             {
                 Vector2Int scaledSize = HDDynamicResolutionHandler.instance.GetRTHandleScale(new Vector2Int(m_ActualWidth, m_ActualHeight));
-                nonScaledSize = new Vector2Int((int)finalViewport.size.x, (int)finalViewport.size.y);
+                m_NonScaledViewportSize = new Vector2Int((int)finalViewport.size.x, (int)finalViewport.size.y);
                 m_ActualWidth = scaledSize.x;
                 m_ActualHeight = scaledSize.y;
             }
@@ -354,8 +356,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 Debug.Assert(HDDynamicResolutionHandler.instance.SoftwareDynamicResIsEnabled() == false);
 
                 var xrDesc = XRGraphics.eyeTextureDesc;
-                nonScaledSize.x = screenWidth  = m_ActualWidth  = xrDesc.width;
-                nonScaledSize.y = screenHeight = m_ActualHeight = xrDesc.height;
+                m_NonScaledViewportSize.x = screenWidth = m_ActualWidth = xrDesc.width;
+                m_NonScaledViewportSize.y = screenHeight = m_ActualHeight = xrDesc.height;
 
                 finalViewport.width  = xrDesc.width;
                 finalViewport.height = xrDesc.height;
@@ -365,6 +367,23 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_LastFrameActive = Time.frameCount;
 
+            m_msaaSamples = msaaSamples;
+
+            screenSize = new Vector4(screenWidth, screenHeight, 1.0f / screenWidth, 1.0f / screenHeight);
+            screenParams = new Vector4(screenSize.x, screenSize.y, 1 + screenSize.z, 1 + screenSize.w);
+
+            if (vlSys != null)
+            {
+                vlSys.UpdatePerCameraData(this);
+            }
+
+            UpdateVolumeParameters();
+        }
+
+        // Updating RTHandle needs to be done at the beginning of rendering (not during update of HDCamera which happens in batches)
+        // The reason is that RTHandle will hold data necessary to setup RenderTargets and viewports properly.
+        public void BeginRender()
+        {
             // TODO: cache this, or make the history system spill the beans...
             Vector2Int prevColorPyramidBufferSize = Vector2Int.zero;
 
@@ -388,11 +407,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 prevVolumetricBufferSize.z = rt.volumeDepth;
             }
 
-            m_msaaSamples = msaaSamples;
             // Here we use the non scaled resolution for the RTHandleSystem ref size because we assume that at some point we will need full resolution anyway.
             // This is also useful because we have some RT after final up-rez that will need the full size.
-            RTHandles.SetReferenceSize(nonScaledSize.x, nonScaledSize.y, m_msaaSamples);
-            m_HistoryRTSystem.SetReferenceSize(nonScaledSize.x, nonScaledSize.y, m_msaaSamples);
+            RTHandles.SetReferenceSize(m_NonScaledViewportSize.x, m_NonScaledViewportSize.y, m_msaaSamples);
+            m_HistoryRTSystem.SetReferenceSize(m_NonScaledViewportSize.x, m_NonScaledViewportSize.y, m_msaaSamples);
             m_HistoryRTSystem.Swap();
 
             Vector3Int currColorPyramidBufferSize = Vector3Int.zero;
@@ -439,16 +457,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_ViewportScalePreviousFrameHistory = m_ViewportSizePrevFrame * rcpTextureSizeHistory;
             m_ViewportScaleCurrentFrame  = new Vector2Int(m_ActualWidth, m_ActualHeight) * rcpTextureSize;
             m_ViewportScaleCurrentFrameHistory = m_ViewportSizePrevFrame * rcpTextureSizeHistory;
-
-            screenSize = new Vector4(screenWidth, screenHeight, 1.0f / screenWidth, 1.0f / screenHeight);
-            screenParams = new Vector4(screenSize.x, screenSize.y, 1 + screenSize.z, 1 + screenSize.w);
-
-            if (vlSys != null)
-            {
-                vlSys.UpdatePerCameraData(this);
-            }
-
-            UpdateVolumeParameters();
 
             m_RecorderCaptureActions = CameraCaptureBridge.GetCaptureActions(camera);
         }
@@ -524,28 +532,28 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 xrViewConstants = new ViewConstants[viewCount];
                 xrViewConstantsGpu = new ComputeBuffer(viewCount, System.Runtime.InteropServices.Marshal.SizeOf(typeof(ViewConstants)));
-            }
+                    }
 
             // XR instancing support
             if (camera.stereoEnabled && viewCount > 1)
-            {
+                    {
                 for (int viewIndex = 0; viewIndex < viewCount; ++viewIndex)
-                {
+                        {
                     GetXrViewParameters(viewIndex, out proj, out view, out cameraPosition);
                     UpdateViewConstants(ref xrViewConstants[viewIndex], proj, view, cameraPosition, jitterProjectionMatrix);
 
                     // Compute offset between the main camera and the instanced views
                     xrViewConstants[viewIndex].worldSpaceCameraPosViewOffset = xrViewConstants[viewIndex].worldSpaceCameraPos - mainViewConstants.worldSpaceCameraPos;
-                }
+                        }
             }
-            else
-            {
+                        else
+                        {
                 // Compute shaders always use the XR instancing path due to the lack of multi-compile
                 xrViewConstants[0] = mainViewConstants;
-            }
+                        }
 
             xrViewConstantsGpu.SetData(xrViewConstants);
-        }
+                    }
 
         void UpdateViewConstants(ref ViewConstants viewConstants, Matrix4x4 projMatrix, Matrix4x4 viewMatrix, Vector3 cameraPosition, bool jitterProjectionMatrix)
         {
