@@ -65,7 +65,20 @@ namespace UnityEditor.VFX.UI
             {
                 m_BlockProvider = new VFXBlockProvider(controller, (d, mPos) =>
                 {
-                    AddBlock(mPos, d);
+                    if( d is VFXBlockProvider.NewBlockDescriptor)
+                        AddBlock(mPos, (d as VFXBlockProvider.NewBlockDescriptor).newBlock );
+                    else
+                    {
+                        var subgraphBlock = AssetDatabase.LoadAssetAtPath<VisualEffectSubgraphBlock>((d as VFXBlockProvider.SubgraphBlockDescriptor).item.path);
+
+                        int blockIndex = GetDragBlockIndex(mPos);
+                        VFXBlock newModel = ScriptableObject.CreateInstance<VFXSubgraphBlock>();
+
+                        newModel.SetSettingValue("m_Subgraph", subgraphBlock);
+
+                        controller.AddBlock(blockIndex, newModel);
+                    }
+
                 });
             }
             Profiler.EndSample();
