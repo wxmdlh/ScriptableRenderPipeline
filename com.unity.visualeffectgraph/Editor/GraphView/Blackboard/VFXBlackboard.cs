@@ -99,7 +99,13 @@ namespace  UnityEditor.VFX.UI
 
             style.position = PositionType.Absolute;
 
-            subTitle = "Parameters";
+            m_PathLabel = hierarchy.ElementAt(0).Q<Label>("subTitleLabel");
+            m_PathLabel.RegisterCallback<MouseDownEvent>(OnMouseDownSubTitle);
+
+            m_PathTextField = new TextField { visible = false };
+            m_PathTextField.Q(TextField.textInputUssName).RegisterCallback<FocusOutEvent>(e => { OnEditPathTextFinished(); });
+            m_PathTextField.Q(TextField.textInputUssName).RegisterCallback<KeyDownEvent>(OnPathTextFieldKeyPressed);
+            hierarchy.Add(m_PathTextField);
 
             resizer.RemoveFromHierarchy();
 
@@ -107,6 +113,71 @@ namespace  UnityEditor.VFX.UI
                 s_LayoutManual.SetValue(this, false);
 
             m_AddButton.SetEnabled(false);
+        }
+
+
+        Label m_PathLabel;
+        TextField m_PathTextField;
+        bool m_EditPathCancelled;
+
+        void OnMouseDownSubTitle(MouseDownEvent evt)
+        {
+            if (evt.clickCount == 2 && evt.button == (int)MouseButton.LeftMouse)
+            {
+                StartEditingPath();
+                evt.PreventDefault();
+            }
+        }
+
+        void StartEditingPath()
+        {
+            m_PathTextField.visible = true;
+
+            m_PathTextField.value = m_PathLabel.text;
+            m_PathTextField.style.position = PositionType.Absolute;
+            var rect = m_PathLabel.ChangeCoordinatesTo(this, new Rect(Vector2.zero, m_PathLabel.layout.size));
+            m_PathTextField.style.left = rect.xMin;
+            m_PathTextField.style.top = rect.yMin;
+            m_PathTextField.style.width = rect.width;
+            m_PathTextField.style.fontSize = 11;
+            m_PathTextField.style.marginLeft = 0;
+            m_PathTextField.style.marginRight = 0;
+            m_PathTextField.style.marginTop = 0;
+            m_PathTextField.style.marginBottom = 0;
+
+            m_PathLabel.visible = false;
+
+            m_PathTextField.Q("unity-text-input").Focus();
+            m_PathTextField.SelectAll();
+        }
+
+        void OnPathTextFieldKeyPressed(KeyDownEvent evt)
+        {
+            switch (evt.keyCode)
+            {
+                case KeyCode.Escape:
+                    m_EditPathCancelled = true;
+                    m_PathTextField.Q("unity-text-input").Blur();
+                    break;
+                case KeyCode.Return:
+                case KeyCode.KeypadEnter:
+                    m_PathTextField.Q("unity-text-input").Blur();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        void OnEditPathTextFinished()
+        {
+            m_PathLabel.visible = true;
+            m_PathTextField.visible = false;
+
+            var newPath = m_PathTextField.text;
+
+            controller.graph.categoryPath = newPath;
+            m_PathLabel.text = newPath;
+            m_EditPathCancelled = false;
         }
 
         static System.Reflection.PropertyInfo s_LayoutManual = typeof(VisualElement).GetProperty("isLayoutManual",System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
@@ -479,6 +550,8 @@ namespace  UnityEditor.VFX.UI
                 var outputControllers = new HashSet<VFXParameterController>(controller.parameterControllers.Where(t => t.isOutput));
                 m_OutputCategory.SyncParameters(outputControllers);
             }
+
+            m_PathLabel.text = controller.graph.categoryPath;
                 
         }
 

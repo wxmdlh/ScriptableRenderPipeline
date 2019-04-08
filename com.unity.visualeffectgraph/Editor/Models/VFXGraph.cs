@@ -648,6 +648,15 @@ namespace UnityEditor.VFX
         [SerializeField]
         private List<VisualEffectObject> m_SubgraphDependencies = new List<VisualEffectObject>();
 
+        [SerializeField]
+        private string m_CategoryPath;
+
+        public string categoryPath
+        {
+            get { return m_CategoryPath; }
+            set { m_CategoryPath = value; }//TODO invalidate cache here
+        }
+
         public ReadOnlyCollection<VisualEffectObject> subgraphDependencies
         {
             get { return m_SubgraphDependencies.AsReadOnly(); }

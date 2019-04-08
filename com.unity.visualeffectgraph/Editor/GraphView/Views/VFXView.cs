@@ -2,9 +2,10 @@
 
 //#define OLD_COPY_PASTE
 using System;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -218,7 +219,24 @@ namespace UnityEditor.VFX.UI
             {
                 string path = d.modelDescriptor as string;
 
-                CreateTemplateSystem(path, mPos, groupNode);
+                if(! path.StartsWith(VisualEffectAssetEditorUtility.templatePath) )
+                {
+                    if( Path.GetExtension(path) == VisualEffectSubgraphOperator.Extension)
+                    {
+                        var subGraph = AssetDatabase.LoadAssetAtPath<VisualEffectSubgraphOperator>(path);
+                        if (subGraph != null && (!controller.model.isSubgraph || !subGraph.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) && subGraph.GetResource() != controller.model))
+                        {
+                            ;
+                            VFXModel newModel = VFXSubgraphOperator.CreateInstance<VFXSubgraphOperator>() as VFXModel;
+
+                            controller.AddVFXModel(mPos, newModel);
+
+                            newModel.SetSettingValue("m_Subgraph", subGraph);
+                        }
+                    }
+                }
+                else
+                    CreateTemplateSystem(path, mPos, groupNode);
             }
             else if (d.modelDescriptor is GroupNodeAdder)
             {
@@ -1321,8 +1339,8 @@ namespace UnityEditor.VFX.UI
         {
             if (Selection.activeObject != controller.model)
             {
-                Selection.activeObject = controller.model.asset;
-                EditorGUIUtility.PingObject(controller.model.asset);
+                Selection.activeObject = controller.model.visualEffectObject;
+                EditorGUIUtility.PingObject(controller.model.visualEffectObject);
             }
         }
 
