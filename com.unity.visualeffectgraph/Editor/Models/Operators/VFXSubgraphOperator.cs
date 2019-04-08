@@ -81,6 +81,26 @@ namespace UnityEditor.VFX
             }
         }
 
+        protected override void Invalidate(VFXModel model, InvalidationCause cause)
+        {
+            if( cause == InvalidationCause.kSettingChanged)
+            {
+                var graph = GetGraph();
+
+                if (graph != null && m_Subgraph != null && m_Subgraph.GetResource() != null)
+                {
+                    var otherGraph = m_Subgraph.GetResource().GetOrCreateGraph();
+                    if(otherGraph == graph || otherGraph.subgraphDependencies.Contains(graph.GetResource().visualEffectObject))
+                        m_Subgraph = null; // prevent cyclic dependencies.
+                    if (graph.GetResource().isSubgraph) // BuildSubgraphDependenciesis called for vfx by recompilation, but in subgraph we must call it explicitely
+                        graph.BuildSubgraphDependencies();
+                }
+
+            }
+
+            base.Invalidate(model, cause);
+        }
+
         IEnumerable<VFXParameter> GetParameters(Func<VFXParameter, bool> predicate)
         {
             if (m_Subgraph == null)

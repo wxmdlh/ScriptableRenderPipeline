@@ -439,7 +439,7 @@ namespace UnityEditor.VFX
             m_DependentDirty = true;
         }
 
-        void BuildSubgraphDependencies()
+        public void BuildSubgraphDependencies()
         {
             if (m_SubgraphDependencies == null)
                 m_SubgraphDependencies = new List<VisualEffectObject>();
