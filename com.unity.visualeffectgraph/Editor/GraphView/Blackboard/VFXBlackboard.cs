@@ -298,8 +298,11 @@ namespace  UnityEditor.VFX.UI
         {
             GenericMenu menu = new GenericMenu();
 
+            if (!(controller.model.subgraph is VisualEffectSubgraphOperator))
+            {
                 menu.AddItem(EditorGUIUtility.TrTextContent("Category"), false, OnAddCategory);
                 menu.AddSeparator(string.Empty);
+            }
 
             foreach (var parameter in VFXLibrary.GetParameters())
             {
@@ -409,10 +412,11 @@ namespace  UnityEditor.VFX.UI
 
              if( controller.model.subgraph is VisualEffectSubgraphOperator && m_OutputCategory == null)
             {
-                m_OutputCategory = new VFXBlackboardCategory() { title = "output" };
+                m_OutputCategory = new VFXBlackboardCategory() { title = "Output" };
                 m_OutputCategory.headerVisible = true;
                 m_OutputCategory.expanded = PlayerPrefs.GetInt("VFX.blackboard.outputexpanded", 0) != 0;
                 Add(m_OutputCategory);
+                m_OutputCategory.AddToClassList("output");
             }
             else if(!(controller.model.subgraph is VisualEffectSubgraphOperator) && m_OutputCategory != null )
             {
