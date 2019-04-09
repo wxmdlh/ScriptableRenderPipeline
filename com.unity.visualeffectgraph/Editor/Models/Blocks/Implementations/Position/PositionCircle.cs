@@ -34,7 +34,7 @@ namespace UnityEditor.VFX.Block
             get
             {
                 string outSource = @"";
-                if (spawnMode == SpawnMode.Randomized)
+                if (spawnMode == SpawnMode.Random)
                     outSource += @"float theta = ArcCircle_arc * RAND;";
                 else
                     outSource += @"float theta = ArcCircle_arc * ArcSequencer;";

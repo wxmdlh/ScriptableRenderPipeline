@@ -7,7 +7,7 @@ namespace UnityEditor.VFX.Block
     [VFXInfo(category = "Implicit")]
     class EulerIntegration : VFXBlock
     {
-        public override string name { get { return "EulerIntegration"; } }
+        public override string name { get { return "Integration : Euler"; } }
         public override VFXContextType compatibleContexts { get { return VFXContextType.kUpdate; } }
         public override VFXDataType compatibleData { get { return VFXDataType.kParticle; } }
         public override IEnumerable<VFXAttributeInfo> attributes
