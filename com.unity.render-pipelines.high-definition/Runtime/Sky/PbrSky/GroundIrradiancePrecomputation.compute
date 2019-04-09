@@ -17,7 +17,7 @@ void main(uint dispatchThreadId : SV_DispatchThreadID)
     // Let the hardware and the driver handle the ordering of the computation.
     uint2 tableCoord = uint2(dispatchThreadId, 0);
 
-    // We don't care about the extremal points (boundary values).
+    // We don't care about the extremal points.
     float uv = tableCoord.x * scale + bias;
 
     // As we look at the planet in the direction of the sun, the ground is rotationally invariant.

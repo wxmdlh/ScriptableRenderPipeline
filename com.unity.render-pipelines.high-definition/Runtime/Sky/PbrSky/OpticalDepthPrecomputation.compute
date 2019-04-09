@@ -64,12 +64,12 @@ void main(uint2 dispatchThreadId : SV_DispatchThreadID)
     // Let the hardware and the driver handle the ordering of the computation.
     uint2 tableCoord = dispatchThreadId;
 
-    // We don't care about the extremal points (boundary values).
+    // We don't care about the extremal points.
     float2 uv = tableCoord * scale + bias;
 
     // The table only contains data for directions pointing above the horizon.
-    float cosChi = UnmapAerialPerspective(float3(uv, 1)).x;
-    float height = UnmapAerialPerspective(float3(uv, 1)).y;
+    float cosChi = UnmapAerialPerspectiveAboveHorizon(uv).x;
+    float height = UnmapAerialPerspectiveAboveHorizon(uv).y;
 
     float R = _PlanetaryRadius;
     float h = height;
@@ -89,7 +89,7 @@ void main(uint2 dispatchThreadId : SV_DispatchThreadID)
     //
     // For now, assume that no intersection with the planet occurred.
     //
-    // OpticalDepth = Integrate[Extinction[t], {t, 0, Infinity}]
+    // OpticalDepth = Integrate[Extinction[h[t]], {t, 0, Infinity}]
     // OpticalDepth = Integrate[Extinction[0] * Exp[-h[t] / S], {t, 0, Infinity}]
     // OpticalDepth = Extinction[0] * Integrate[Exp[-h[t] / S], {t, 0, Infinity}]
     // OpticalDepth = Extinction[0] * Integrate[Exp[(R - Sqrt[(r * Sin[chi])^2 + t^2]) / S], {t, r * Cos[chi], Infinity}]

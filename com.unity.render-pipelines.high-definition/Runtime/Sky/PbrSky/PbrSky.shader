@@ -39,17 +39,24 @@ Shader "Hidden/HDRP/Sky/RenderPbrSky"
 
     float4 RenderSky(Varyings input)
     {
-        const uint n = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_W / 2;
+        const uint zTexSize = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_Z;
+        const uint zTexCnt  = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_W;
 
+        // Convention:
+        // V points towards the camera.
+        // The normal vector N points upwards (local Z).
+        // The view vector V and the normal vector N span the local X-Z plane.
+        // The light vector is represented as {phiL, cosThataL}.
         float3 L = _SunDirection;
         float3 V = GetSkyViewDirWS(input.positionCS.xy, (float3x3)_PixelCoordToViewDirWS);
-        float3 O = _WorldSpaceCameraPos * 0.001; // Convert to km
+        float3 O = _WorldSpaceCameraPos * 0.001; // Convert m to km
         float3 C = _PlanetCenterPosition;
         float3 P = O - C;
         float3 N = normalize(P);
-        float  h = max(0, length(P) - _PlanetaryRadius); // Must not be inside the planet
+        float  r = length(P);
+        float  h = max(0, r - _PlanetaryRadius); // Must not be inside the planet
 
-        float3 radiance = 0;
+        bool earlyOut = false;
 
         if (h <= _AtmosphericDepth)
         {
@@ -58,58 +65,74 @@ Shader "Hidden/HDRP/Sky/RenderPbrSky"
         else
         {
             // We are observing the planet from space.
-            float t = IntersectAtmosphereFromOutside(-dot(N, V), h);
+            float t = IntersectSphere(_AtmosphericRadiusSquared, dot(N, -V), r).x; // Min root
 
             if (t >= 0)
             {
                 // It's in the view.
-                P = (O - C) - t * V;
+                P = P + t * -V;
                 N = normalize(P);
                 h = _AtmosphericDepth;
+                r = h + _PlanetaryRadius;
             }
             else
             {
-                return float4(radiance, 1);
+                // No atmosphere along the ray.
+                earlyOut = true;
             }
         }
 
-        float NdotL = dot(N, L);
-        float NdotV = dot(N, V);
-        float LdotV = dot(L, V);
+        float3 radiance = 0;
 
-        float u = MapAerialPerspective(NdotV, h).x;
-        float v = MapAerialPerspective(NdotV, h).y;
-        float s = MapAerialPerspective(NdotV, h).z;
+        float NdotL  = dot(N, L);
+        float NdotV  = dot(N, V);
+        float cosChi = -NdotV;
+
+        float3 projL = L - N * NdotL;
+        float3 projV = V - N * NdotV;
+        float  phiL  = acos(clamp(dot(projL, projV) * rsqrt(max(dot(projL, projL) * dot(projV, projV), FLT_EPS)), -1, 1));
+
+        float cosHor = GetCosineOfHorizonZenithAngle(h);
+
+        float u = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).x;
+        float v = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).y;
         float t = MapCosineOfZenithAngle(NdotL);
-
-        float k = (n - 1) * MapCosineOfLightViewAngle(LdotV); // Index
+        float k = INV_PI * phiL;
 
         // Do we see the ground?
-        if (s == 0)
+        if (cosChi < cosHor)
         {
+            float  t  = IntersectPlanetFromOutside(cosChi, h);
+            float3 gP = P + t * -V;
+            float3 gN = normalize(gP);
+
             // Shade the ground.
-            const float3 groundBrdf = INV_PI * _GroundAlbedo;
-            float3 T = SampleTransmittanceTexture(-NdotV, h, true);
-            radiance += T * groundBrdf * SampleGroundIrradianceTexture(NdotL);
+            const float3 gBrdf = INV_PI * _GroundAlbedo;
+            float3 transm = SampleTransmittanceTexture(cosChi, h, true);
+            radiance += transm * gBrdf * SampleGroundIrradianceTexture(dot(gN, L));
         }
 
-        const uint zTexSize  = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_Z;
-        const uint zTexCount = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_W;
-        // We have (2 * n) NdotL textures along the Z dimension.
+        // We have 'zTexCnt' textures along the Z dimension.
         // We treat them as separate textures (slices) and must NOT leak between them.
         t = clamp(t, 0 - 0.5 * rcp(zTexSize),
                      1 - 0.5 * rcp(zTexSize));
 
-        // Shrink by the 'zTexCount' and offset according to the above/below horizon direction and LdotV.
-        float w0 = t * rcp(zTexCount) + 0.5 * (1 - s) + 0.5 * (floor(k) * rcp(n));
-        float w1 = t * rcp(zTexCount) + 0.5 * (1 - s) + 0.5 * (ceil(k)  * rcp(n));
+        // Shrink by the 'zTexCount' and offset according to the above/below horizon direction and phiV.
+        float w0 = t * rcp(zTexCnt) + floor(k) * ((zTexCnt - 1) * rcp(zTexCnt));
+        float w1 = t * rcp(zTexCnt) + ceil(k)  * ((zTexCnt - 1) * rcp(zTexCnt));
 
         radiance += lerp(SAMPLE_TEXTURE3D(_InScatteredRadianceTexture, s_linear_clamp_sampler, float3(u, v, w0)),
                          SAMPLE_TEXTURE3D(_InScatteredRadianceTexture, s_linear_clamp_sampler, float3(u, v, w1)),
                          frac(k)).rgb;
 
-        // return float4(radiance, 1.0);
-        return float4(radiance / (radiance + 1), 1.0);
+        if (earlyOut)
+        {
+            // Can't perform an early return at the beginning of the shader
+            // due to the compiler warning...
+            radiance = 0;
+        }
+
+        return float4(radiance, 1.0);
     }
 
     float4 FragBaking(Varyings input) : SV_Target

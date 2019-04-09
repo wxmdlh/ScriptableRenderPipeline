@@ -100,7 +100,7 @@ real TransmittanceHomogeneousMedium(real extinction, real intervalLength)
     return TransmittanceFromOpticalDepth(OpticalDepthHomogeneousMedium(extinction, intervalLength));
 }
 
-// Integral{a, b}{TransmittanceFromOpticalDepth(0, t - a) dt}.
+// Integral{a, b}{TransmittanceHomogeneousMedium(k, t - a) dt}.
 real TransmittanceIntegralHomogeneousMedium(real extinction, real intervalLength)
 {
     // Note: when multiplied by the extinction coefficient, it becomes
@@ -263,8 +263,22 @@ void ImportanceSampleHomogeneousMedium(real rndVal, real extinction, real interv
     real x = 1 - exp(-extinction * intervalLength);
     real c = rcp(extinction);
 
+    // TODO: return 'rcpPdf' to support imperfect importance sampling...
     weight = x * c;
     offset = -log(1 - rndVal * x) * c;
+}
+
+void ImportanceSampleExponentialMedium(real rndVal, real extinction, real falloff,
+                                       out real offset, out real rcpPdf)
+{
+
+    // Extinction[t] = Extinction[0] * exp(-falloff * t).
+    real c = extinction;
+    real a = falloff;
+
+    // TODO: optimize...
+    offset = -log(1 - a / c * log(rndVal)) / a;
+    rcpPdf = rcp(c * exp(-a * offset) * exp(-c / a * (1 - exp(-a * offset))));
 }
 
 // Implements equiangular light sampling.
