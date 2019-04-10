@@ -518,7 +518,7 @@ namespace UnityEditor.VFX
             return space;
         }
 
-        public bool spaceable
+        public virtual bool spaceable
         {
             get
             {
