@@ -338,11 +338,6 @@ namespace UnityEditor.VFX.UI
             button.AddToClassList("toolbarItem");
             m_Toolbar.Add(button);
 
-            button = new Button(OnCompileDependant);
-            button.text = "Compile Dependant";
-            button.AddToClassList("toolbarItem");
-            m_Toolbar.Add(button);
-
 
             m_NoAssetLabel = new Label("Please Select An Asset");
             m_NoAssetLabel.style.position = PositionType.Absolute;
@@ -1021,13 +1016,7 @@ namespace UnityEditor.VFX.UI
         {
             var graph = controller.graph;
             graph.SetExpressionGraphDirty();
-            graph.RecompileIfNeeded(false,true);
-        }
-        void OnCompileDependant()
-        {
-            var graph = controller.graph;
-            graph.SetExpressionGraphDirty();
-            graph.RecompileIfNeeded(true, false);
+            graph.RecompileIfNeeded(false, false);
         }
 
         private bool m_IsRuntimeMode = false;
