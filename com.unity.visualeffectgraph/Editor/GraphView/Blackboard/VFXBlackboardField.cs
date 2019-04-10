@@ -53,6 +53,7 @@ namespace  UnityEditor.VFX.UI
             if(controller.isOutput)
             {
                 icon = Resources.Load<Texture2D>("VFX/output dot");
+
             }
             else if (controller.exposed)
             {

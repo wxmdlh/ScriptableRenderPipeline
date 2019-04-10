@@ -15,7 +15,7 @@ namespace UnityEditor.VFX
     [VFXInfo(category = "Subgraph Block")]
     class VFXSubgraphBlock : VFXBlock, IValidable
     {
-        [VFXSetting,SerializeField]
+        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
         protected VisualEffectSubgraphBlock m_Subgraph;
         
         VFXModel[] m_SubChildren;

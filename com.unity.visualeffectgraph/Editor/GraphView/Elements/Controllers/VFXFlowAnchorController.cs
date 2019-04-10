@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor.Experimental.GraphView;
+using UnityEngine.Experimental.VFX;
 
 namespace UnityEditor.VFX.UI
 {
@@ -67,7 +68,7 @@ namespace UnityEditor.VFX.UI
         {
             get
             {
-                if ( owner is VFXSubgraphContext || owner is VFXBasicSpawner)
+                if (owner is VFXBasicSpawner)
                 {
                     switch(slotIndex)
                     {
@@ -75,9 +76,24 @@ namespace UnityEditor.VFX.UI
                             return "Start";
                         case 1:
                             return "Stop";
-                        case 2:
-                            return "Trigger";
                     }
+                }
+                else if (owner is VFXSubgraphContext)
+                {
+                    string name = (owner as VFXSubgraphContext).GetInputFlowName(slotIndex);
+                    if (slotIndex == 0)
+                    {
+                        if (name == VisualEffectAsset.PlayEventName)
+                            return "Start";
+                        else if (name == VisualEffectAsset.StopEventName)
+                            return "Stop";
+                    }
+                    else if (slotIndex == 1)
+                    {
+                        if (name == VisualEffectAsset.StopEventName)
+                            return "Stop";
+                    }
+                    return name;
                 }
                 return "";
             }

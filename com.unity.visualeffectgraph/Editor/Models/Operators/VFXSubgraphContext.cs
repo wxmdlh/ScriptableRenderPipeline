@@ -24,7 +24,9 @@ namespace UnityEditor.VFX
         public VFXSubgraphContext():base(VFXContextType.Subgraph, VFXDataType.SpawnEvent, VFXDataType.None)
         {
         }
-        protected override int inputFlowCount { get { return 3; } }
+
+        public const int s_MaxInputFlow = 5;
+        protected override int inputFlowCount { get { return m_InputFlowNames.Count > s_MaxInputFlow ? s_MaxInputFlow : m_InputFlowNames.Count; } }
 
         public sealed override string name { get { return m_Subgraph!= null ? m_Subgraph.name : "Subgraph"; } }
 
@@ -128,7 +130,83 @@ namespace UnityEditor.VFX
                     }
                 }
             }
+
+            List<string> newInputFlowNames = new List<string>();
+
+            foreach ( var basicEvent in m_SubChildren.OfType<VFXBasicEvent>())
+            {
+                if (!newInputFlowNames.Contains(basicEvent.eventName))
+                    newInputFlowNames.Add(basicEvent.eventName);
+            }
+
+            bool hasStart = false;
+            bool hasStop = false;
+
+            foreach (var initialize in m_SubChildren.OfType<VFXBasicSpawner>())
+            {
+                if (!hasStart && initialize.inputFlowSlot[0].link.Count() == 0)
+                {
+                    hasStart = true;
+                }
+                if( ! hasStop && initialize.inputFlowSlot[1].link.Count() == 0)
+                {
+                    hasStop = true;
+                }
+            }
+
+            int directEventCount = newInputFlowNames.Count;
+
+            foreach( var subContext in m_SubChildren.OfType<VFXSubgraphContext>())
+            {
+                for(int i = 0 ; i < subContext.inputFlowCount; ++i)
+                {
+                    string name = subContext.GetInputFlowName(i);
+                    switch (name)
+                    {
+                        case VisualEffectAsset.PlayEventName:
+                            hasStart = true;
+                            break;
+                        case VisualEffectAsset.StopEventName:
+                            hasStop = true;
+                            break;
+                        default:
+                            m_InputFlowNames.Add(name);
+                            break;
+                    }
+                }
+            }
+            newInputFlowNames.Sort(0, directEventCount,Comparer<string>.Default);
+            newInputFlowNames.Sort(directEventCount, newInputFlowNames.Count - directEventCount, Comparer<string>.Default);
+            if (hasStop)
+                newInputFlowNames.Insert(0, VisualEffectAsset.StopEventName);
+            if (hasStart)
+                newInputFlowNames.Insert(0, VisualEffectAsset.PlayEventName);
+
+            if (!newInputFlowNames.SequenceEqual(m_InputFlowNames) || inputFlowSlot.Length != inputFlowCount)
+            {
+                Dictionary<string, VFXContextSlot> oldLinks = new Dictionary<string, VFXContextSlot>();
+
+                for(int i = 0; i < inputFlowSlot.Count(); ++i )
+                {
+                    oldLinks[GetInputFlowName(i)] = inputFlowSlot[i];
+                }
+                RefreshInputFlowSlots();
+
+                for (int i = 0; i < inputFlowSlot.Count(); ++i)
+                {
+                    VFXContextSlot ctxSlot;
+                    if( oldLinks.TryGetValue(GetInputFlowName(i), out ctxSlot) )
+                        inputFlowSlot[i] = ctxSlot;
+                }
+            }
         }
+
+        public string GetInputFlowName(int index)
+        {
+            return m_InputFlowNames[index];
+        }
+
+        List<string> m_InputFlowNames = new List<string>();
 
         private void DetachFromOriginal()
         {
