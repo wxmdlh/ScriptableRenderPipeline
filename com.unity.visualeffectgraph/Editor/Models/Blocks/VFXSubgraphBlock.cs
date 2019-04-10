@@ -1,3 +1,4 @@
+
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -35,7 +36,11 @@ namespace UnityEditor.VFX
 
                 foreach ( var param in GetParameters(t=> InputPredicate(t)))
                 {
-                    yield return new VFXPropertyWithValue(new VFXProperty(param.type, param.exposedName));
+
+                    if (!string.IsNullOrEmpty(param.tooltip))
+                        yield return new VFXPropertyWithValue(new VFXProperty(param.type, param.exposedName, new VFXPropertyAttribute(VFXPropertyAttribute.Type.kTooltip, param.tooltip)));
+                    else
+                        yield return new VFXPropertyWithValue(new VFXProperty(param.type, param.exposedName));
                 }
             }
         }
