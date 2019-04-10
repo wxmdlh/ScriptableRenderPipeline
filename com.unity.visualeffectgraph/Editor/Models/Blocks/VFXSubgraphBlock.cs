@@ -7,8 +7,12 @@ using UnityEngine.Experimental.VFX;
 using UnityEditor.Experimental.VFX;
 
 namespace UnityEditor.VFX
-{   
-    class VFXSubgraphBlock : VFXBlock
+{
+    interface IValidable
+    {
+        bool isValid { get; }
+    }
+    class VFXSubgraphBlock : VFXBlock, IValidable
     {
         [VFXSetting,SerializeField]
         protected VisualEffectSubgraphBlock m_Subgraph;
@@ -16,17 +20,32 @@ namespace UnityEditor.VFX
         VFXModel[] m_SubChildren;
         VFXBlock[] m_SubBlocks;
 
-        public VisualEffectSubgraphBlock subgraph
+        public bool isValid
         {
-            get { return m_Subgraph; }
+            get
+            {
+                if (GetParent() == null) return true; // a bock is invalid only if added to incompatible context.
+                return m_Subgraph != null && (m_Subgraph.GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First().compatibleContextType & GetParent().contextType) == GetParent().contextType;
+            }
         }
 
-        public sealed override string name { get { return m_Subgraph!= null ? m_Subgraph.name : "Subgraph"; } }
+        public VisualEffectSubgraphBlock subgraph
+        {
+            get {
+
+                if(! isValid )
+                    return null;
+
+                return m_Subgraph;
+            }
+        }
+
+        public sealed override string name { get { return subgraph != null ? m_Subgraph.name : "Subgraph"; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
             get {
-                if(m_SubChildren == null && m_Subgraph != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
+                if(m_SubChildren == null && subgraph != null) // if the subasset exists but the subchildren has not been recreated yet, return the existing slots
                 {
                     foreach (var slot in inputSlots)
                     {
@@ -113,7 +132,7 @@ namespace UnityEditor.VFX
                 }
             }
 
-            if (m_Subgraph == null)
+            if (subgraph == null)
             {
                 m_SubChildren = null;
                 m_SubBlocks = null;
@@ -170,19 +189,12 @@ namespace UnityEditor.VFX
 
         protected override void OnInvalidate(VFXModel model, InvalidationCause cause)
         {
-            if( cause == InvalidationCause.kSettingChanged || cause == InvalidationCause.kExpressionInvalidated)
+            if (cause == InvalidationCause.kSettingChanged && (subgraph != null || object.ReferenceEquals(m_Subgraph, null)))
             {
-                if( cause == InvalidationCause.kSettingChanged && (m_Subgraph != null || object.ReferenceEquals(m_Subgraph,null))) // do not recreate subchildren if the subgraph is not available but is not null
-                {
-                    RecreateCopy();
-                }
+                RecreateCopy();
+            }
 
-                base.OnInvalidate(model, cause);
-            }
-            else
-            {
-                base.OnInvalidate(model, cause);
-            }
+            base.OnInvalidate(model, cause);
         }
 
         public VFXModel[] subChildren
@@ -198,7 +210,7 @@ namespace UnityEditor.VFX
         {
             get
             {
-                return m_SubBlocks == null ? Enumerable.Empty<VFXBlock>() : (m_SubBlocks.SelectMany(t => t is VFXSubgraphBlock ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Repeat(t, 1)));
+                return m_SubBlocks == null || !isValid? Enumerable.Empty<VFXBlock>() : (m_SubBlocks.SelectMany(t => t is VFXSubgraphBlock ? (t as VFXSubgraphBlock).recusiveSubBlocks : Enumerable.Repeat(t, 1)));
             }
         }
 
@@ -230,7 +242,7 @@ namespace UnityEditor.VFX
             {
                 var graph = GetGraph();
 
-                if (graph != null && m_Subgraph != null && m_Subgraph.GetResource() != null)
+                if (graph != null && subgraph != null && m_Subgraph.GetResource() != null)
                 {
                     var otherGraph = m_Subgraph.GetResource().GetOrCreateGraph();
                     if (otherGraph == graph || otherGraph.subgraphDependencies.Contains(graph.GetResource().visualEffectObject))

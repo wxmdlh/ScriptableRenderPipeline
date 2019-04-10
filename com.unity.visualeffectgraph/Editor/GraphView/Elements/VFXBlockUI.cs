@@ -84,6 +84,11 @@ namespace UnityEditor.VFX.UI
                 inputContainer.SetEnabled(controller.model.enabled);
             if (settingsContainer != null)
                 settingsContainer.SetEnabled(controller.model.enabled);
+
+            if (controller.model is IValidable && !(controller.model as IValidable).isValid)
+                AddToClassList("invalid");
+            else
+                RemoveFromClassList("invalid");
         }
 
         public override bool superCollapsed
