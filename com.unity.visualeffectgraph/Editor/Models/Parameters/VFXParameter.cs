@@ -211,6 +211,23 @@ namespace UnityEditor.VFX
             }
         }
 
+        private void OnModified(VFXObject obj)
+        {
+            if (!isOutput && (m_ExprSlots == null || m_ValueExpr == null))
+            {
+                if (outputSlots.Count != 0 )
+                {
+                    m_ExprSlots = outputSlots[0].GetVFXValueTypeSlots().ToArray();
+                    m_ValueExpr = m_ExprSlots.Select(t => t.DefaultExpression(valueMode)).ToArray();
+                }
+                else
+                {
+                    m_ExprSlots = new VFXSlot[0];
+                    m_ValueExpr = new VFXValue[0];
+                }
+            }
+        }
+
         public Type type
         {
             get { 
@@ -344,6 +361,8 @@ namespace UnityEditor.VFX
         public override void OnEnable()
         {
             base.OnEnable();
+
+            onModified += OnModified;
             if( ! isOutput)
             {
                 if (outputSlots.Count != 0)
