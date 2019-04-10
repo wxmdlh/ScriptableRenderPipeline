@@ -331,7 +331,7 @@ namespace UnityEditor.VFX.UI
             {
                 setting.UpdateGUI(true);
             }
-            foreach( VFXEditableDataAnchor input in GetPorts(true,false))
+            foreach( VFXEditableDataAnchor input in GetPorts(true,false).OfType<VFXEditableDataAnchor>())
             {
                 input.AssetMoved();
             }
