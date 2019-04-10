@@ -161,6 +161,12 @@ namespace UnityEditor.VFX
             }
         }
 
+
+        public void RefreshInputFlowSlots()
+        {
+            m_InputFlowSlot = Enumerable.Range(0, inputFlowCount).Select(_ => new VFXContextSlot()).ToArray();
+        }
+
         public override bool AcceptChild(VFXModel model, int index = -1)
         {
             if (!base.AcceptChild(model, index))

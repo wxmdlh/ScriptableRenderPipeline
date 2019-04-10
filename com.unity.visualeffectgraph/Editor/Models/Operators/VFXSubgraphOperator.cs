@@ -48,7 +48,7 @@ namespace UnityEditor.VFX
     [VFXInfo(category = "Subgraph Operator")]
     class VFXSubgraphOperator : VFXOperator
     {
-        [VFXSetting, SerializeField]
+        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
         protected VisualEffectSubgraphOperator m_Subgraph;
 
         public VisualEffectSubgraphOperator subgraph

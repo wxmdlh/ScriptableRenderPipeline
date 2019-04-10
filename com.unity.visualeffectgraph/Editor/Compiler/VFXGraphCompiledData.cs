@@ -302,7 +302,8 @@ namespace UnityEditor.VFX
         static List<VFXContextLink>[] ComputeContextEffectiveLinks(VFXContext context, ref SubgraphInfos subgraphInfos)
         {
             List<VFXContextLink>[] result = new List<VFXContextLink>[context.inputFlowSlot.Length];
-            for(int i = 0 ; i < context.inputFlowSlot.Length ; ++i)
+            Dictionary<string, int> eventNameIndice = new Dictionary<string, int>();
+            for (int i = 0 ; i < context.inputFlowSlot.Length ; ++i)
             {
                 result[i] = new List<VFXContextLink>();
                 VFXSubgraphContext parentSubgraph = null;
@@ -327,6 +328,8 @@ namespace UnityEditor.VFX
                 defaultEventPaths.Add(new List<int>(new int[] { i }));
 
                 List<List<int>> newEventPaths = new List<List<int>>();
+
+                int lastUsedIndice = 1;
 
                 var usedContexts = new List<VFXContext>();
 
@@ -361,11 +364,17 @@ namespace UnityEditor.VFX
                                     case VisualEffectAsset.StopEventName:
                                         newEventPaths.Add(path.Concat(new int[] { 1 }).ToList());
                                         break;
-                                    case VFXSubgraphContext.triggerEventName:
-                                        newEventPaths.Add(path.Concat(new int[] { 2 }).ToList());
-                                        break;
                                     default:
-                                        result[i].Add(evt);
+                                        {
+                                            int eventIndex = 0;
+                                            if(!eventNameIndice.TryGetValue(eventName,out eventIndex))
+                                            {
+                                                eventIndex = ++lastUsedIndice;
+                                                eventNameIndice[eventName] = eventIndex;
+                                            }
+                                            newEventPaths.Add(path.Concat(new int[] { eventIndex }).ToList());
+                                        }
+                                        
                                         break;
 
                                 }
@@ -718,6 +727,8 @@ namespace UnityEditor.VFX
         void ComputeEffectiveInputLinks(ref SubgraphInfos subgraphInfos, IEnumerable<VFXContext> compilableContexts)
         {
             var contextEffectiveInputLinks = subgraphInfos.contextEffectiveInputLinks;
+
+
             foreach( var context in compilableContexts.Where(t => !(t is VFXSubgraphContext)))
             {
                 contextEffectiveInputLinks[context] = ComputeContextEffectiveLinks(context,ref subgraphInfos);

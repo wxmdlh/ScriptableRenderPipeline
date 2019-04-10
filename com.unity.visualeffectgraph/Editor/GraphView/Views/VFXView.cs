@@ -1790,8 +1790,6 @@ namespace UnityEditor.VFX.UI
                         else if ((contextKind & VFXContextType.Output) == VFXContextType.Output)
                             contextType = VFXLibrary.GetContexts().First(t => t.modelType == typeof(VFXMeshOutput));
 
-                        
-
                         VFXContext ctx = controller.AddVFXContext(mousePosition, contextType);
 
                         VFXModel newModel = VFXSubgraphBlock.CreateInstance<VFXSubgraphBlock>();
