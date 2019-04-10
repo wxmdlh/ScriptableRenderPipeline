@@ -1708,8 +1708,15 @@ namespace UnityEditor.VFX.UI
 
         void OnDragUpdated(DragUpdatedEvent e)
         {
-            if (DragAndDrop.GetGenericData("DragSelection") != null && selection.Any(t => t is BlackboardField && (t as BlackboardField).GetFirstAncestorOfType<VFXBlackboardRow>() != null))
+            if (DragAndDrop.GetGenericData("DragSelection") != null && selection.Any(t => t is VFXBlackboardField && (t as VFXBlackboardField).GetFirstAncestorOfType<VFXBlackboardRow>() != null))
             {
+                VFXBlackboardField selectedField = selection.OfType<VFXBlackboardField>().Where(t => t.GetFirstAncestorOfType<VFXBlackboardRow>() != null).First();
+
+                if( selectedField.controller.isOutput &&selectedField.controller.nodeCount > 0 )
+                {
+                    return;
+                }
+
                 DragAndDrop.visualMode = DragAndDropVisualMode.Link;
                 e.StopPropagation();
             }
