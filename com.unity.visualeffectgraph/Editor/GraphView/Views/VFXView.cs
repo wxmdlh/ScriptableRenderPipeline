@@ -1728,7 +1728,13 @@ namespace UnityEditor.VFX.UI
             {
                 var references = DragAndDrop.objectReferences.OfType<VisualEffectAsset>().Cast<VisualEffectObject>().Concat(DragAndDrop.objectReferences.OfType<VisualEffectSubgraphOperator>());
 
-                if( references.Count() > 0 && (! controller.model.isSubgraph || ! references.Any(t=> t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model))) 
+                if (references.Count() > 0 && (!controller.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model)))
+                {
+                    DragAndDrop.visualMode = DragAndDropVisualMode.Link;
+                    e.StopPropagation();
+                }
+                var droppedBlocks = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphBlock>();
+                if (droppedBlocks.Count() > 0 && (!controller.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model)))
                 {
                     DragAndDrop.visualMode = DragAndDropVisualMode.Link;
                     e.StopPropagation();
@@ -1771,6 +1777,36 @@ namespace UnityEditor.VFX.UI
 
                     //TODO add to picked groupnode
                     e.StopPropagation();
+                }
+                else
+                {
+                    var droppedBlocks = DragAndDrop.objectReferences.OfType<VisualEffectSubgraphBlock>();
+                    if(droppedBlocks.Count() > 0 && (!controller.model.isSubgraph || !references.Any(t => t.GetResource().GetOrCreateGraph().subgraphDependencies.Contains(controller.model.subgraph) || t.GetResource() == controller.model)))
+                    {
+                        Vector2 mousePosition = contentViewContainer.WorldToLocal(e.mousePosition);
+
+                        VFXContextType contextKind = droppedBlocks.First().GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First().compatibleContextType;
+                        VFXModelDescriptor<VFXContext> contextType = VFXLibrary.GetContexts().First(t=>t.modelType == typeof(VFXBasicInitialize));
+                        if((contextKind & VFXContextType.Update) == VFXContextType.Update)
+                            contextType = VFXLibrary.GetContexts().First(t => t.modelType == typeof(VFXBasicUpdate));
+                        else if ((contextKind & VFXContextType.Spawner) == VFXContextType.Spawner)
+                            contextType = VFXLibrary.GetContexts().First(t => t.modelType == typeof(VFXBasicSpawner));
+                        else if ((contextKind & VFXContextType.Output) == VFXContextType.Output)
+                            contextType = VFXLibrary.GetContexts().First(t => t.modelType == typeof(VFXMeshOutput));
+
+                        
+
+                        VFXContext ctx = controller.AddVFXContext(mousePosition, contextType);
+
+                        VFXModel newModel = VFXSubgraphBlock.CreateInstance<VFXSubgraphBlock>();
+
+                        newModel.SetSettingValue("m_Subgraph", droppedBlocks.First());
+
+                        ctx.AddChild(newModel);
+
+                        //TODO add to picked groupnode
+                        e.StopPropagation();
+                    }
                 }
             }
         }

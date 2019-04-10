@@ -9,6 +9,18 @@ namespace UnityEditor.VFX
 {
     class VFXBlockSubgraphContext : VFXContext
     {
+        public enum ContextType
+        {
+            Spawner = VFXContextType.Spawner,
+            Init = VFXContextType.Init,
+            Update = VFXContextType.Update,
+            Output = VFXContextType.Output,
+
+            InitAndUpdate = Init | Update,
+            InitAndUpdateAndOutput = Init | Update | Output,
+            UpdateAndOutput = Update | Output
+        }
+
         public VFXBlockSubgraphContext():base(VFXContextType.None, VFXDataType.None, VFXDataType.None)
         {
         }
@@ -24,24 +36,20 @@ namespace UnityEditor.VFX
         }
 
         [VFXSetting]
-        VFXContextType m_SuitableContexts = VFXContextType.InitAndUpdateAndOutput;
-
-        [VFXSetting]
-        VFXDataType m_SuitableData = VFXDataType.Particle;
-
+        ContextType m_SuitableContexts = ContextType.InitAndUpdateAndOutput;
 
         public VFXContextType compatibleContextType
         {
             get
             {
-                return m_SuitableContexts;
+                return (VFXContextType)m_SuitableContexts;
             }
         }
         public override VFXDataType ownedType
         {
             get
             {
-                return m_SuitableData;
+                return (m_SuitableContexts == ContextType.Spawner) ? VFXDataType.SpawnEvent : VFXDataType.Particle;
             }
         }
         public override bool spaceable
@@ -69,7 +77,7 @@ namespace UnityEditor.VFX
         }
         public override bool Accept(VFXBlock block, int index = -1)
         {
-            return ((block.compatibleContexts & m_SuitableContexts) == m_SuitableContexts);
+            return ((block.compatibleContexts & compatibleContextType) == compatibleContextType);
         }
 
         public override bool CanBeCompiled()
