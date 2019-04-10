@@ -92,7 +92,7 @@ namespace UnityEditor.VFX.UI
                         if (item.category == null)
                             item.category = "";
 
-                        item.category = "Subgraph Blocks/" + item.category;
+                        item.category = item.category;
 
                         if ( typeof(T) == typeof(VisualEffectSubgraphBlock))
                         {
@@ -197,7 +197,7 @@ namespace UnityEditor.VFX.UI
                     t => new Descriptor()
                         {
                             modelDescriptor = t.path,
-                            category = "Subgraph Operator /" + t.category,
+                            category = "Operator/Subgraph Operator/" + t.category,
                             name = t.name
                         }
                     ));

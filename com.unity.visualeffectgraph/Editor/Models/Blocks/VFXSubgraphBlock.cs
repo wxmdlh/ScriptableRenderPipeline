@@ -12,6 +12,7 @@ namespace UnityEditor.VFX
     {
         bool isValid { get; }
     }
+    [VFXInfo(category = "Subgraph Block")]
     class VFXSubgraphBlock : VFXBlock, IValidable
     {
         [VFXSetting,SerializeField]
@@ -40,7 +41,7 @@ namespace UnityEditor.VFX
             }
         }
 
-        public sealed override string name { get { return subgraph != null ? m_Subgraph.name : "Subgraph"; } }
+        public sealed override string name { get { return subgraph != null ? m_Subgraph.name : "Empty Subgraph Block"; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
