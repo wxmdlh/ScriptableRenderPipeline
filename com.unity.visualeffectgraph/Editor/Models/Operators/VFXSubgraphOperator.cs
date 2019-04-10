@@ -45,7 +45,7 @@ namespace UnityEditor.VFX
             return models.OfType<VFXParameter>().Where(t => predicate(t)).OrderBy(t => t.order);
         }
     }
-
+    [VFXInfo(category = "Subgraph Operator")]
     class VFXSubgraphOperator : VFXOperator
     {
         [VFXSetting, SerializeField]
@@ -60,7 +60,7 @@ namespace UnityEditor.VFX
         {
         }
 
-        public sealed override string name { get { return m_Subgraph != null ? m_Subgraph.name : "Subgraph"; } }
+        public sealed override string name { get { return m_Subgraph != null ? m_Subgraph.name : "Empty Subgraph Operator"; } }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
         {
