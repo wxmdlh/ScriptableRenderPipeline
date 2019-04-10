@@ -44,6 +44,13 @@ namespace UnityEditor.VFX
                 return m_SuitableData;
             }
         }
+        public override bool spaceable
+        {
+            get
+            {
+                return false;
+            }
+        }
 
         protected override void OnInvalidate(VFXModel model, InvalidationCause cause)
         {
