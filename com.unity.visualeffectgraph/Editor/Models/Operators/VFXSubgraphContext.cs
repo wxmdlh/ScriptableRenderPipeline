@@ -186,7 +186,7 @@ namespace UnityEditor.VFX
             {
                 Dictionary<string, VFXContextSlot> oldLinks = new Dictionary<string, VFXContextSlot>();
 
-                for(int i = 0; i < inputFlowSlot.Count(); ++i )
+                for(int i = 0; i < inputFlowSlot.Count() && i < m_InputFlowNames.Count; ++i )
                 {
                     oldLinks[GetInputFlowName(i)] = inputFlowSlot[i];
                 }
