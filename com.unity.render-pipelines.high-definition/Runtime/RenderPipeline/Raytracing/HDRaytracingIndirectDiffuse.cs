@@ -190,7 +190,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     cmd.DispatchCompute(indirectDiffuseAccumulation, m_KernelFilter, numTilesX, numTilesY, 1);
 
                     // Output the new history
-                    HDUtils.BlitCameraTexture(cmd, hdCamera, m_DenoiseBuffer0, indirectDiffuseHistory);
+                    HDUtils.BlitCameraTexture(cmd, m_DenoiseBuffer0, indirectDiffuseHistory);
 
                     m_KernelFilter = indirectDiffuseAccumulation.FindKernel("IndirectDiffuseFilterH");
 

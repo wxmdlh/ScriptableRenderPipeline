@@ -136,7 +136,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 {
                     case HDRaytracingEnvironment.AOFilterMode.Nvidia:
                     {
-                        cmd.DenoiseAmbientOcclusionTexture(m_IntermediateBuffer, m_HitDistanceBuffer, m_SharedRTManager.GetDepthStencilBuffer(), m_ViewSpaceNormalBuffer, outputTexture, hdCamera.viewMatrix, hdCamera.projMatrix, (uint)rtEnvironement.maxFilterWidthInPixels, rtEnvironement.filterRadiusInMeters, rtEnvironement.normalSharpness, 1.0f, 0.0f);
+                        cmd.DenoiseAmbientOcclusionTexture(m_IntermediateBuffer, m_HitDistanceBuffer, m_SharedRTManager.GetDepthStencilBuffer(), m_ViewSpaceNormalBuffer, outputTexture, hdCamera.mainViewConstants.viewMatrix, hdCamera.mainViewConstants.projMatrix, (uint)rtEnvironement.maxFilterWidthInPixels, rtEnvironement.filterRadiusInMeters, rtEnvironement.normalSharpness, 1.0f, 0.0f);
                     }
                     break;
                     case HDRaytracingEnvironment.AOFilterMode.SpatioTemporal:
@@ -196,7 +196,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     break;
                     case HDRaytracingEnvironment.AOFilterMode.None:
                     {
-                        HDUtils.BlitCameraTexture(cmd, hdCamera, m_IntermediateBuffer, outputTexture);
+                        HDUtils.BlitCameraTexture(cmd, m_IntermediateBuffer, outputTexture);
                     }
                     break;
                 }

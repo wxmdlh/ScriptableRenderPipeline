@@ -275,7 +275,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                     cmd.DispatchCompute(reflectionFilter, m_KernelFilter, numTilesX, numTilesY, 1);
 
                                     // Output the new history
-                                    HDUtils.BlitCameraTexture(cmd, hdCamera, m_HitPdfTexture, reflectionHistory);
+                                    HDUtils.BlitCameraTexture(cmd, m_HitPdfTexture, reflectionHistory);
 
                                     m_KernelFilter = reflectionFilter.FindKernel("ReflBilateralFilterH");
 
@@ -300,7 +300,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                 break;
                                 case HDRaytracingEnvironment.ReflectionsFilterMode.None:
                                 {
-                                    HDUtils.BlitCameraTexture(cmd, hdCamera, m_LightingTexture, outputTexture);
+                                    HDUtils.BlitCameraTexture(cmd, m_LightingTexture, outputTexture);
                                 }
                                 break;
                             }
