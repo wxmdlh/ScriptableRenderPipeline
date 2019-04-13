@@ -4,8 +4,10 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [5.13.0] - 2019-XX-XX
+## [5.10.1] - 2019-04-13
 ### Fixed
+- Fixed an issue that caused transparent objects to sort incorrectly.
+- Fixed artifacts that appeared due to precision errors in large scaled objects.
 - When in playmode, the error 'Non matching Profiler.EndSample' no longer appears. [case 1140750](https://fogbugz.unity3d.com/f/cases/1140750/)
 - LWRP Particle Shaders now correctly render in stereo rendering modes. [case 1106699](https://fogbugz.unity3d.com/f/cases/1106699/)
 - Shaders with 'debug' in the name are no longer stripped automatically. [case 1112983](https://fogbugz.unity3d.com/f/cases/1112983/)
@@ -13,13 +15,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - in the Shadergraph Unlit Master node, Premultiply no longer acts the same as Alpha. [case 1114708](https://fogbugz.unity3d.com/f/cases/1114708/)
 - Fixed an issue where Lightprobe data was missing if it was needed per-pixel and GPU instancing was enabled.
 - The Soft ScreenSpaceShadows Shader variant no longer gets stripped form builds. [case 1138236](https://fogbugz.unity3d.com/f/cases/1138236/)
-
-## [5.12.0] - 2019-04-11
-
-## [5.11.0] - 2019-04-01
-### Fixed
-- Fixed an issue that caused transparent objects to sort incorrectly.
-- Fixed artifacts that appeared due to precision errors in large scaled objects.
 
 ## [5.10.0] - 2019-03-19
 ### Added
