@@ -329,12 +329,13 @@ namespace UnityEditor.VFX
 
                 List<List<int>> newEventPaths = new List<List<int>>();
 
-                int lastUsedIndice = 1;
-
                 var usedContexts = new List<VFXContext>();
 
-                foreach (var sg in subgraphAncestors)
+                for(int j = 0; j < subgraphAncestors.Count; ++j)
                 {
+                    var sg = subgraphAncestors[j];
+                    var nextSg = j < subgraphAncestors.Count - 1 ? subgraphAncestors[j+1] as VFXSubgraphContext : null;
+
                     foreach (var path in defaultEventPaths)
                     {
                         int currentFlowIndex = path.Last();
@@ -356,7 +357,8 @@ namespace UnityEditor.VFX
                             foreach(var evt in eventSlotEvents)
                             {
                                 string eventName = (evt.context as VFXBasicEvent).eventName;
-                                switch(eventName)
+                                
+                                switch (eventName)
                                 {
                                     case VisualEffectAsset.PlayEventName:
                                         newEventPaths.Add(path.Concat(new int[] { 0 }).ToList());
@@ -366,13 +368,18 @@ namespace UnityEditor.VFX
                                         break;
                                     default:
                                         {
-                                            int eventIndex = 0;
-                                            if(!eventNameIndice.TryGetValue(eventName,out eventIndex))
+                                            if( nextSg != null)
                                             {
-                                                eventIndex = ++lastUsedIndice;
-                                                eventNameIndice[eventName] = eventIndex;
+                                                int eventIndex = nextSg.GetInputFlowIndex(eventName);
+                                                if(eventIndex != -1)
+                                                {
+                                                    newEventPaths.Add(path.Concat(new int[] { eventIndex }).ToList());
+                                                }
                                             }
-                                            newEventPaths.Add(path.Concat(new int[] { eventIndex }).ToList());
+                                            else
+                                            {
+                                                result[i].Add(evt);
+                                            }
                                         }
                                         
                                         break;
