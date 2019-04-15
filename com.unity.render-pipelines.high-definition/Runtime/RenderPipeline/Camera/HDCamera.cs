@@ -15,9 +15,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [GenerateHLSL(PackingRules.Exact, false)]
         public struct ViewConstants
         {
-        public Matrix4x4 viewMatrix;
+            public Matrix4x4 viewMatrix;
             public Matrix4x4 invViewMatrix;
-        public Matrix4x4 projMatrix;
+            public Matrix4x4 projMatrix;
             public Matrix4x4 invProjMatrix;
             public Matrix4x4 viewProjMatrix;
             public Matrix4x4 invViewProjMatrix;
@@ -27,11 +27,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Matrix4x4 prevViewProjMatrix;
             public Matrix4x4 prevViewProjMatrixNoCameraTrans;
 
-        public Vector3   worldSpaceCameraPos;
+            public Vector3 worldSpaceCameraPos;
             public float pad0;
             public Vector3 worldSpaceCameraPosViewOffset;
             public float pad1;
-        public Vector3   prevWorldSpaceCameraPos;
+            public Vector3 prevWorldSpaceCameraPos;
             public float pad2;
         };
 
@@ -61,7 +61,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public VolumetricLightingSystem.VBufferParameters[] vBufferParams; // Double-buffered
 
         // XRTODO: double-wide cleanup
-        public Vector4      textureWidthScaling; // (2.0, 0.5) for SinglePassDoubleWide (stereo) and (1.0, 1.0) otherwise
+        public Vector4  textureWidthScaling; // (2.0, 0.5) for SinglePassDoubleWide (stereo) and (1.0, 1.0) otherwise
 
         // XR instanced views (hardware-accelerated single-pass instancing or multiview)
         ViewConstants[] xrViewConstants;
@@ -493,28 +493,28 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 xrViewConstants = new ViewConstants[viewCount];
                 xrViewConstantsGpu = new ComputeBuffer(viewCount, System.Runtime.InteropServices.Marshal.SizeOf(typeof(ViewConstants)));
-                    }
+            }
 
             // XR instancing support
             if (camera.stereoEnabled && viewCount > 1)
-                    {
+            {
                 for (int viewIndex = 0; viewIndex < viewCount; ++viewIndex)
-                        {
+                {
                     GetXrViewParameters(viewIndex, out proj, out view, out cameraPosition);
                     UpdateViewConstants(ref xrViewConstants[viewIndex], proj, view, cameraPosition, jitterProjectionMatrix);
 
                     // Compute offset between the main camera and the instanced views
                     xrViewConstants[viewIndex].worldSpaceCameraPosViewOffset = xrViewConstants[viewIndex].worldSpaceCameraPos - mainViewConstants.worldSpaceCameraPos;
-                        }
-                        }
-                        else
-                        {
+                }
+            }
+            else
+            {
                 // Compute shaders always use the XR instancing path due to the lack of multi-compile
                 xrViewConstants[0] = mainViewConstants;
-                        }
+            }
 
             xrViewConstantsGpu.SetData(xrViewConstants);
-                    }
+        }
 
         void UpdateViewConstants(ref ViewConstants viewConstants, Matrix4x4 projMatrix, Matrix4x4 viewMatrix, Vector3 cameraPosition, bool jitterProjectionMatrix)
         {

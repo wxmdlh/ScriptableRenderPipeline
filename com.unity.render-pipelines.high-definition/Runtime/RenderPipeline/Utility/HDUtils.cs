@@ -245,7 +245,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             if (target.useScaling)
             {
-                Vector2Int scaledViewportSize = target.GetScaledSize(target.rtHandleProperties.currentFrameSize);
+                Vector2Int scaledViewportSize = target.GetScaledSize(target.rtHandleProperties.currentViewportSize);
                 cmd.SetViewport(new Rect(0.0f, 0.0f, scaledViewportSize.x, scaledViewportSize.y));
             }
         }
