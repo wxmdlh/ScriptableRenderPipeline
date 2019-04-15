@@ -72,11 +72,11 @@ Shader "Lightweight Render Pipeline/Terrain/Lit"
             #pragma multi_compile_instancing
             #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
 
-            #pragma shader_feature _TERRAIN_BLEND_HEIGHT
-            #pragma shader_feature _NORMALMAP
-            #pragma shader_feature _MASKMAP            
+            #pragma shader_feature_local _TERRAIN_BLEND_HEIGHT
+            #pragma shader_feature_local _NORMALMAP
+            #pragma shader_feature_local _MASKMAP            
             // Sample normal in pixel shader when doing instancing
-            #pragma shader_feature _TERRAIN_INSTANCED_PERPIXEL_NORMAL
+            #pragma shader_feature_local _TERRAIN_INSTANCED_PERPIXEL_NORMAL
 
             #include "Packages/com.unity.render-pipelines.lightweight/Shaders/Terrain/TerrainLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.lightweight/Shaders/Terrain/TerrainLitPasses.hlsl"
