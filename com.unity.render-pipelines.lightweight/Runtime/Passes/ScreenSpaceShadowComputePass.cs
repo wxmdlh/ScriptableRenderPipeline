@@ -8,14 +8,16 @@ namespace UnityEngine.Rendering.LWRP
     {
         private static class VxShadowMapConstantBuffer
         {
-            public static int _InvViewProjMatrixID;
-            public static int _ScreenSizeID;
-            public static int _VoxelZBiasID;
-            public static int _VoxelUpBiasID;
+            public static int _ShadowData;
 
-            public static int _VxShadowMapsBufferID;
-            public static int _CameraDepthTextureID;
-            public static int _ScreenSpaceShadowOutputID;
+            public static int _InvViewProjMatrix;
+            public static int _ScreenSize;
+            public static int _VoxelZBias;
+            public static int _VoxelUpBias;
+
+            public static int _VxShadowMapsBuffer;
+            public static int _CameraDepthTexture;
+            public static int _ScreenSpaceShadowOutput;
         }
 
         static readonly int TileSize = 8;
@@ -29,14 +31,16 @@ namespace UnityEngine.Rendering.LWRP
 
         public ScreenSpaceShadowComputePass(RenderPassEvent evt, ComputeShader computeShader)
         {
-            VxShadowMapConstantBuffer._InvViewProjMatrixID = Shader.PropertyToID("_InvViewProjMatrix");
-            VxShadowMapConstantBuffer._ScreenSizeID = Shader.PropertyToID("_ScreenSize");
-            VxShadowMapConstantBuffer._VoxelZBiasID = Shader.PropertyToID("_VoxelZBias");
-            VxShadowMapConstantBuffer._VoxelUpBiasID = Shader.PropertyToID("_VoxelUpBias");
+            VxShadowMapConstantBuffer._ShadowData = Shader.PropertyToID("_MainLightShadowData");
 
-            VxShadowMapConstantBuffer._VxShadowMapsBufferID = Shader.PropertyToID("_VxShadowMapsBuffer");
-            VxShadowMapConstantBuffer._CameraDepthTextureID = Shader.PropertyToID("_CameraDepthTexture");
-            VxShadowMapConstantBuffer._ScreenSpaceShadowOutputID = Shader.PropertyToID("_ScreenSpaceShadowOutput");
+            VxShadowMapConstantBuffer._InvViewProjMatrix = Shader.PropertyToID("_InvViewProjMatrix");
+            VxShadowMapConstantBuffer._ScreenSize = Shader.PropertyToID("_ScreenSize");
+            VxShadowMapConstantBuffer._VoxelZBias = Shader.PropertyToID("_VoxelZBias");
+            VxShadowMapConstantBuffer._VoxelUpBias = Shader.PropertyToID("_VoxelUpBias");
+
+            VxShadowMapConstantBuffer._VxShadowMapsBuffer = Shader.PropertyToID("_VxShadowMapsBuffer");
+            VxShadowMapConstantBuffer._CameraDepthTexture = Shader.PropertyToID("_CameraDepthTexture");
+            VxShadowMapConstantBuffer._ScreenSpaceShadowOutput = Shader.PropertyToID("_ScreenSpaceShadowOutput");
 
             bool R8_UNorm = SystemInfo.IsFormatSupported(GraphicsFormat.R8_UNorm, FormatUsage.LoadStore);
             bool R8_SNorm = SystemInfo.IsFormatSupported(GraphicsFormat.R8_SNorm, FormatUsage.LoadStore);
@@ -187,13 +191,15 @@ namespace UnityEngine.Rendering.LWRP
             int voxelZBias = 2;
             float voxelUpBias = 1 * (dirVxShadowMap.volumeScale / dirVxShadowMap.voxelResolutionInt);
 
-            cmd.SetComputeMatrixParam(computeShader, VxShadowMapConstantBuffer._InvViewProjMatrixID, viewProjMatrix.inverse);
-            cmd.SetComputeVectorParam(computeShader, VxShadowMapConstantBuffer._ScreenSizeID, new Vector4(screenSizeX, screenSizeY, invScreenSizeX, invScreenSizeY));
-            cmd.SetComputeIntParam(computeShader, VxShadowMapConstantBuffer._VoxelZBiasID, voxelZBias);
-            cmd.SetComputeFloatParam(computeShader, VxShadowMapConstantBuffer._VoxelUpBiasID, voxelUpBias);
+            cmd.SetComputeVectorParam(computeShader, VxShadowMapConstantBuffer._ShadowData, new Vector4(light.shadowStrength, 0.0f, 0.0f, 0.0f));
 
-            cmd.SetComputeBufferParam(computeShader, kernel, VxShadowMapConstantBuffer._VxShadowMapsBufferID, vxShadowMapsBuffer);
-            cmd.SetComputeTextureParam(computeShader, kernel, VxShadowMapConstantBuffer._ScreenSpaceShadowOutputID, m_ScreenSpaceShadowmapTexture.Identifier());
+            cmd.SetComputeMatrixParam(computeShader, VxShadowMapConstantBuffer._InvViewProjMatrix, viewProjMatrix.inverse);
+            cmd.SetComputeVectorParam(computeShader, VxShadowMapConstantBuffer._ScreenSize, new Vector4(screenSizeX, screenSizeY, invScreenSizeX, invScreenSizeY));
+            cmd.SetComputeIntParam(computeShader, VxShadowMapConstantBuffer._VoxelZBias, voxelZBias);
+            cmd.SetComputeFloatParam(computeShader, VxShadowMapConstantBuffer._VoxelUpBias, voxelUpBias);
+
+            cmd.SetComputeBufferParam(computeShader, kernel, VxShadowMapConstantBuffer._VxShadowMapsBuffer, vxShadowMapsBuffer);
+            cmd.SetComputeTextureParam(computeShader, kernel, VxShadowMapConstantBuffer._ScreenSpaceShadowOutput, m_ScreenSpaceShadowmapTexture.Identifier());
         }
     }
 }
