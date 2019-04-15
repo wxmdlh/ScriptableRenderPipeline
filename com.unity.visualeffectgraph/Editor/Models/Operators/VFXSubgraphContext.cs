@@ -206,6 +206,11 @@ namespace UnityEditor.VFX
             return m_InputFlowNames[index];
         }
 
+        public int GetInputFlowIndex(string name)
+        {
+            return m_InputFlowNames.IndexOf(name);
+        }
+
         List<string> m_InputFlowNames = new List<string>();
 
         private void DetachFromOriginal()
