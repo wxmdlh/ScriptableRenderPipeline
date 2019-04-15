@@ -331,6 +331,8 @@ namespace UnityEditor.VFX
 
                 var usedContexts = new List<VFXContext>();
 
+                var namedEvents = new Dictionary<string,VFXContext>();
+
                 for(int j = 0; j < subgraphAncestors.Count; ++j)
                 {
                     var sg = subgraphAncestors[j];
@@ -373,6 +375,7 @@ namespace UnityEditor.VFX
                                                 int eventIndex = nextSg.GetInputFlowIndex(eventName);
                                                 if(eventIndex != -1)
                                                 {
+                                                    namedEvents[eventName] = evt.context;
                                                     newEventPaths.Add(path.Concat(new int[] { eventIndex }).ToList());
                                                 }
                                             }
@@ -389,7 +392,18 @@ namespace UnityEditor.VFX
                         }
                         else if (!eventSlot.link.Any())
                         {
-                            newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
+                            if( !(sg is VFXSubgraphContext))
+                                newEventPaths.Add(path.Concat(new int[] { currentFlowIndex }).ToList());
+                            else
+                            {
+                                var sgsg = sg as VFXSubgraphContext;
+
+                                var eventName = sgsg.GetInputFlowName(currentFlowIndex);
+                                
+                                var eventCtx = sgsg.GetEventContext(eventName);
+                                if( eventCtx != null)
+                                    result[i].Add(new VFXContextLink(){slotIndex = 0, context = eventCtx});
+                            }
                         }
                     }
                     defaultEventPaths.Clear();
