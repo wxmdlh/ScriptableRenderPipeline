@@ -10,6 +10,8 @@ using UnityEditor.VFX;
 using UnityEditor.VFX.UI;
 using UnityEditor.ProjectWindowCallback;
 
+using UnityObject = UnityEngine.Object;
+
 namespace UnityEditor
 {
     [InitializeOnLoad]
@@ -53,13 +55,18 @@ namespace UnityEditor
 
         public static VisualEffectAsset CreateNewAsset(string path)
         {
+            return CreateNew<VisualEffectAsset>(path);  
+        }
+
+        public static T CreateNew<T>(string path) where T : UnityObject
+        {
             string emptyAsset = "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!2058629511 &1\nVisualEffectResource:\n";
 
             File.WriteAllText(path, emptyAsset);
 
             AssetDatabase.ImportAsset(path);
 
-            return AssetDatabase.LoadAssetAtPath<VisualEffectAsset>(path);
+            return AssetDatabase.LoadAssetAtPath<T>(path);
         }
 
         [MenuItem("Assets/Create/Visual Effects/Visual Effect Graph", false, 306)]
@@ -83,7 +90,7 @@ namespace UnityEditor
         {
             public override void Action(int instanceId, string pathName, string resourceFile)
             {
-                var sg = VisualEffectResource.CreateNewSubgraphOperator(pathName);
+                var sg = CreateNew<VisualEffectSubgraphOperator>(pathName);
                 ProjectWindowUtil.FrameObjectInProjectWindow(sg.GetInstanceID());
             }
         }
@@ -92,7 +99,7 @@ namespace UnityEditor
         {
             public override void Action(int instanceId, string pathName, string resourceFile)
             {
-                var sg = VisualEffectResource.CreateNewSubgraphBlock(pathName);
+                var sg = CreateNew<VisualEffectSubgraphBlock>(pathName);
                 ProjectWindowUtil.FrameObjectInProjectWindow(sg.GetInstanceID());
             }
         }

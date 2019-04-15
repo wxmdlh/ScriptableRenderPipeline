@@ -55,7 +55,7 @@ namespace UnityEditor.VFX.UI
                         {
                             targetSubgraphPath = string.Format("{0}/{1}_SubgraphOperator_{2}.vfxoperator", graphDirPath, graphName, cpt++);
                         }
-                        return VisualEffectResource.CreateNewSubgraphOperator(targetSubgraphPath);
+                        return VisualEffectAssetEditorUtility.CreateNew<VisualEffectSubgraphOperator>(targetSubgraphPath);
                     }
                 case Type.Context:
                     {
@@ -65,7 +65,7 @@ namespace UnityEditor.VFX.UI
                         {
                             targetSubgraphPath = string.Format("{0}/{1}_Subgraph_{2}.vfx", graphDirPath, graphName, cpt++);
                         }
-                        return VisualEffectResource.CreateNewAsset(targetSubgraphPath);
+                        return VisualEffectAssetEditorUtility.CreateNewAsset(targetSubgraphPath);
                     }
                 case Type.Block:
                     {
@@ -75,7 +75,7 @@ namespace UnityEditor.VFX.UI
                         {
                             targetSubgraphPath = string.Format("{0}/{1}_SubgraphBlock_{2}.vfxblock", graphDirPath, graphName, cpt++);
                         }
-                        return VisualEffectResource.CreateNewSubgraphBlock(targetSubgraphPath);
+                        return VisualEffectAssetEditorUtility.CreateNew<VisualEffectSubgraphBlock>(targetSubgraphPath);
                     }
             }
             return null;
@@ -216,7 +216,7 @@ namespace UnityEditor.VFX.UI
             {
                 this.m_Rect = rect;
                 Init(sourceView, controllers);
-                CreateUniqueSubgraph("Subgraph", VisualEffectResource.Extension,VisualEffectResource.CreateNewAsset);
+                CreateUniqueSubgraph("Subgraph", VisualEffectResource.Extension,VisualEffectAssetEditorUtility.CreateNewAsset);
                 CopyPasteNodes();
                 m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphContext>();
                 PostSetupNode();
@@ -230,7 +230,7 @@ namespace UnityEditor.VFX.UI
             {
                 this.m_Rect = rect;
                 Init(sourceView, controllers);
-                CreateUniqueSubgraph("SubgraphOperator", VisualEffectSubgraphOperator.Extension,VisualEffectResource.CreateNewSubgraphOperator);
+                CreateUniqueSubgraph("SubgraphOperator", VisualEffectSubgraphOperator.Extension,VisualEffectAssetEditorUtility.CreateNew<VisualEffectSubgraphOperator>);
                 CopyPasteNodes();
                 m_SourceNode = ScriptableObject.CreateInstance<VFXSubgraphOperator>();
                 PostSetupNode();
@@ -248,7 +248,7 @@ namespace UnityEditor.VFX.UI
             {
                 this.m_Rect = rect;
                 Init(sourceView, controllers);
-                CreateUniqueSubgraph("SubgraphBlock", VisualEffectSubgraphBlock.Extension,VisualEffectResource.CreateNewSubgraphBlock);
+                CreateUniqueSubgraph("SubgraphBlock", VisualEffectSubgraphBlock.Extension,VisualEffectAssetEditorUtility.CreateNew<VisualEffectSubgraphBlock>);
 
                 m_SourceControllers.RemoveAll(t => t is VFXContextController); // Don't copy contexts
                 CopyPasteNodes();
