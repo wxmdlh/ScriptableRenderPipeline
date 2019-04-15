@@ -190,6 +190,7 @@ namespace UnityEditor.VFX
                 {
                     oldLinks[GetInputFlowName(i)] = inputFlowSlot[i];
                 }
+                m_InputFlowNames = newInputFlowNames;
                 RefreshInputFlowSlots();
 
                 for (int i = 0; i < inputFlowSlot.Count(); ++i)
@@ -199,6 +200,12 @@ namespace UnityEditor.VFX
                         inputFlowSlot[i] = ctxSlot;
                 }
             }
+        }
+
+
+        public VFXContext GetEventContext(string eventName)
+        {
+            return m_SubChildren.OfType<VFXBasicEvent>().Where(t=>t.eventName == eventName).FirstOrDefault();
         }
 
         public string GetInputFlowName(int index)
