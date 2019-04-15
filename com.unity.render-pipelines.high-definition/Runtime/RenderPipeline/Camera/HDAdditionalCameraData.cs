@@ -113,8 +113,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             None,
             FastApproximateAntialiasing,
-            TemporalAntialiasing
+            TemporalAntialiasing,
+            SubpixelMorphologicalAntiAliasing
         }
+
+        public enum SMAAQualityLevel
+        {
+            Low,
+            Medium,
+            High
+        }
+
 
         public ClearColorMode clearColorMode = ClearColorMode.Sky;
         [ColorUsage(true, true)]
@@ -123,11 +132,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         
 
         [Tooltip("LayerMask HDRP uses for Volume interpolation for this Camera.")]
-        public LayerMask volumeLayerMask = -1;
+        public LayerMask volumeLayerMask = 1;
 
         public Transform volumeAnchorOverride;
 
         public AntialiasingMode antialiasing = AntialiasingMode.None;
+        public SMAAQualityLevel SMAAQuality = SMAAQualityLevel.High;
         public bool dithering = false;
         public bool stopNaNs = false;
 

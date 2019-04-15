@@ -4,7 +4,26 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [5.8.0-preview] - 2019-XX-XX
+## [5.14.0-preview] - 2019-XX-XX
+
+## [5.13.0-preview] - 2019-04-15
+
+## [5.12.0-preview] - 2019-04-11
+### Fixed
+- Fix shader compilation error with debug views
+
+## [5.11.0-preview] - 2019-04-01
+
+## [5.10.0-preview] - 2019-03-19
+
+## [5.9.0-preview] - 2019-03-15
+### Fixed
+- Issue that remove the edge when dragging an edge from slot to the same slot.
+- Exception when undoing an edge deletion on a dynamic operator. 
+- Exception regarding undo/redo when dragging a edge linked to a dynamic operator on another slot.
+- Missing graph invalidation in VFXGraph.OnEnable, was causing trouble with value invalidation until next recompilation
+
+## [5.8.0-preview] - 2019-03-13
 ### Added
 - Addressing mode for Sequential blocks
 - Invert transform available on GPU
@@ -15,7 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Better Handling of Null or Missing Parameter Binders (Editor + Runtime)
 - Undo Redo while changing space
-- Type declaration was unmodifiable due to exception during space intialization 
+- Type declaration was unmodifiable due to exception during space intialization
 - Fix unexpected issue when plugging per particle data into hash of per component fixed random
 - Missing asset reimport when exception has been thrown during graph compilation
 - Fix exception when using a Oriented Box Volume node [Case 1110419](https://issuetracker.unity3d.com/issues/operator-indexoutofrangeexception-when-using-a-volume-oriented-box-node)

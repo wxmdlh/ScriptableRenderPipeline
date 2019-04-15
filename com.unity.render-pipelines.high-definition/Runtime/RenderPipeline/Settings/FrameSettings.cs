@@ -13,6 +13,55 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         Deferred
     }
 
+#if FRAMESETTINGS_LOD_BIAS
+    public enum LODBiasMode
+    {
+        /// <summary>Use the current quality settings value.</summary>
+        FromQualitySettings,
+        /// <summary>Scale the current quality settings value.</summary>
+        ScaleQualitySettings,
+        /// <summary>Set the current quality settings value.</summary>
+        Fixed,
+    }
+    public enum MaximumLODLevelMode
+    {
+        /// <summary>Use the current quality settings value.</summary>
+        FromQualitySettings,
+        /// <summary>Offset the current quality settings value.</summary>
+        OffsetQualitySettings,
+        /// <summary>Set the current quality settings value.</summary>
+        Fixed,
+    }
+
+    public static class LODBiasModeExtensions
+    {
+        public static float ComputeValue(this LODBiasMode mode, float qualitySettingValue, float inputValue)
+        {
+            switch (mode)
+            {
+                case LODBiasMode.FromQualitySettings: return qualitySettingValue;
+                case LODBiasMode.Fixed: return inputValue;
+                case LODBiasMode.ScaleQualitySettings: return inputValue * qualitySettingValue;
+                default: throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+        }
+    }
+
+    public static class MaximumLODLevelModeExtensions
+    {
+        public static int ComputeValue(this MaximumLODLevelMode mode, int qualitySettingsValue, int inputValue)
+        {
+            switch (mode)
+            {
+                case MaximumLODLevelMode.FromQualitySettings: return qualitySettingsValue;
+                case MaximumLODLevelMode.OffsetQualitySettings: return qualitySettingsValue + inputValue;
+                case MaximumLODLevelMode.Fixed: return inputValue;
+                default: throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+        }
+    }
+#endif
+
     // To add a new element to FrameSettings, add en entry in this enum using the FrameSettingsFieldAttribute.
     // Inspector UI and DebugMenu are generated from this.
     // If you have very specific display requirement, you could add them in FrameSettingsUI.Drawer.cs with a AmmendInfo command.
@@ -38,8 +87,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         TransparentPrepass = 8,
         [FrameSettingsField(0, autoName: TransparentPostpass)]
         TransparentPostpass = 9,
-        [FrameSettingsField(0, autoName: TransparentsWriteVelocity, customOrderInGroup: 7)]
-        TransparentsWriteVelocity = 16,
+        [FrameSettingsField(0, autoName: TransparentsWriteMotionVector, customOrderInGroup: 7)]
+        TransparentsWriteMotionVector = 16,
         [FrameSettingsField(0, autoName: MotionVectors)]
         MotionVectors = 10,
         [FrameSettingsField(0, autoName: ObjectMotionVectors, positiveDependencies: new[] { MotionVectors })]
@@ -54,6 +103,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         Postprocess = 15,
         [FrameSettingsField(0, autoName: AfterPostprocess, customOrderInGroup: 15)]
         AfterPostprocess = 17,
+        [FrameSettingsField(0, autoName: LowResTransparent)]
+        LowResTransparent = 18,
 
         //lighting settings from 20 to 39
         [FrameSettingsField(1, autoName: Shadow)]
@@ -97,6 +148,20 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         VolumeVoxelizationsAsync = 45,
 
         //from 60 to 119 : space for new scopes
+#if FRAMESETTINGS_LOD_BIAS
+        // true <=> Fixed, false <=> FromQualitySettings (default)
+        [FrameSettingsField(4, autoName: LODBiasMode, type: FrameSettingsFieldAttribute.DisplayType.Others, targetType: typeof(LODBiasMode))]
+        LODBiasMode = 60,
+        /// <summary>Set the LOD Bias with the value in <see cref="FrameSettings.lodBias"/>.</summary>
+        [FrameSettingsField(4, autoName: LODBias, type: FrameSettingsFieldAttribute.DisplayType.Others, positiveDependencies: new[]{ LODBiasMode })]
+        LODBias = 61,
+        // true <=> Fixed, false <=> FromQualitySettings (default)
+        [FrameSettingsField(4, autoName: MaximumLODLevelMode, type: FrameSettingsFieldAttribute.DisplayType.Others, targetType: typeof(MaximumLODLevelMode))]
+        MaximumLODLevelMode = 62,
+        /// <summary>Set the LOD Bias with the value in <see cref="FrameSettings.maximumLODLevel"/>.</summary>
+        [FrameSettingsField(4, autoName: MaximumLODLevel, type: FrameSettingsFieldAttribute.DisplayType.Others, positiveDependencies: new[]{ MaximumLODLevelMode })]
+        MaximumLODLevel = 63,
+#endif
 
         //lightLoop settings from 120 to 127
         [FrameSettingsField(3, autoName: FPTLForForwardOpaque)]
@@ -155,6 +220,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.Distortion,
                 (uint)FrameSettingsField.Postprocess,
                 (uint)FrameSettingsField.AfterPostprocess,
+                (uint)FrameSettingsField.LowResTransparent,
                 (uint)FrameSettingsField.OpaqueObjects,
                 (uint)FrameSettingsField.TransparentObjects,
                 (uint)FrameSettingsField.RealtimePlanarReflection,
@@ -171,9 +237,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.ComputeMaterialVariants,
                 (uint)FrameSettingsField.FPTLForForwardOpaque,
                 (uint)FrameSettingsField.BigTilePrepass,
-                (uint)FrameSettingsField.TransparentsWriteVelocity,
+                (uint)FrameSettingsField.TransparentsWriteMotionVector,
                 (uint)FrameSettingsField.SpecularLighting,
-            })
+            }),
+#if FRAMESETTINGS_LOD_BIAS
+            lodBias = 1,
+#endif
         };
         /// <summary>Default FrameSettings for realtime ReflectionProbe/PlanarReflectionProbe renderer.</summary>
         public static readonly FrameSettings defaultRealtimeReflectionProbe = new FrameSettings()
@@ -217,7 +286,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.FPTLForForwardOpaque,
                 (uint)FrameSettingsField.BigTilePrepass,
                 (uint)FrameSettingsField.SpecularLighting,
-            })
+            }),
+#if FRAMESETTINGS_LOD_BIAS
+            lodBias = 1,
+#endif
         };
         /// <summary>Default FrameSettings for baked or custom ReflectionProbe/PlanarReflectionProbe renderer.</summary>
         public static readonly FrameSettings defaultCustomOrBakeReflectionProbe = new FrameSettings()
@@ -260,7 +332,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.FPTLForForwardOpaque,
                 (uint)FrameSettingsField.BigTilePrepass,
                 (uint)FrameSettingsField.SpecularLighting,
-            })
+            }),
+#if FRAMESETTINGS_LOD_BIAS
+            lodBias = 1,
+#endif
         };
 
         // Each time you add data in the framesettings. Attempt to add boolean one only if possible.
@@ -269,6 +344,23 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // For more, you should write one using previous as exemple.
         [SerializeField]
         BitArray128 bitDatas;
+
+#if FRAMESETTINGS_LOD_BIAS
+        /// <summary>
+        /// if <c>lodBiasMode == LODBiasMode.Fixed</c>, then this value will overwrite <c>QualitySettings.lodBias</c>
+        /// if <c>lodBiasMode == LODBiasMode.ScaleQualitySettings</c>, then this value will scale <c>QualitySettings.lodBias</c>
+        /// </summary>
+        public float lodBias;
+        /// <summary>Define how the <c>QualitySettings.lodBias</c> value is set.</summary>
+        public LODBiasMode lodBiasMode;
+        /// <summary>
+        /// if <c>maximumLODLevelMode == MaximumLODLevelMode.FromQualitySettings</c>, then this value will overwrite <c>QualitySettings.maximumLODLevel</c>
+        /// if <c>maximumLODLevelMode == MaximumLODLevelMode.OffsetQualitySettings</c>, then this value will offset <c>QualitySettings.maximumLODLevel</c>
+        /// </summary>
+        public int maximumLODLevel;
+        /// <summary>Define how the <c>QualitySettings.maximumLODLevel</c> value is set.</summary>
+        public MaximumLODLevelMode maximumLODLevelMode;
+#endif
 
         /// <summary>Helper to see binary saved data on LitShaderMode as a LitShaderMode enum.</summary>
         public LitShaderMode litShaderMode
@@ -300,6 +392,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             //quick override of all booleans
             overriddenFrameSettings.bitDatas = (overridingFrameSettings.bitDatas & frameSettingsOverideMask.mask) | (~frameSettingsOverideMask.mask & overriddenFrameSettings.bitDatas);
+#if FRAMESETTINGS_LOD_BIAS
+            if (frameSettingsOverideMask.mask[(uint) FrameSettingsField.LODBias])
+                overriddenFrameSettings.lodBias = overridingFrameSettings.lodBias;
+            if (frameSettingsOverideMask.mask[(uint) FrameSettingsField.LODBiasMode])
+                overriddenFrameSettings.lodBiasMode = overridingFrameSettings.lodBiasMode;
+            if (frameSettingsOverideMask.mask[(uint) FrameSettingsField.MaximumLODLevel])
+                overriddenFrameSettings.maximumLODLevel = overridingFrameSettings.maximumLODLevel;
+            if (frameSettingsOverideMask.mask[(uint) FrameSettingsField.MaximumLODLevelMode])
+                overriddenFrameSettings.maximumLODLevelMode = overridingFrameSettings.maximumLODLevelMode;
+#endif
 
             //override remaining values here if needed
         }
@@ -313,19 +415,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool reflection = camera.cameraType == CameraType.Reflection;
             bool preview = HDUtils.IsRegularPreviewCamera(camera);
             bool sceneViewFog = CoreUtils.IsSceneViewFogEnabled(camera);
+
+            // XRTODO: double-wide cleanup
             bool stereo = camera.stereoEnabled;
             bool stereoDoubleWide = stereo && (XRGraphics.stereoRenderingMode == XRGraphics.StereoRenderingMode.SinglePass);
+            bool stereoInstancing = stereo && (XRGraphics.stereoRenderingMode == XRGraphics.StereoRenderingMode.SinglePassInstanced);
 
             // When rendering reflection probe we disable specular as it is view dependent
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Reflection] = !reflection;
 
             // We have to fall back to forward-only rendering when scene view is using wireframe rendering mode
             // as rendering everything in wireframe + deferred do not play well together
-            if (GL.wireframe || stereo) //force forward mode for wireframe
+            if (GL.wireframe || stereoDoubleWide)
             {
-                // Stereo deferred rendering still has the following problems:
-                // XRTODO: Dispatch tile light-list compute per-eye
-                // XRTODO: Update compute lighting shaders for stereo
                 sanitazedFrameSettings.litShaderMode = LitShaderMode.Forward;
             }
             else
@@ -361,8 +463,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool atmosphericScattering = sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.AtmosphericScattering] &= sceneViewFog && !preview;
 
             // Volumetric are disabled if there is no atmospheric scattering
-            // XRTODO: implement Volumetrics support
-            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Volumetrics] &= renderPipelineSettings.supportVolumetrics && atmosphericScattering && !stereo; //&& !preview induced by atmospheric scattering
+            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Volumetrics] &= renderPipelineSettings.supportVolumetrics && atmosphericScattering && !stereoDoubleWide; //&& !preview induced by atmospheric scattering
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.ReprojectionForVolumetrics] &= !preview;
 
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.LightLayers] &= renderPipelineSettings.supportLightLayers && !preview;
@@ -380,6 +481,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Decals] &= renderPipelineSettings.supportDecals && !preview;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.TransparentPostpass] &= renderPipelineSettings.supportTransparentDepthPostpass && !preview;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Distortion] &= !reflection && renderPipelineSettings.supportDistortion && !msaa && !preview;
+            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.LowResTransparent] &= renderPipelineSettings.lowresTransparentSettings.enabled; 
 
             bool async = sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.AsyncCompute] &= SystemInfo.supportsAsyncCompute;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.LightListAsync] &= async;
@@ -392,11 +494,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.BigTilePrepass] &= !stereoDoubleWide;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.DeferredTile] &= !stereoDoubleWide;
 
+            // XRTODO: fix indirect deferred pass with instancing
+            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.ComputeLightEvaluation] &= !stereoInstancing;
+
             // Deferred opaque are always using Fptl. Forward opaque can use Fptl or Cluster, transparent use cluster.
             // When MSAA is enabled we disable Fptl as it become expensive compare to cluster
             // In HD, MSAA is only supported for forward only rendering, no MSAA in deferred mode (for code complexity reasons)
-            // XRTODO: fix FPTL for stereo (disabled for now)
-            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.FPTLForForwardOpaque] &= !msaa && !stereo;
+            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.FPTLForForwardOpaque] &= !msaa && !stereoDoubleWide;
         }
 
         /// <summary>Aggregation is default with override of the renderer then sanitazed depending on supported features of hdrpasset.</summary>
