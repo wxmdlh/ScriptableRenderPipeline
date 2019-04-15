@@ -327,12 +327,6 @@ EditorBuildSettings:
     path: Assets/GraphicTests/Scenes/9x_Other/9501_MultiViewport.unity
     guid: ee1bdf0fe4a145549a0172f292129c20
   - enabled: 1
-    path: Assets/GraphicTests/Scenes/9x_Other/9601_MotionBlur_Camera.unity
-    guid: 892e89367e6a34d4ea96b674a1370de5
-  - enabled: 1
-    path: Assets/GraphicTests/Scenes/9x_Other/9602_MotionBlur_PerObject.unity
-    guid: 74db5310e2f20b340b2efb3b4c4d9edf
-  - enabled: 1
     path: Assets/GraphicTests/Scenes/9x_Other/9701_AfterPostProcess.unity
     guid: 2bb5d28daf3968e40aad1ae3211c2e9d
   - enabled: 1
@@ -341,4 +335,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/GraphicTests/Scenes/1x_Materials/1214_Lit_LowResTransparent.unity
     guid: 966a7c7799082494a9acead537653156
+  - enabled: 1
+    path: Assets/GraphicTests/Scenes/4x_PostProcessing/4010_MotionBlur_Camera.unity
+    guid: 892e89367e6a34d4ea96b674a1370de5
+  - enabled: 1
+    path: Assets/GraphicTests/Scenes/4x_PostProcessing/4011_MotionBlur_PerObject.unity
+    guid: 74db5310e2f20b340b2efb3b4c4d9edf
   m_configObjects: {}
