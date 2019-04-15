@@ -199,7 +199,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         }
         public uint GetSizeInBytes()
         {
-            return _vxShadowMapsBuffer != null ? (uint)_vxShadowMapsBuffer.count : 0;
+            return _vxShadowMapsBuffer != null ? (uint)_vxShadowMapsBuffer.count * 4 : 0;
         }
 
         public void Stage(DirectionalVxShadowMap vxsm)

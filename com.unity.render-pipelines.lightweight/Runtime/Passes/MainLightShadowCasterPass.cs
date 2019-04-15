@@ -243,7 +243,6 @@ namespace UnityEngine.Rendering.LWRP
             float invHalfShadowAtlasWidth = 0.5f * invShadowAtlasWidth;
             float invHalfShadowAtlasHeight = 0.5f * invShadowAtlasHeight;
             cmd.SetComputeMatrixArrayParam(computeShader, MainLightShadowConstantBuffer._WorldToShadow, m_MainLightShadowMatrices);
-            cmd.SetComputeVectorParam(computeShader, MainLightShadowConstantBuffer._ShadowData, new Vector4(light.shadowStrength, 0.0f, 0.0f, 0.0f));
             cmd.SetComputeVectorParam(computeShader, MainLightShadowConstantBuffer._CascadeShadowSplitSpheres0, m_CascadeSplitDistances[0]);
             cmd.SetComputeVectorParam(computeShader, MainLightShadowConstantBuffer._CascadeShadowSplitSpheres1, m_CascadeSplitDistances[1]);
             cmd.SetComputeVectorParam(computeShader, MainLightShadowConstantBuffer._CascadeShadowSplitSpheres2, m_CascadeSplitDistances[2]);
