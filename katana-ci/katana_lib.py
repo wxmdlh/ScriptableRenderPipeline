@@ -3,6 +3,7 @@ import os
 import re
 import time
 import urllib
+#import urllib.parse.quote
 
 import requests
 from enum import Enum
@@ -55,7 +56,7 @@ class TestResults(Enum):
 
 #proj57-Test%20PlayMode%20-%20Mac%20%28Intel%29
 def start_katana_build(project, properties):
-    url = katana_url + "builders/%s/start-build/" % urllib.quote(project)
+    url = katana_url + "builders/%s/start-build/" % urllib.parse.quote(project)
     request = {
         "owner": "GFX Foundation Yamato <sophia@unity3d.com>",
         "sources_stamps": [
@@ -100,7 +101,7 @@ def has_katana_finished(build_info, project):
 
 def get_build_status(build_number, project):
     build_status_request = "%s?select=project&select=builders/%s/builds/%s&as_json=1&steps=0" % (
-        katana_url, urllib.quote(project), build_number)
+        katana_url, urllib.parse.quote(project), build_number)
     build_status = utils.get_url_json(build_status_request)['builders'][project]['builds'][build_number]
     return build_status
 
@@ -155,7 +156,7 @@ def get_build_number(build_info):
 
 def extract_project_from_web_url(url):
     url_path = url.split('/')
-    return urllib.unquote(url_path[6])
+    return urllib.parse.unquote(url_path[6])
 
 
 def extract_step_from_web_url(url):
