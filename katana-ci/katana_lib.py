@@ -56,7 +56,7 @@ class TestResults(Enum):
 
 #proj57-Test%20PlayMode%20-%20Mac%20%28Intel%29
 def start_katana_build(project, properties):
-    url = katana_url + "builders/%s/start-build/" % urllib.parse.quote(project)
+    url = katana_url + "builders/proj57-Test%20PlayMode%20-%20Mac%20%28Intel%29/start-build/"
     request = {
         "owner": "GFX Foundation Yamato <sophia@unity3d.com>",
         "sources_stamps": [
