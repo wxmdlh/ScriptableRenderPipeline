@@ -19,7 +19,7 @@ public class Motion : MonoBehaviour
     public float length = 5;
     public Type type = Type.Circle;
     public Vector3 axisSide = new Vector3(1, 0, 0);
-    public bool perFrame = false;
+    public bool perFrame = true;
 
     Vector3 originalPos;
     Vector3 originalRot;
