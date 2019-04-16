@@ -200,14 +200,14 @@ namespace UnityEditor.VFX
             eventAttributeDescs.AddRange(listWithOffset);
         }
 
-        private static List<VFXContext> CollectContextParentRecursively(List<VFXContext> inputList,ref SubgraphInfos subgraphContexts)
+        private static List<VFXContext> CollectContextParentRecursively(IEnumerable <VFXContext> inputList,ref SubgraphInfos subgraphContexts)
         {
             var contextEffectiveInputLinks = subgraphContexts.contextEffectiveInputLinks;
             var contextList = inputList.SelectMany(o => contextEffectiveInputLinks[o].SelectMany(t=>t)).Select(t=>t.context).Distinct().ToList();
 
             if (contextList.Any(o => contextEffectiveInputLinks[o].Any()))
             {
-                var parentContextList = CollectContextParentRecursively(contextList, ref subgraphContexts);
+                var parentContextList = CollectContextParentRecursively(contextList.Except(inputList), ref subgraphContexts);
                 foreach (var context in parentContextList)
                 {
                     if (!contextList.Contains(context))

@@ -222,7 +222,7 @@ namespace UnityEditor.VFX.UI
                 PostSetupNode();
                 m_SourceControllersWithBlocks = m_SourceControllers.Concat(m_SourceControllers.OfType<VFXContextController>().SelectMany(t => t.blockControllers));
                 TransferEdges();
-                TransferContextsFlowEdges();
+                //TransferContextsFlowEdges();
                 UninitSmart();
             }
 

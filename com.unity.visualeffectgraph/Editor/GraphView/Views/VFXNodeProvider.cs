@@ -92,8 +92,6 @@ namespace UnityEditor.VFX.UI
                         if (item.category == null)
                             item.category = "";
 
-                        item.category = item.category;
-
                         if ( typeof(T) == typeof(VisualEffectSubgraphBlock))
                         {
                             VFXBlockSubgraphContext blockContext = asset.GetResource().GetOrCreateGraph().children.OfType<VFXBlockSubgraphContext>().First();
