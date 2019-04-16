@@ -70,7 +70,7 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Add Pass)"
             #pragma shader_feature _MASKMAP    
             // Sample normal in pixel shader when doing instancing
             #pragma shader_feature _TERRAIN_INSTANCED_PERPIXEL_NORMAL            
-            #define TERRAIN_SPLAT_ADDPASS 1
+            #define TERRAIN_SPLAT_ADDPASS
 
             #include "Packages/com.unity.render-pipelines.lightweight/Shaders/Terrain/TerrainLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.lightweight/Shaders/Terrain/TerrainLitPasses.hlsl"

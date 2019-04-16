@@ -118,9 +118,12 @@ void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout h
     clip(weight == 0.0h ? -1.0h : 1.0h);
 #endif
 
+#ifndef TERRAIN_SPLAT_ADDPASS
     // Normalize weights before lighting and restore weights in final modifier functions so that the overal
-    // lighting result can be correctly weighted.
+    // lighting result can be correctly weighted.  In the add pass, we can assume the weights
+    // are already properly normalized in the layer below, so we don't want to renormalize again.
     splatControl /= (weight + HALF_MIN);
+#endif
 
     mixedDiffuse = 0.0h;
     mixedDiffuse += diffAlbedo[0] * half4(_DiffuseRemapScale0.rgb * splatControl.rrr, 1.0h);
@@ -144,6 +147,7 @@ void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout h
 #ifdef _TERRAIN_BLEND_HEIGHT
 void HeightBasedSplatModify(inout half4 splatControl, in half4 masks[4])
 {
+#ifndef TERRAIN_SPLAT_ADDPASS   // disable for multi-pass
     half4 defaultHeight = half4(masks[0].b, masks[1].b, masks[2].b, masks[3].b);
     defaultHeight *= half4(_MaskMapRemapScale0.b, _MaskMapRemapScale1.b, _MaskMapRemapScale2.b, _MaskMapRemapScale3.b);
     defaultHeight += half4(_MaskMapRemapOffset0.b, _MaskMapRemapOffset1.b, _MaskMapRemapOffset2.b, _MaskMapRemapOffset3.b);
@@ -160,10 +164,11 @@ void HeightBasedSplatModify(inout half4 splatControl, in half4 masks[4])
     // We need to add an epsilon here for active layers (hence the blendMask again) 
     // so that at least a layer shows up if everything's too low.
     weightedHeights = (max(0, weightedHeights + transition) + 1e-5) * splatControl;
-
+    
     // Normalize
     float sumHeight = dot(weightedHeights, half4(1, 1, 1, 1));
     splatControl = weightedHeights / sumHeight.xxxx;
+#endif
 }
 #endif
 
