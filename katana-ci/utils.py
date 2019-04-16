@@ -32,21 +32,21 @@ def set_target_os(target):
     target_os = target
 
 def get_url_json(url):
-    print "  Getting json from {0}".format(url)
+    print("  Getting json from {0}".format(url))
     import urllib2
     response = urllib2.urlopen(url)
     return json.loads(response.read())
 
 
 def extract_tarball(download_path, extract_path):
-    print "  Extracting %s into %s" % (download_path, extract_path)
+    print("  Extracting %s into %s" % (download_path, extract_path))
     tar = tarfile.open(download_path, "r:gz")
     tar.extractall(extract_path)
     tar.close()
 
 
 def download_url(url, filename):
-    print "  Downloading %s to %s" % (url, filename)
+    print("  Downloading %s to %s" % (url, filename))
 
     r = requests.get(url, stream=True)
     with open(filename, 'wb') as f:
@@ -54,7 +54,7 @@ def download_url(url, filename):
 
 
 def extract_zip(archive, destination):
-    print "  Extracting %s into %s" % (archive, destination)
+    print("  Extracting %s into %s" % (archive, destination))
     import zipfile
     if get_current_os() == "windows":
         zip_ref = ZipfileLongWindowsPaths(archive, 'r')
@@ -82,21 +82,21 @@ def npm_cmd(cmd, registry):
 
     formatted_cmd = 'npm {0} {1}'.format(cmd, registry_cmd)
 
-    print "  Running: {0}".format(formatted_cmd)
+    print("  Running: {0}".format(formatted_cmd))
     return subprocess.check_output(formatted_cmd, shell=True, stderr=subprocess.STDOUT)
 
 
 def git_cmd(cmd, print_command=True):
     formatted_cmd = "git {0}".format(cmd)
     if print_command:
-        print "  Running: {0}".format(formatted_cmd)
+        print("  Running: {0}".format(formatted_cmd))
     return subprocess.check_output(formatted_cmd, shell=True, stderr=subprocess.STDOUT)
 
 
 def git_cmd_code_only(cmd, print_command=True):
     formatted_cmd = "git {0}".format(cmd)
     if print_command:
-        print "  Running: {0}".format(formatted_cmd)
+        print("  Running: {0}".format(formatted_cmd))
     with open(os.devnull, 'w') as devnull:
         return subprocess.call(formatted_cmd, shell=True, stderr=devnull, stdout=devnull)
 
