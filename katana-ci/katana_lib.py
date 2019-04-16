@@ -57,7 +57,7 @@ class TestResults(Enum):
 def start_katana_build(project, properties):
     url = katana_url + "builders/%s/start-build/" % urllib.quote(project)
     request = {
-        "owner": "GFX Foundation <sophia@unity3d.com>",
+        "owner": "GFX Foundation Yamato <sophia@unity3d.com>",
         "sources_stamps": [
     {     
         "branch": "master",     

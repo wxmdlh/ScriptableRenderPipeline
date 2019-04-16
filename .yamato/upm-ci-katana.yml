@@ -1,0 +1,18 @@
+run_katana_metal:
+  name: Run OSX Metal Playmode tests on Katana
+  agent:
+    name: whatever
+    type: Unity::VM
+    image: cds-ops/ubuntu-18.04-agent:latest
+    flavor: b1.small
+  commands:
+  - python katana-ci\katana_launcher.py
+
+  #triggers:
+  #  branches:
+  #    only:
+  #      - yamato-master
+  artifacts:
+    logs.zip:
+      paths:
+      - "**/upm-ci~/test-results/**/*"
