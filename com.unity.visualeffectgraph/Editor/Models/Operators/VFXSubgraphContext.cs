@@ -184,20 +184,27 @@ namespace UnityEditor.VFX
 
             if (!newInputFlowNames.SequenceEqual(m_InputFlowNames) || inputFlowSlot.Length != inputFlowCount)
             {
-                Dictionary<string, VFXContextSlot> oldLinks = new Dictionary<string, VFXContextSlot>();
+                var oldLinks = new Dictionary<string,  List<VFXContextLink> >();
 
                 for(int i = 0; i < inputFlowSlot.Count() && i < m_InputFlowNames.Count; ++i )
                 {
-                    oldLinks[GetInputFlowName(i)] = inputFlowSlot[i];
+                    oldLinks[GetInputFlowName(i)] = inputFlowSlot[i].link.ToList();
                 }
                 m_InputFlowNames = newInputFlowNames;
                 RefreshInputFlowSlots();
 
                 for (int i = 0; i < inputFlowSlot.Count(); ++i)
                 {
-                    VFXContextSlot ctxSlot;
+                    List<VFXContextLink> ctxSlot;
                     if( oldLinks.TryGetValue(GetInputFlowName(i), out ctxSlot) )
-                        inputFlowSlot[i] = ctxSlot;
+                    {
+                        foreach(var link in ctxSlot)
+                        {
+                            LinkFrom(link.context,link.slotIndex,i);
+                        }
+                        
+                    }
+                        
                 }
             }
         }
