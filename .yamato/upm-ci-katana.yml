@@ -1,12 +1,12 @@
 run_katana_metal:
   name: Run OSX Metal Playmode tests on Katana
   agent:
-    name: whatever
+    name: Windows64
     type: Unity::VM
-    image: cds-ops/ubuntu-18.04-agent:latest
-    flavor: b1.small
+    image: sdet/gamecode_win10:latest
+    flavor: m1.large
   commands:
-  - python katana-ci\katana_launcher.py
+  - python katana-ci/katana_launcher.py
 
   #triggers:
   #  branches:
