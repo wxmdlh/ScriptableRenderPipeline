@@ -46,7 +46,7 @@ namespace UnityEditor.TestTools.Graphics
             RuntimePlatform runtimePlatform;
             GraphicsDeviceType[] graphicsDevices;
 
-            UnityEditor.EditorPrefs.SetBool("AsynchronousShaderCompilation", false);
+            EditorPrefs.SetBool("AsynchronousShaderCompilation", false);
 
             // Figure out if we're preparing to run in Editor playmode, or if we're building to run outside the Editor
             if (IsBuildingForEditorPlaymode)
@@ -109,12 +109,15 @@ namespace UnityEditor.TestTools.Graphics
                 var labels = new System.Collections.Generic.List<string>(AssetDatabase.GetLabels(sceneAsset));
                 if ( labels.Contains(bakeLabel) )
                 {
-
+                    Debug.Log($"Baking tagged scene:{scene}");
+                    var startTime = DateTime.Now;
                     EditorSceneManagement.EditorSceneManager.OpenScene(scene.path, EditorSceneManagement.OpenSceneMode.Additive);
 
                     Scene currentScene = EditorSceneManagement.EditorSceneManager.GetSceneAt(1);
 
                     EditorSceneManagement.EditorSceneManager.SetActiveScene(currentScene);
+
+                    Lightmapping.giWorkflowMode = Lightmapping.GIWorkflowMode.OnDemand;
 
                     Lightmapping.Bake();
 
@@ -123,6 +126,7 @@ namespace UnityEditor.TestTools.Graphics
                     EditorSceneManagement.EditorSceneManager.SetActiveScene(trScene);
 
                     EditorSceneManagement.EditorSceneManager.CloseScene(currentScene, true);
+                    Debug.Log($"Bake for scene:{scene}, bake time:{startTime.Subtract(DateTime.Now).TotalSeconds.ToString()} seconds");
                 }
             }
 
