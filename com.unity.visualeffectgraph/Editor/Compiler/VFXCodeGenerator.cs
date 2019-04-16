@@ -16,13 +16,14 @@ namespace UnityEditor.VFX
     }
     struct VFXInfos
     {
-        public Dictionary<string, string> customParameterAccess;
         public string vertexFunctions;
         public string vertexShaderContent;
         public string shaderName;
         public string parameters;
         public List<string> attributes;
         public string loadAttributes;
+
+        public List<string> modifiedByOutputAttributes;
     }
 
 
@@ -520,11 +521,11 @@ namespace UnityEditor.VFX
                     {
 
                         VFXInfos infos = new VFXInfos();
-                        infos.customParameterAccess = null;
                         infos.vertexFunctions = blockFunction.ToString();
                         infos.vertexShaderContent = blockCallFunction.ToString();
                         infos.attributes = context.GetData().GetAttributes().Select(t=>t.attrib.name).ToList();
                         infos.loadAttributes = GenerateLoadAttribute(".*", context).ToString();
+                        infos.modifiedByOutputAttributes = context.children.SelectMany(t=>t.attributes).Where(t=>(t.mode & VFXAttributeMode.Write) != 0).Select(t=>t.attrib.name).Distinct().ToList();
 
                         var parameters = new VFXShaderWriter();
                         parameters.WriteCBuffer(contextData.uniformMapper, "parameters");

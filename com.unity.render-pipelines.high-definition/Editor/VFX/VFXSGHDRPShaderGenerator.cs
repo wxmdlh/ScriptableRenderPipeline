@@ -418,11 +418,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
 
                 var sb = new StringBuilder();
+                GenerateParticleVert(graph, vfxInfos, sb, currentPass,passDefines);
 
                 foreach( var define in passDefines)
                     pass.InsertShaderCode(0, string.Format("#define {0} {1}", define.Key, define.Value));
 
-                GenerateParticleVert(graph, vfxInfos, sb, currentPass);
                 string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass, pass, guiVariables, defines);
 
                 pass.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
@@ -563,6 +563,21 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
 ");
             getSurfaceDataFunction.AppendLine("    " + vfxInfos.loadAttributes.Replace("\n", "\n    "));
 
+            getSurfaceDataFunction.Append(@"
+    #ifdef VFX_ALPHA_IN_UV3
+        alpha = IN.uv3.y;
+    #elif defined(VFX_ALPHA_IN_COLOR)
+        alpha = IN.VertexColor.a;
+    #endif
+
+    #ifdef VFX_COLOR_IN_UV23
+        color = float3(IN.uv2.xy,IN.uv3.x);
+    #elif defined(VFX_ALPHA_IN_UV3)
+        color = IN.VertexColor.rgb;
+    #endif
+    ");
+
+
             foreach (var prop in shaderProperties.properties)
             {
                 string matchingAttribute = vfxInfos.attributes.FirstOrDefault(t => prop.displayName.Equals(t, StringComparison.InvariantCultureIgnoreCase));
@@ -695,7 +710,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             return getSurfaceDataFunction.ToString();
         }
 
-        private static void GenerateParticleVert(Graph graph,VFXInfos vfxInfos, StringBuilder shader, int currentPass)
+        private static void GenerateParticleVert(Graph graph,VFXInfos vfxInfos, StringBuilder shader, int currentPass, Dictionary<string, int> defines)
         {
             shader.Append(vfxInfos.vertexFunctions);
 
@@ -780,6 +795,58 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                     shader.AppendFormat("float3 objectPos = {0};\nparticlePos = mul(elementToVFX,float4(objectPos,1)).xyz; \n", graph.graphData.outputNode.GetSlotValue(slot.id, GenerationMode.ForReals));
                 }
             }
+
+            bool hasColorInOutputBlocks = vfxInfos.modifiedByOutputAttributes.Contains("color");
+            bool hasAlphaInOutputBlocks = vfxInfos.modifiedByOutputAttributes.Contains("alpha");
+
+            if( hasAlphaInOutputBlocks || hasColorInOutputBlocks)
+            {
+                if( ! hasColorInOutputBlocks && !graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains(UVChannel.UV3)) // need only one float interpolator try uv3
+                {
+                    defines["VFX_ALPHA_IN_UV3"] = 1;
+                    defines["VARYINGS_NEED_TEXCOORD3"] = 1;
+                    shader.AppendLine(@"
+varyingsType.vmesh.texCoord3.y = alpha;");
+                }
+                else if( !graph.passes[currentPass].pixel.requirements.requiresVertexColor)
+                {   
+                    defines["VARYINGS_NEED_COLOR"] = 1;
+                    if(hasAlphaInOutputBlocks)
+                    {
+                        defines["VFX_ALPHA_IN_COLOR"] = 1;
+                        shader.AppendLine(@"
+    varyingsType.vmesh.color.a = alpha;");
+                    }
+                    
+                    if( hasColorInOutputBlocks)
+                    {
+                        defines["VFX_COLOR_IN_COLOR"] = 1;
+                        shader.AppendLine(@"
+    varyingsType.vmesh.color.rgb = color;");
+                    }
+                }
+                else if( !graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains(UVChannel.UV3) && !graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains(UVChannel.UV2))
+                {   
+                    defines["VARYINGS_NEED_TEXCOORD3"] = 1;
+                    defines["VARYINGS_NEED_TEXCOORD2"] = 1;
+                    if(hasAlphaInOutputBlocks)
+                    {
+                        defines["VFX_ALPHA_IN_UV3"] = 1;
+                        shader.AppendLine(@"
+varyingsType.vmesh.texCoord3.y = alpha;");
+                    }
+                    
+                    if( hasColorInOutputBlocks)
+                    {
+                        defines["VFX_COLOR_IN_UV23"] = 1;
+                        shader.AppendLine(@"
+    varyingsType.vmesh.texCoord2.xy = color.rg;
+    varyingsType.vmesh.texCoord3.x = color.b;");
+                    }
+                }
+                
+            }
+
             shader.AppendLine(@"
     float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
 
