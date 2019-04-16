@@ -197,14 +197,8 @@ namespace UnityEditor.VFX
                 {
                     List<VFXContextLink> ctxSlot;
                     if( oldLinks.TryGetValue(GetInputFlowName(i), out ctxSlot) )
-                    {
                         foreach(var link in ctxSlot)
-                        {
                             LinkFrom(link.context,link.slotIndex,i);
-                        }
-                        
-                    }
-                        
                 }
             }
         }
