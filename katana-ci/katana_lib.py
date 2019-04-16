@@ -109,25 +109,25 @@ def process_running_builds(build_info, project):
     build_number = get_build_number(build_info)
 
     if build_number == "null":
-        print "Build number is null; probably the build hasn't started yet. Lets wait a while before trying again"
+        print("Build number is null; probably the build hasn't started yet. Lets wait a while before trying again")
         return False
 
     build_status = get_build_status(build_number, project)
 
     build_result_code = get_result_code(build_status)
     if build_result_code == KatanaResults.UNKNOWN:
-        print "The build is still going on..."
+        print("The build is still going on...")
         if isinstance(build_status['eta'], float):
-            print "The eta for build completion is %s min" % (build_status['eta'] / 60)
+            print("The eta for build completion is %s min" % (build_status['eta'] / 60))
 
         return False
 
     elif build_result_code in katana_success_results:
-        print "Build Finished Successfully. All is green now :)"
+        print("Build Finished Successfully. All is green now :)"
 
     elif build_result_code in katana_failure_results:
-        print "Looks like the build #%s (%s) has finished but wasn't successful. The result is %s." % (
-                build_number, project, KatanaResults(build_status['results']).name)
+        print("Looks like the build #%s (%s) has finished but wasn't successful. The result is %s." % (
+                build_number, project, KatanaResults(build_status['results']).name))
         if build_result_code == KatanaResults.DEPENDENCY_FAILURE:
             analyze_dependencies(build_status)
 
@@ -147,7 +147,7 @@ def get_build_number(build_info):
     build_number_request = "%sbuild_request/%s/build_number/" % (katana_url, build_info[0]['build_request_id'])
     build_number_result = requests.get(build_number_request)
     if build_number_result.status_code != 200:
-        print "Failed to get build number from build request number:\n%s" % build_number_result.content
+        print("Failed to get build number from build request number:\n%s" % build_number_result.content)
         raise Exception
 
     return build_number_result.content.strip()
@@ -195,7 +195,7 @@ def analyze_console_failure(log_content):
     for word in bad_words:
         # todo: use regex case insensitive
         x = [str for str in splitted_clean_content if word in str]
-        print '\n'.join(x)
+        print('\n'.join(x))
 
     footer = clean_content.split('#####')[1:]
     for line in footer:
@@ -207,8 +207,8 @@ def show_tests_details_by_result(tests, result_type, tag):
     if len(filtered_tests) != 0:
         logger.accumulate_for_slack("{0} {1} Tests found\n".format(len(filtered_tests), tag))
         for i in filtered_tests:
-            print '----------------------------------------------------------------------------------------------------'
-            print i['name'], i['message'], i['stackTrace']
+            print('----------------------------------------------------------------------------------------------------')
+            print(i['name'], i['message'], i['stackTrace'])
 
 
 def analyze_test_results(log_content):
@@ -229,7 +229,7 @@ def analyze_test_results(log_content):
 
 
 def analyze_dependencies(build_status):
-    print "Investigating failing dependencies..."
+    print("Investigating failing dependencies...")
     for step in build_status['steps']:
         if get_result_code(step) not in katana_success_results and get_result_code(step) is not KatanaResults.SKIPPED:
             for dependency_name in step['dependencyUrls']:
