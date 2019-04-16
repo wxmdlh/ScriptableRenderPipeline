@@ -123,7 +123,7 @@ def process_running_builds(build_info, project):
         return False
 
     elif build_result_code in katana_success_results:
-        print("Build Finished Successfully. All is green now :)"
+        print("Build Finished Successfully. All is green now :)")
 
     elif build_result_code in katana_failure_results:
         print("Looks like the build #%s (%s) has finished but wasn't successful. The result is %s." % (
