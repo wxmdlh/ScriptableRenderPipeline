@@ -136,8 +136,8 @@ namespace UnityEditor.VFX.Test
             for (var i = 0; i < exposedProperties.Length; ++i)
             {
                 var parameter = parametersIntDesc.CreateInstance();
-                parameter.SetSettingValue("m_exposedName", exposedProperties[i]);
-                parameter.SetSettingValue("m_exposed", true);
+                parameter.SetSettingValue("m_ExposedName", exposedProperties[i]);
+                parameter.SetSettingValue("m_Exposed", true);
                 parameter.value = i + 1;
                 graph.AddChild(parameter);
             }
