@@ -218,6 +218,7 @@ namespace UnityEditor.VFX
             return m_InputFlowNames.IndexOf(name);
         }
 
+         [SerializeField]
         List<string> m_InputFlowNames = new List<string>();
 
         private void DetachFromOriginal()
