@@ -344,4 +344,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/GraphicTests/Scenes/4x_PostProcessing/4012_MotionBlur_CameraOnly.unity
     guid: faeb14f82af77cc4fb9c88233f3c9a53
+  - enabled: 1
+    path: Assets/GraphicTests/Scenes/4x_PostProcessing/4013_TransparentMotionVector.unity
+    guid: ed84243e5c418844f87509bf80fdd919
   m_configObjects: {}
