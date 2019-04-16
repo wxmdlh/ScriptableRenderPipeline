@@ -33,8 +33,8 @@ def set_target_os(target):
 
 def get_url_json(url):
     print("  Getting json from {0}".format(url))
-    import urllib2
-    response = urllib2.urlopen(url)
+    from urllib.request import urlopen
+    response = urlopen(url)
     return json.loads(response.read())
 
 
