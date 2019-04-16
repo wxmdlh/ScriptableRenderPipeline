@@ -116,8 +116,6 @@ namespace UnityEditor.TestTools.Graphics
 
                     EditorSceneManagement.EditorSceneManager.SetActiveScene(currentScene);
 
-                    Lightmapping.giWorkflowMode = Lightmapping.GIWorkflowMode.OnDemand;
-
                     Lightmapping.Bake();
 
                     EditorSceneManagement.EditorSceneManager.SaveScene( currentScene );
@@ -168,7 +166,6 @@ ReflectionProbe-*";
 
                     EditorSceneManagement.EditorSceneManager.OpenScene(scenePath, EditorSceneManagement.OpenSceneMode.Single);
                     EditorSceneManagement.EditorSceneManager.SetActiveScene( EditorSceneManagement.EditorSceneManager.GetSceneAt(0) );
-                    Lightmapping.giWorkflowMode = Lightmapping.GIWorkflowMode.OnDemand;
                     EditorSceneManagement.EditorSceneManager.SaveScene( EditorSceneManagement.EditorSceneManager.GetSceneAt(0) );
                 }
 
