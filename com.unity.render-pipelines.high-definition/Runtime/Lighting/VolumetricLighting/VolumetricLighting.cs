@@ -2,6 +2,7 @@ using System;
 using UnityEngine.Rendering;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using UnityEngine.Experimental.VoxelizedShadows; //seongdae;vxsm
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -692,6 +693,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                           hdCamera.frameSettings.IsEnabled(FrameSettingsField.ReprojectionForVolumetrics);
                 bool enableAnisotropy   = fog.anisotropy.value != 0;
                 bool highQuality        = preset == VolumetricLightingPreset.High;
+                bool enableVxShadows    = hdCamera.frameSettings.IsEnabled(FrameSettingsField.Shadow) && //seongdae;vxsm
+                                          hdCamera.frameSettings.IsEnabled(FrameSettingsField.VxShadows); //seongdae;vxsm
 
                 int kernel = (tiledLighting ? 1 : 0) | (enableReprojection ? 2 : 0) | (enableAnisotropy ? 4 : 0) | (highQuality ? 8 : 0);
 
@@ -720,6 +723,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // Currently, we assume that they are completely uncorrelated, but maybe we should correlate them somehow.
                 m_xySeqOffset.Set(m_xySeq[sampleIndex].x, m_xySeq[sampleIndex].y, m_zSeq[sampleIndex], frameIndex);
 
+                //seongdae;vxsm
+                var vxShadowMapsBuffer = enableVxShadows ?
+                    VxShadowMapsManager.instance.VxShadowMapsBuffer :
+                    VxShadowMapsManager.instance.VxShadowMapsNullBuffer;
+                cmd.SetComputeBufferParam(m_VolumetricLightingCS, kernel, HDShaderIDs._VxShadowMapsBuffer, vxShadowMapsBuffer);
+                //seongdae;vxsm
 
                 // TODO: set 'm_VolumetricLightingPreset'.
                 // TODO: set the constant buffer data only once.

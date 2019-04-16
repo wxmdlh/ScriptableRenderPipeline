@@ -18,6 +18,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         SSAO,
         ScreenSpaceReflections,
         ContactShadows,
+        VxShadows, //seongdae;vxsm
         PreRefractionColorPyramid,
         DepthPyramid,
         FinalColorPyramid,

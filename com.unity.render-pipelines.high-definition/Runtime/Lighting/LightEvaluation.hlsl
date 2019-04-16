@@ -104,7 +104,8 @@ float EvaluateRuntimeSunShadow(LightLoopContext lightLoopContext, PositionInputs
                                DirectionalLightData light, float3 shadowBiasNormal)
 {
     // The relationship with NdotL is complicated and is therefore handled outside the function.
-    if ((light.lightDimmer > 0) && (light.shadowDimmer > 0))
+    //if ((light.lightDimmer > 0) && (light.shadowDimmer > 0)) //seongdae;vxsm;origin
+    if ((light.vxShadowsValues != 1) && (light.lightDimmer > 0) && (light.shadowDimmer > 0)) //seongdae;vxsm
     {
         // Shadow dimmer is applied outside this function.
         return GetDirectionalShadowAttenuation(lightLoopContext.shadowContext, posInput.positionWS,
@@ -116,6 +117,29 @@ float EvaluateRuntimeSunShadow(LightLoopContext lightLoopContext, PositionInputs
         return 1;
     }
 }
+
+//seongdae;vxsm
+float EvaluateRuntimeSunVxShadow(LightLoopContext lightLoopContext, PositionInputs posInput, DirectionalLightData light)
+{
+#ifdef SUPPORT_VX_SHADOWING
+    if ((lightLoopContext.shadowValue > 0) && (light.vxShadowsValues > 0) && (light.lightDimmer > 0) && (light.shadowDimmer > 0))
+    {
+        float3 positionWS = posInput.positionWS + _WorldSpaceCameraPos;
+
+        uint begin = 0;
+        float attenuation = NearestSampleVxShadowing(begin, positionWS);
+
+        return attenuation;
+    }
+    else
+    {
+        return 1;
+    }
+#else
+    return 1;
+#endif
+}
+//seongdae;vxsm
 
 // None of the outputs are premultiplied.
 void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs posInput,
@@ -158,6 +182,7 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
     if ((light.shadowIndex >= 0) && (light.shadowDimmer > 0))
     {
         shadow = lightLoopContext.shadowValue;
+        shadow = min(shadow, lightLoopContext.vxShadowValue); //seongdae;vxsm
 
     #ifdef SHADOWS_SHADOWMASK
         // TODO: Optimize this code! Currently it is a bit like brute force to get the last transistion and fade to shadow mask, but there is
@@ -185,6 +210,12 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
 
         shadow = lerp(shadowMask, shadow, light.shadowDimmer);
     }
+    //seongdae;vxsm
+    else if (light.shadowDimmer > 0)
+    {
+        shadow = lerp(shadowMask, lightLoopContext.vxShadowValue, light.shadowDimmer);
+    }
+    //seongdae;vxsm
 
     // Transparents have no contact shadow information
 #ifndef _SURFACE_TYPE_TRANSPARENT

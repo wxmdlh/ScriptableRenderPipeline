@@ -38,7 +38,8 @@ half4       _MainLightShadowOffset0;
 half4       _MainLightShadowOffset1;
 half4       _MainLightShadowOffset2;
 half4       _MainLightShadowOffset3;
-half4       _MainLightShadowData;    // (x: shadowStrength)
+//half4       _MainLightShadowData;    // (x: shadowStrength) //seongdae;vxsm;origin
+float4      _MainLightShadowData;    // (x: shadowStrength) //seongdae;vxsm
 float4      _MainLightShadowmapSize; // (xy: 1/width and 1/height, zw: width and height)
 CBUFFER_END
 

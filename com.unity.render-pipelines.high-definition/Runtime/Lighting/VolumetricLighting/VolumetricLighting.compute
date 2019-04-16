@@ -45,6 +45,7 @@
 
 #define GROUP_SIZE_1D                      8
 #define SUPPORT_LOCAL_LIGHTS               1 // Local lights contribute to fog lighting
+#define SUPPORT_VX_SHADOWING               1 // Apply VxShadows to lights //seongdae;vxsm
 
 // All shadow bias code is completely broken in volumetrics. Disable it.
 #define SHADOW_USE_ONLY_VIEW_BASED_BIASING 1
@@ -177,10 +178,12 @@ VoxelLighting EvaluateVoxelLightingDirectional(LightLoopContext context, uint fe
 
         // Pass the light direction as the normal to avoid issues with shadow biasing code.
         context.shadowValue = EvaluateRuntimeSunShadow(context, posInput, light, -light.forward);
+        context.vxShadowValue = EvaluateRuntimeSunVxShadow(context, posInput, light); //seongdae;vxsm
     }
     else
     {
         context.shadowValue = 1;
+        context.vxShadowValue = 1; //seongdae;vxsm
     }
 
     for (uint i = 0; i < _DirectionalLightCount; ++i)

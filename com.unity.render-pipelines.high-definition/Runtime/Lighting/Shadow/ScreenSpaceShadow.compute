@@ -2,6 +2,15 @@
 #pragma kernel DeferredContactShadow                DEFERRED_CONTACT_SHADOW_GENERIC=DeferredContactShadow
 #pragma kernel DeferredContactShadowMSAA            DEFERRED_CONTACT_SHADOW_GENERIC=DeferredContactShadowMSAA         ENABLE_MSAA
 
+//seongdae;vxsm
+#pragma kernel DeferredVxShadowNearest              DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowNearest                NEAREST_SAMPLE
+#pragma kernel DeferredVxShadowBilinear             DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowBilinear               BILINEAR_SAMPLE
+#pragma kernel DeferredVxShadowTrilinear            DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowTrilinear              TRILINEAR_SAMPLE
+#pragma kernel DeferredVxShadowNearestMSAA          DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowNearestMSAA            NEAREST_SAMPLE   ENABLE_MSAA
+#pragma kernel DeferredVxShadowBilinearMSAA         DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowBilinearMSAA           BILINEAR_SAMPLE  ENABLE_MSAA
+#pragma kernel DeferredVxShadowTrilinearMSAA        DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowTrilinearMSAA          TRILINEAR_SAMPLE ENABLE_MSAA
+//seongdae;vxsm
+
 #ifdef SHADER_API_PSSL
 #   pragma argument( scheduler=minpressure ) // instruct the shader compiler to prefer minimizing vgpr usage
 #endif
@@ -9,6 +18,7 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/NormalBuffer.hlsl"
+#include "Packages/com.unity.voxelized-shadows/ShaderLibrary/Common.hlsl" //seongdae;vxsm
 
 #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
@@ -182,3 +192,134 @@ void DEFERRED_CONTACT_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uin
 
     _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = 1.0f - contactShadow;
 }
+
+//seongdae;vxsm
+[numthreads(DEFERRED_SHADOW_TILE_SIZE, DEFERRED_SHADOW_TILE_SIZE, 1)]
+void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
+{
+    uint2 pixelCoord = groupId * DEFERRED_SHADOW_TILE_SIZE + groupThreadId;
+    pixelCoord.x = pixelCoord.x + (unity_StereoEyeIndex * _ScreenSize.x);
+    uint2 tileCoord = groupId;
+
+#ifdef ENABLE_MSAA
+    float depth = LOAD_TEXTURE2D_X(_CameraDepthValues, pixelCoord.xy).z;
+#else
+    float depth = LoadCameraDepth(pixelCoord.xy);
+#endif
+
+    if (depth == UNITY_RAW_FAR_CLIP_VALUE)
+        return;
+
+    PositionInputs posInput = GetPositionInput_Stereo(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_V, tileCoord, unity_StereoEyeIndex);
+    float3 positionWS = posInput.positionWS + _WorldSpaceCameraPos;
+
+    NormalData normalData;
+    DecodeFromNormalBuffer(posInput.positionSS, normalData);
+
+    uint begin = 0;
+
+    float volumeScale = asfloat(_VxShadowMapsBuffer[begin + 1]);
+    uint dagScale = _VxShadowMapsBuffer[begin + 2];
+    float4x4 worldToShadowMatrix =
+    {
+        asfloat(_VxShadowMapsBuffer[begin +  3]),
+        asfloat(_VxShadowMapsBuffer[begin +  4]),
+        asfloat(_VxShadowMapsBuffer[begin +  5]),
+        asfloat(_VxShadowMapsBuffer[begin +  6]),
+
+        asfloat(_VxShadowMapsBuffer[begin +  7]),
+        asfloat(_VxShadowMapsBuffer[begin +  8]),
+        asfloat(_VxShadowMapsBuffer[begin +  9]),
+        asfloat(_VxShadowMapsBuffer[begin + 10]),
+
+        asfloat(_VxShadowMapsBuffer[begin + 11]),
+        asfloat(_VxShadowMapsBuffer[begin + 12]),
+        asfloat(_VxShadowMapsBuffer[begin + 13]),
+        asfloat(_VxShadowMapsBuffer[begin + 14]),
+
+        0.0, 0.0, 0.0, 1.0,
+    };
+
+    uint voxelResolution = 1 << dagScale;
+    float normalBias = 2.0 * (volumeScale / voxelResolution);
+
+    positionWS += (normalData.normalWS * normalBias);
+
+    float3 posNDC = mul(worldToShadowMatrix, float4(positionWS, 1.0)).xyz;
+    float3 posP = posNDC * (float)voxelResolution;
+    float3 posF = floor(posP);
+    float3 lerpWeight = posP - posF;
+
+    uint3 posQ = (uint3)posP;
+
+    if (any(posQ >= (voxelResolution.xxx - 1)))
+    {
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = 0.0;
+        return;
+    }
+
+    float attenuation = 1.0;
+
+#if NEAREST_SAMPLE
+    uint4 result;
+    TraverseVxShadowMapPosQ(begin, OFFSET_DIR, posQ, result);
+
+    if (result.w == 0)
+    {
+        attenuation = result.y ? 0.0 : 1.0;
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = attenuation;
+        return;
+    }
+
+    attenuation = TraverseNearestSampleVxShadowMap(begin, OFFSET_DIR, posQ, result);
+#elif BILINEAR_SAMPLE
+    uint4 results[4];
+    TraverseVxShadowMapPosQ2x2(begin, OFFSET_DIR, posQ, results);
+
+    if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0)
+    {
+        float4 attenuation4 = float4(
+            results[0].y ? 0.0 : 1.0,
+            results[1].y ? 0.0 : 1.0,
+            results[2].y ? 0.0 : 1.0,
+            results[3].y ? 0.0 : 1.0);
+        attenuation4.xy = lerp(attenuation4.xz, attenuation4.yw, lerpWeight.x);
+
+        attenuation = lerp(attenuation4.x, attenuation4.y, lerpWeight.y);
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = attenuation;
+        return;
+    }
+
+    attenuation = TraverseBilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight.xy);
+#elif TRILINEAR_SAMPLE
+    uint4 results[8];
+    TraverseVxShadowMapPosQ2x2x2(begin, OFFSET_DIR, posQ, results);
+
+    if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0 &&
+        results[4].w == 0 && results[5].w == 0 && results[6].w == 0 && results[7].w == 0)
+    {
+        float4 attenuation4_0 = float4(
+            results[0].y ? 0.0 : 1.0,
+            results[2].y ? 0.0 : 1.0,
+            results[4].y ? 0.0 : 1.0,
+            results[6].y ? 0.0 : 1.0);
+        float4 attenuation4_1 = float4(
+            results[1].y ? 0.0 : 1.0,
+            results[3].y ? 0.0 : 1.0,
+            results[5].y ? 0.0 : 1.0,
+            results[7].y ? 0.0 : 1.0);
+
+        attenuation4_0 = lerp(attenuation4_0, attenuation4_1, lerpWeight.x);
+        attenuation4_0.xy = lerp(attenuation4_0.xz, attenuation4_0.yw, lerpWeight.y);
+
+        attenuation = lerp(attenuation4_0.x, attenuation4_0.y, lerpWeight.z);
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = attenuation;
+        return;
+    }
+
+    attenuation = TravereTrilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight);
+#endif
+
+    _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = 1.0 - attenuation;
+}
+//seongdae;vxsm

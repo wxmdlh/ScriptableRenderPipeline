@@ -164,6 +164,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             FrameSettings defaultFrameSettings = GetDefaultFrameSettingsFor(owner);
             var area = OverridableFrameSettingsArea.GetGroupContent(1, defaultFrameSettings, serialized);
             area.AmmendInfo(FrameSettingsField.ShadowMask, overrideable: () => hdrpSettings.supportShadowMask);
+            area.AmmendInfo(FrameSettingsField.VxShadows, overrideable: () => hdrpSettings.supportVxShadows); //seongdae;vxsm
             area.AmmendInfo(FrameSettingsField.SSR, overrideable: () => hdrpSettings.supportSSR);
             area.AmmendInfo(FrameSettingsField.SSAO, overrideable: () => hdrpSettings.supportSSAO);
             area.AmmendInfo(FrameSettingsField.SubsurfaceScattering, overrideable: () => hdrpSettings.supportSubsurfaceScattering);

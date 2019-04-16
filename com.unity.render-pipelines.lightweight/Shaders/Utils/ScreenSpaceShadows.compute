@@ -1,0 +1,198 @@
+
+#pragma kernel BlendDynamicShadowsNearest   CSMain=BlendDynamicShadowsNearest   WITH_DYNAMIC_SHADOWS NEAREST_SAMPLE
+#pragma kernel BlendDynamicShadowsBilinear  CSMain=BlendDynamicShadowsBilinear  WITH_DYNAMIC_SHADOWS BILINEAR_SAMPLE
+#pragma kernel BlendDynamicShadowsTrilinear CSMain=BlendDynamicShadowsTrilinear WITH_DYNAMIC_SHADOWS TRILINEAR_SAMPLE
+
+#pragma kernel NoBlendNearest               CSMain=NoBlendNearest               NEAREST_SAMPLE
+#pragma kernel NoBlendBilinear              CSMain=NoBlendBilinear              BILINEAR_SAMPLE
+#pragma kernel NoBlendTrilinear             CSMain=NoBlendTrilinear             TRILINEAR_SAMPLE
+
+#define TILE_SIZE 8
+
+#define _SHADOWS_ENABLED
+#define _MAIN_LIGHT_SHADOWS_CASCADE
+
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
+#include "Packages/com.unity.render-pipelines.lightweight/ShaderLibrary/Input.hlsl"
+#include "Packages/com.unity.render-pipelines.lightweight/ShaderLibrary/Shadows.hlsl"
+#include "Packages/com.unity.voxelized-shadows/ShaderLibrary/Common.hlsl"
+
+#ifdef UNITY_MATRIX_I_VP
+#undef UNITY_MATRIX_I_VP
+#endif
+
+
+#define UNITY_MATRIX_I_VP _InvViewProjMatrix
+
+#if defined(UNITY_STEREO_INSTANCING_ENABLED) || defined(UNITY_STEREO_MULTIVIEW_ENABLED)
+TEXTURE2D_ARRAY_FLOAT(_CameraDepthTexture);
+#else
+TEXTURE2D_FLOAT(_CameraDepthTexture);
+#endif
+
+SAMPLER(sampler_CameraDepthTexture);
+
+CBUFFER_START(_DirectionalVxShadowMap)
+int _VoxelZBias;
+float _VoxelUpBias;
+CBUFFER_END
+
+RW_TEXTURE2D(half, _ScreenSpaceShadowOutput);
+
+[numthreads(TILE_SIZE, TILE_SIZE, 1)]
+void CSMain(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
+{
+    uint2 pixelCoord = groupId * TILE_SIZE + groupThreadId;
+    uint2 tileCoord = groupId;
+
+    if (any(pixelCoord.xy >= (uint2)_ScreenSize.xy))
+        return;
+
+    float depth = LOAD_TEXTURE2D(_CameraDepthTexture, pixelCoord).x;
+
+    if (depth == UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        _ScreenSpaceShadowOutput[pixelCoord] = 1.0;
+        return;
+    }
+
+    // if depth is not reversed
+#if !UNITY_REVERSED_Z
+    // todo : find the way to work on OpenGLES 3.1+ on mobile
+    //depth = depth * 2.0 - 1.0; OpenGLCore
+#endif
+
+    PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, tileCoord);
+    float3 positionWS = ComputeWorldSpacePosition(posInput.positionNDC, depth, UNITY_MATRIX_I_VP);
+
+    float shadowStrength = GetMainLightShadowStrength();
+    float attenuation = 1.0;
+
+#if WITH_DYNAMIC_SHADOWS
+    float4 shadowMapCoords = TransformWorldToShadowCoord(positionWS);
+
+    ShadowSamplingData shadowSamplingData = GetMainLightShadowSamplingData();
+    attenuation = SampleShadowmap(shadowMapCoords, TEXTURE2D_ARGS(_MainLightShadowmapTexture, sampler_MainLightShadowmapTexture), shadowSamplingData, 1.0, false);
+
+    if (attenuation == 0.0)
+    {
+        attenuation = LerpWhiteTo(attenuation, shadowStrength);
+        _ScreenSpaceShadowOutput[pixelCoord] = attenuation;
+        return;
+    }
+#endif
+    uint begin = 0;
+
+    float volumeScale = asfloat(_VxShadowMapsBuffer[begin + 1]);
+    uint dagScale = _VxShadowMapsBuffer[begin + 2];
+    float4x4 worldToShadowMatrix =
+    {
+        asfloat(_VxShadowMapsBuffer[begin +  3]),
+        asfloat(_VxShadowMapsBuffer[begin +  4]),
+        asfloat(_VxShadowMapsBuffer[begin +  5]),
+        asfloat(_VxShadowMapsBuffer[begin +  6]),
+
+        asfloat(_VxShadowMapsBuffer[begin +  7]),
+        asfloat(_VxShadowMapsBuffer[begin +  8]),
+        asfloat(_VxShadowMapsBuffer[begin +  9]),
+        asfloat(_VxShadowMapsBuffer[begin + 10]),
+
+        asfloat(_VxShadowMapsBuffer[begin + 11]),
+        asfloat(_VxShadowMapsBuffer[begin + 12]),
+        asfloat(_VxShadowMapsBuffer[begin + 13]),
+        asfloat(_VxShadowMapsBuffer[begin + 14]),
+
+        0.0, 0.0, 0.0, 1.0,
+    };
+
+    uint voxelResolution = 1 << dagScale;
+    float bias = (volumeScale / voxelResolution);
+
+    positionWS.y += bias;
+
+    float3 posNDC = mul(worldToShadowMatrix, float4(positionWS, 1.0)).xyz;
+    float3 posP = posNDC * (float)voxelResolution;
+    float3 posF = floor(posP);
+    float3 lerpWeight = posP - posF;
+
+    uint3 posQ = (uint3)posP;
+    posQ.z -= 2;
+
+    if (any(posQ >= (voxelResolution.xxx - 1)))
+    {
+        attenuation = LerpWhiteTo(attenuation, shadowStrength);
+        _ScreenSpaceShadowOutput[pixelCoord] = attenuation;
+        return;
+    }
+
+#if NEAREST_SAMPLE
+    uint4 result;
+    TraverseVxShadowMapPosQ(begin, OFFSET_DIR, posQ, result);
+
+    if (result.w == 0)
+    {
+        attenuation = result.y ? attenuation : 0.0;
+        attenuation = LerpWhiteTo(attenuation, shadowStrength);
+        _ScreenSpaceShadowOutput[pixelCoord] = attenuation;
+        return;
+    }
+
+    float attenuationVxsm = TraverseNearestSampleVxShadowMap(begin, OFFSET_DIR, posQ, result);
+    attenuation = min(attenuation, attenuationVxsm);
+#elif BILINEAR_SAMPLE
+    uint4 results[4];
+    TraverseVxShadowMapPosQ2x2(begin, OFFSET_DIR, posQ, results);
+
+    if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0)
+    {
+        float4 attenuation4 = float4(
+            results[0].y ? attenuation : 0.0,
+            results[1].y ? attenuation : 0.0,
+            results[2].y ? attenuation : 0.0,
+            results[3].y ? attenuation : 0.0);
+        attenuation4.xy = lerp(attenuation4.xz, attenuation4.yw, lerpWeight.x);
+
+        attenuation = lerp(attenuation4.x, attenuation4.y, lerpWeight.y);
+        attenuation = LerpWhiteTo(attenuation, shadowStrength);
+        _ScreenSpaceShadowOutput[pixelCoord] = attenuation;
+        return;
+    }
+
+    float attenuationVxsm = TraverseBilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight.xy);
+    attenuation = min(attenuation, attenuationVxsm);
+#elif TRILINEAR_SAMPLE
+    uint4 results[8];
+    TraverseVxShadowMapPosQ2x2x2(begin, OFFSET_DIR, posQ, results);
+
+    if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0 &&
+        results[4].w == 0 && results[5].w == 0 && results[6].w == 0 && results[7].w == 0)
+    {
+        float4 attenuation4_0 = float4(
+            results[0].y ? attenuation : 0.0,
+            results[2].y ? attenuation : 0.0,
+            results[4].y ? attenuation : 0.0,
+            results[6].y ? attenuation : 0.0);
+        float4 attenuation4_1 = float4(
+            results[1].y ? attenuation : 0.0,
+            results[3].y ? attenuation : 0.0,
+            results[5].y ? attenuation : 0.0,
+            results[7].y ? attenuation : 0.0);
+
+        attenuation4_0    = lerp(attenuation4_0, attenuation4_1, lerpWeight.x);
+        attenuation4_0.xy = lerp(attenuation4_0.xz, attenuation4_0.yw, lerpWeight.y);
+
+        attenuation = lerp(attenuation4_0.x, attenuation4_0.y, lerpWeight.z);
+        attenuation = LerpWhiteTo(attenuation, shadowStrength);
+        _ScreenSpaceShadowOutput[pixelCoord] = attenuation;
+        return;
+    }
+
+    float attenuationVxsm = TravereTrilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight);
+    attenuation = min(attenuation, attenuationVxsm);
+#endif
+
+    attenuation = LerpWhiteTo(attenuation, shadowStrength);
+    _ScreenSpaceShadowOutput[pixelCoord] = attenuation;
+}

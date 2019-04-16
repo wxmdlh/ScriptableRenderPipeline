@@ -7,6 +7,7 @@ using UnityEditor.Rendering.LWRP;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.Experimental.GlobalIllumination;
 using Lightmapping = UnityEngine.Experimental.GlobalIllumination.Lightmapping;
+using UnityEngine.Experimental.VoxelizedShadows; //seongdae;vxsm
 
 namespace UnityEngine.Rendering.LWRP
 {
@@ -85,6 +86,7 @@ namespace UnityEngine.Rendering.LWRP
             Lightmapping.SetDelegate(lightsDelegate);
 
             CameraCaptureBridge.enabled = true;
+            VxShadowMapsManager.instance.Build(); //seongdae;vxsm
         }
 
         protected override void Dispose(bool disposing)
@@ -99,6 +101,7 @@ namespace UnityEngine.Rendering.LWRP
 
             Lightmapping.ResetDelegate();
             CameraCaptureBridge.enabled = false;
+            VxShadowMapsManager.instance.Cleanup(); //seongdae;vxsm
         }
 
         protected override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
@@ -328,10 +331,20 @@ namespace UnityEngine.Rendering.LWRP
             // Until we can have keyword stripping forcing single cascade hard shadows on gles2
             bool supportsScreenSpaceShadows = SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
 
+            //seongdae;vxsm
+            // compute shader for screen space shadows.
+            // todo : need to fix retransform for world space in screen space on OpenGLES3.1
+            bool supportsComputeScreenSpaceShadows =
+                SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2 &&
+                SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES3;
+            //seongdae;vxsm
+
             shadowData.supportsMainLightShadows = settings.supportsMainLightShadows && mainLightCastShadows;
+            shadowData.supportsMainLightVxShadows = settings.supportsVxShadows && mainLightCastShadows; //seongdae;vxsm
 
             // we resolve shadows in screenspace when cascades are enabled to save ALU as computing cascade index + shadowCoord on fragment is expensive
             shadowData.requiresScreenSpaceShadowResolve = shadowData.supportsMainLightShadows && supportsScreenSpaceShadows && settings.shadowCascadeOption != ShadowCascadesOption.NoCascades;
+            shadowData.requiresScreenSpaceShadowCompute = shadowData.supportsMainLightVxShadows && supportsComputeScreenSpaceShadows; //seongdae;vxsm
 
             int shadowCascadesCount;
             switch (settings.shadowCascadeOption)
@@ -367,6 +380,25 @@ namespace UnityEngine.Rendering.LWRP
                     shadowData.mainLightShadowCascadesSplit = settings.cascade4Split;
                     break;
             }
+
+            //seongdae;vxsm
+            if (shadowData.supportsMainLightShadows && settings.supportsVxShadows)
+            {
+                int mainLightIndex = GetMainLightIndex(settings, visibleLights);
+                var mainLight = visibleLights[mainLightIndex].light;
+                var dirVxShadowMap = mainLight.GetComponent<DirectionalVxShadowMap>();
+
+                bool dirVxShadowMapIsValid = dirVxShadowMap != null && dirVxShadowMap.IsValid();
+
+                shadowData.requiresScreenSpaceShadowCompute = dirVxShadowMapIsValid;
+                shadowData.mainLightVxShadowQuality = (int)settings.vxShadowsQuality;
+            }
+            else
+            {
+                shadowData.requiresScreenSpaceShadowCompute = false;
+                shadowData.mainLightVxShadowQuality = 0;
+            }
+            //seongdae;vxsm
 
             shadowData.supportsAdditionalLightShadows = settings.supportsAdditionalLightShadows && additionalLightsCastShadows;
             shadowData.additionalLightsShadowmapWidth = shadowData.additionalLightsShadowmapHeight = settings.additionalLightsShadowmapResolution;

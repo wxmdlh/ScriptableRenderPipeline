@@ -8,6 +8,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty root;
 
         public SerializedProperty supportShadowMask;
+        public SerializedProperty supportVxShadows; //seongdae;vxsm
         public SerializedProperty supportSSR;
         public SerializedProperty supportSSAO;
         public SerializedProperty supportSubsurfaceScattering;
@@ -45,6 +46,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             this.root = root;
 
             supportShadowMask               = root.Find((RenderPipelineSettings s) => s.supportShadowMask);
+            supportVxShadows                = root.Find((RenderPipelineSettings s) => s.supportVxShadows); //seongdae;vxsm
             supportSSR                      = root.Find((RenderPipelineSettings s) => s.supportSSR);
             supportSSAO                     = root.Find((RenderPipelineSettings s) => s.supportSSAO);
             supportSubsurfaceScattering     = root.Find((RenderPipelineSettings s) => s.supportSubsurfaceScattering);

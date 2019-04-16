@@ -32,8 +32,11 @@
     TEXTURECUBE_ARRAY_ABSTRACT(_EnvCubemapTextures);
     TEXTURE2D_ARRAY(_Env2DTextures);
 
-    // Contact shadows
-    TEXTURE2D_X(_DeferredShadowTexture);
+    //// Contact shadows //seongdae;vxsm;origin
+    //TEXTURE2D_X(_DeferredShadowTexture); //seongdae;vxsm;origin
+    // Contact shadows and Vx shadows //seongdae;vxsm
+    TEXTURE2D_X(_DeferredContactShadowTexture); //seongdae;vxsm
+    TEXTURE2D_X(_DeferredVxShadowTexture); //seongdae;vxsm
 
 #if SHADEROPTIONS_RAYTRACING
     // Area shadow paper texture

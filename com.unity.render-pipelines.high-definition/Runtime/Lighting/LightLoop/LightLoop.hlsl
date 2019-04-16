@@ -77,6 +77,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
 
     context.shadowContext    = InitShadowContext();
     context.contactShadow    = InitContactShadow(posInput);
+    context.vxShadowValue    = InitVxShadow(posInput); //seongdae;vxsm
     context.shadowValue      = 1;
     context.sampleReflection = 0;
 

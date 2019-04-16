@@ -11,6 +11,7 @@ struct LightLoopContext
     HDShadowContext shadowContext;
     
     float contactShadow; // Currently we support only one contact shadow per view
+    float vxShadowValue; //seongdae;vxsm Stores the value of the voxelized shadow map
     float shadowValue; // Stores the value of the cascade shadow map
 };
 
@@ -303,10 +304,23 @@ float InitContactShadow(PositionInputs posInput)
     // Note: When we ImageLoad outside of texture size, the value returned by Load is 0 (Note: On Metal maybe it clamp to value of texture which is also fine)
     // We use this property to have a neutral value for contact shadows that doesn't consume a sampler and work also with compute shader (i.e use ImageLoad)
     // We store inverse contact shadow so neutral is white. So either we sample inside or outside the texture it return 1 in case of neutral
-    return 1.0 - LOAD_TEXTURE2D_X(_DeferredShadowTexture, posInput.positionSS).x;
+    //return 1.0 - LOAD_TEXTURE2D_X(_DeferredShadowTexture, posInput.positionSS).x; //seongdae;vxsm;origin
+    return 1.0 - LOAD_TEXTURE2D_X(_DeferredContactShadowTexture, posInput.positionSS).x; //seongdae;vxsm
 }
 
 float GetContactShadow(LightLoopContext lightLoopContext, int contactShadowIndex)
 {
     return contactShadowIndex >= 0 ? lightLoopContext.contactShadow : 1.0;
 }
+
+//seongdae;vxsm
+float InitVxShadow(PositionInputs posInput)
+{
+    return 1.0 - LOAD_TEXTURE2D_X(_DeferredVxShadowTexture, posInput.positionSS).x;
+}
+
+float GetVxShadow(LightLoopContext lightLoopContext)
+{
+    return lightLoopContext.vxShadowValue;
+}
+//seongdae;vxsm

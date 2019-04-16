@@ -1,0 +1,16 @@
+{
+    "name": "Unity.VoxelizedShadows.Editor",
+    "references": [
+        "Unity.VoxelizedShadows.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

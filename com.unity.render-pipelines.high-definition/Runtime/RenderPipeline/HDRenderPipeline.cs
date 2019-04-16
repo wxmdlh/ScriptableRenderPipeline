@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using UnityEngine.Experimental.GlobalIllumination;
+using UnityEngine.Experimental.VoxelizedShadows; //seongdae;vxsm
 using UnityEngine;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
@@ -108,7 +109,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         RTHandleSystem.RTHandle m_CameraColorBuffer;
         RTHandleSystem.RTHandle m_CameraSssDiffuseLightingBuffer;
 
-        RTHandleSystem.RTHandle m_ScreenSpaceShadowsBuffer;
+        //RTHandleSystem.RTHandle m_ScreenSpaceShadowsBuffer; //seongdae;vxsm;origin
+        RTHandleSystem.RTHandle m_ScreenSpaceContactShadowsBuffer; //seongdae;vxsm
+        RTHandleSystem.RTHandle m_ScreenSpaceVxShadowsBuffer; //seongdae;vxsm
         RTHandleSystem.RTHandle m_DistortionBuffer;
 
         RTHandleSystem.RTHandle m_LowResTransparentBuffer;
@@ -294,6 +297,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_GbufferManager = new GBufferManager(asset, m_DeferredMaterial);
             m_DbufferManager = new DBufferManager();
 
+            VxShadowMapsManager.instance.Build(); //seongdae;vxsm
+
             m_SSSBufferManager.Build(asset);
             m_SharedRTManager.Build(asset);
             m_PostProcessSystem = new PostProcessSystem(asset);
@@ -450,9 +455,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // TODO: For MSAA, we'll need to add a Draw path in order to support MSAA properly
             // Use RG16 as we only have one deferred directional and one screen space shadow light currently
-            m_ScreenSpaceShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R16_UNorm, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceShadowsBuffer");
+            //m_ScreenSpaceShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R16_UNorm, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceShadowsBuffer"); //seongdae;vxsm;origin
+            m_ScreenSpaceContactShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R16_UNorm, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceContactShadowsBuffer"); //seongdae;vxsm
+            m_ScreenSpaceVxShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R16_UNorm, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceVxShadowsBuffer"); //seongdae;vxsm
 
-            if(m_Asset.currentPlatformRenderPipelineSettings.lowresTransparentSettings.enabled)
+            if (m_Asset.currentPlatformRenderPipelineSettings.lowresTransparentSettings.enabled)
             {
                 // We need R16G16B16A16_SFloat as we need a proper alpha channel for compositing. 
                 m_LowResTransparentBuffer = RTHandles.Alloc(Vector2.one * 0.5f, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "Low res transparent");
@@ -490,7 +497,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RTHandles.Release(m_CameraSssDiffuseLightingBuffer);
 
             RTHandles.Release(m_DistortionBuffer);
-            RTHandles.Release(m_ScreenSpaceShadowsBuffer);
+            //RTHandles.Release(m_ScreenSpaceShadowsBuffer); //seongdae;vxsm;origin
+            RTHandles.Release(m_ScreenSpaceContactShadowsBuffer); //seongdae;vxsm
+            RTHandles.Release(m_ScreenSpaceVxShadowsBuffer); //seongdae;vxsm
 
             RTHandles.Release(m_LowResTransparentBuffer);
 
@@ -735,6 +744,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.Destroy(m_DownsampleDepthMaterial);
             CoreUtils.Destroy(m_UpsampleTransparency);
 
+            VxShadowMapsManager.instance.Cleanup(); //seongdae;vxsm
             m_SSSBufferManager.Cleanup();
             m_SharedRTManager.Cleanup();
             m_SkyManager.Cleanup();
@@ -1687,8 +1697,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // When debug is enabled we need to clear otherwise we may see non-shadows areas with stale values.
                 if (hdCamera.frameSettings.IsEnabled(FrameSettingsField.ContactShadows) && m_CurrentDebugDisplaySettings.data.fullScreenDebugMode == FullScreenDebugMode.ContactShadows)
                 {
-                    HDUtils.SetRenderTarget(cmd, hdCamera, m_ScreenSpaceShadowsBuffer, ClearFlag.Color, Color.clear);
+                    //HDUtils.SetRenderTarget(cmd, hdCamera, m_ScreenSpaceShadowsBuffer, ClearFlag.Color, Color.clear); //seongdae;vxsm;origin
+                    HDUtils.SetRenderTarget(cmd, hdCamera, m_ScreenSpaceContactShadowsBuffer, ClearFlag.Color, Color.clear); //seongdae;vxsm
                 }
+                //seongdae;vxsm
+                // todo : seongdae
+                //if (hdCamera.frameSettings.IsEnabled(FrameSettingsField.VxShadows) && m_CurrentDebugDisplaySettings.data.fullScreenDebugMode == FullScreenDebugMode.VxShadows)
+                if (false)
+                {
+                    HDUtils.SetRenderTarget(cmd, hdCamera, m_ScreenSpaceVxShadowsBuffer, ClearFlag.Color, Color.clear);
+                }
+                //seongdae;vxsm
 
 #if ENABLE_RAYTRACING
                 // Update the light clusters that we need to update
@@ -1720,14 +1739,29 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 if (!hdCamera.frameSettings.ContactShadowsRunAsync())
                 {
-                    HDUtils.CheckRTCreated(m_ScreenSpaceShadowsBuffer);
+                    //HDUtils.CheckRTCreated(m_ScreenSpaceShadowsBuffer); //seongdae;vxsm;origin
+                    HDUtils.CheckRTCreated(m_ScreenSpaceContactShadowsBuffer); //seongdae;vxsm
 
                     int firstMipOffsetY = m_SharedRTManager.GetDepthBufferMipChainInfo().mipLevelOffsets[1].y;
-                    m_LightLoop.RenderScreenSpaceShadows(hdCamera, m_ScreenSpaceShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, cmd);
-                    m_LightLoop.SetScreenSpaceShadowsTexture(hdCamera, m_ScreenSpaceShadowsBuffer, cmd);
+                    //m_LightLoop.RenderScreenSpaceShadows(hdCamera, m_ScreenSpaceShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, cmd); //seongdae;vxsm;origin
+                    //m_LightLoop.SetScreenSpaceShadowsTexture(hdCamera, m_ScreenSpaceShadowsBuffer, cmd); //seongdae;vxsm;origin
+                    m_LightLoop.RenderScreenContactSpaceShadows(hdCamera, m_ScreenSpaceContactShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, cmd); //seongdae;vxsm
+                    m_LightLoop.SetScreenSpaceContactShadowsTexture(hdCamera, m_ScreenSpaceContactShadowsBuffer, cmd); //seongdae;vxsm
 
-                    PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceShadowsBuffer, FullScreenDebugMode.ContactShadows);
+                    //PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceShadowsBuffer, FullScreenDebugMode.ContactShadows); //seongdae;vxsm;origin
+                    PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceContactShadowsBuffer, FullScreenDebugMode.ContactShadows); //seongdae;vxsm
                 }
+                //seongdae;vxsm
+                if (!hdCamera.frameSettings.VxShadowsRunAsync())
+                {
+                    HDUtils.CheckRTCreated(m_ScreenSpaceVxShadowsBuffer);
+
+                    m_LightLoop.RenderScreenSpaceVxShadows(hdCamera, m_ScreenSpaceVxShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), cmd);
+                    m_LightLoop.SetScreenSpaceVxShadowsTexture(hdCamera, m_ScreenSpaceVxShadowsBuffer, cmd);
+
+                    PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceVxShadowsBuffer, FullScreenDebugMode.VxShadows);
+                }
+                //seongdae;vxsm
 
                 StopStereoRendering(cmd, renderContext, camera);
 
@@ -1736,7 +1770,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 var volumeVoxelizationTask = new HDGPUAsyncTask("Volumetric voxelization", ComputeQueueType.Background);
                 var SSRTask = new HDGPUAsyncTask("Screen Space Reflection", ComputeQueueType.Background);
                 var SSAOTask = new HDGPUAsyncTask("SSAO", ComputeQueueType.Background);
-                var contactShadowsTask = new HDGPUAsyncTask("Screen Space Shadows", ComputeQueueType.Background);
+                //var contactShadowsTask = new HDGPUAsyncTask("Screen Space Shadows", ComputeQueueType.Background); //seongdae;vxsm;origin
+                var contactShadowsTask = new HDGPUAsyncTask("Screen Space Contact Shadows", ComputeQueueType.Background); //seongdae;vxsm
+                var vxShadowsTask = new HDGPUAsyncTask("Screen Space Vx Shadows", ComputeQueueType.Background); //seongdae;vxsm
 
                 var haveAsyncTaskWithShadows = false;
                 if (hdCamera.frameSettings.BuildLightListRunsAsync())
@@ -1785,10 +1821,23 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     void Callback(CommandBuffer asyncCmd)
                     {
                         var firstMipOffsetY = m_SharedRTManager.GetDepthBufferMipChainInfo().mipLevelOffsets[1].y;
-                        m_LightLoop.RenderScreenSpaceShadows(hdCamera, m_ScreenSpaceShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, asyncCmd);
+                        //m_LightLoop.RenderScreenSpaceShadows(hdCamera, m_ScreenSpaceShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, asyncCmd); //seongdae;vxsm;origin
+                        m_LightLoop.RenderScreenContactSpaceShadows(hdCamera, m_ScreenSpaceContactShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, asyncCmd); //seongdae;vxsm
                     }
                 }
+                //seongdae;vxsm
+                if (hdCamera.frameSettings.VxShadowsRunAsync())
+                {
+                    vxShadowsTask.Start(cmd, renderContext, Callback, !haveAsyncTaskWithShadows);
 
+                    haveAsyncTaskWithShadows = true;
+
+                    void Callback(CommandBuffer asyncCmd)
+                    {
+                        m_LightLoop.RenderScreenSpaceVxShadows(hdCamera, m_ScreenSpaceVxShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), asyncCmd);
+                    }
+                }
+                //seongdae;vxsm
 
                 using (new ProfilingSample(cmd, "Render shadows", CustomSamplerId.RenderShadows.GetSampler()))
                 {
@@ -1852,10 +1901,24 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                     void Callback()
                     {
-                        m_LightLoop.SetScreenSpaceShadowsTexture(hdCamera, m_ScreenSpaceShadowsBuffer, cmd);
-                        PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceShadowsBuffer, FullScreenDebugMode.ContactShadows);
+                        //m_LightLoop.SetScreenSpaceShadowsTexture(hdCamera, m_ScreenSpaceShadowsBuffer, cmd); //seongdae;vxsm;origin
+                        //PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceShadowsBuffer, FullScreenDebugMode.ContactShadows); //seongdae;vxsm;origin
+                        m_LightLoop.SetScreenSpaceContactShadowsTexture(hdCamera, m_ScreenSpaceContactShadowsBuffer, cmd); //seongdae;vxsm
+                        PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceContactShadowsBuffer, FullScreenDebugMode.ContactShadows); //seongdae;vxsm
                     }
                 }
+                //seongdae;vxsm
+                if (hdCamera.frameSettings.VxShadowsRunAsync())
+                {
+                    vxShadowsTask.EndWithPostWork(cmd, Callback);
+
+                    void Callback()
+                    {
+                        m_LightLoop.SetScreenSpaceVxShadowsTexture(hdCamera, m_ScreenSpaceVxShadowsBuffer, cmd);
+                        PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceVxShadowsBuffer, FullScreenDebugMode.VxShadows);
+                    }
+                }
+                //seongdae;vxsm
 
                 if (hdCamera.frameSettings.SSRRunsAsync())
                 {

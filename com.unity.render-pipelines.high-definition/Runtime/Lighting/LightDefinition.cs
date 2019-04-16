@@ -80,6 +80,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public float   diffuseDimmer;
         public float   specularDimmer;
+        public int     vxShadowsValues;         // Used for VxShadows //seongdae;vxsm
     };
 
     [GenerateHLSL(PackingRules.Exact, false)]
@@ -128,6 +129,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public Vector2 size;                    // Used by area (X = length or width, Y = height) and punctual lights (X = radius)
         public float   diffuseDimmer;
         public float   specularDimmer;
+
+        public int     vxShadowsValues;         // Used for VxShadows //seongdae;vxsm
     };
 
 
