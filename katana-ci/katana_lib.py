@@ -105,7 +105,7 @@ def has_katana_finished(build_info, project):
 def get_build_status(build_number, project):
     #print(build_number)
     build_status_request = "%s/builders/%s/builds/%s?as_text=1" % (
-        katana_url, urllib.parse.quote(project), build_number)
+        katana_url, urllib.parse.quote(project), build_number[2:-1])
     build_status = utils.get_url_json(build_status_request)['builderName'][project]
     return build_status
 
@@ -155,7 +155,7 @@ def get_build_number(build_info):
         print("Failed to get build number from build request number:\n%s" % build_number_result.content)
         raise Exception
 
-    return build_number_result.content.strip()[2:-1]
+    return build_number_result.content.strip()
 
 
 def extract_project_from_web_url(url):
