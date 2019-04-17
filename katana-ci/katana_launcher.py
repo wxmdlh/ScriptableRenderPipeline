@@ -36,7 +36,7 @@ def main():
         "priority": "50" }
         #"gitlab_job_id": id }
 
-    project = 'proj57-Test%20PlayMode%20-%20Mac%20%28Intel%29'
+    project = 'proj57-Test PlayMode - Mac (Intel)'
     build_number = katana_lib.start_katana_build(project, properties)
 
     #if args.debug:
