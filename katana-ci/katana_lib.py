@@ -89,7 +89,7 @@ def start_katana_build(project, properties):
 
 def has_katana_finished(build_info, project):
     build_number = get_build_number(build_info)
-	print("has_katana_finished %s" % build_number)
+    print("has_katana_finished %s" % build_number)
 
     if build_number == "null":
         return False
