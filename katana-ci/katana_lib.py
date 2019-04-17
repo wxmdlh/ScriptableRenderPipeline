@@ -102,7 +102,7 @@ def has_katana_finished(build_info, project):
 def get_build_status(build_number, project):
     build_status_request = "%s?select=project&select=builders/%s/%s&as_json=1&steps=0" % (
         katana_url, urllib.parse.quote(project), build_number)
-    build_status = utils.get_url_json(build_status_request)['builders'][project]['builds'][build_number]
+    build_status = utils.get_url_json(build_status_request)[project][build_number]
     return build_status
 
 
