@@ -298,14 +298,16 @@ namespace UnityEditor.VFX.Test
             var vector3 = ScriptableObject.CreateInstance<VFXInlineOperator>();
             vector3.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
 
+            bool linkSucceed;
             if (linkSubSlotOnly)
             {
-                vector3.inputSlots[0][0].Link(sourceOfLink.outputSlots[0][0]);
+                linkSucceed = vector3.inputSlots[0][0].Link(sourceOfLink.outputSlots[0][0]);
             }
             else
             {
-                vector3.inputSlots[0].Link(sourceOfLink.outputSlots[0]);
+                linkSucceed = vector3.inputSlots[0].Link(sourceOfLink.outputSlots[0]);
             }
+            Assert.IsTrue(linkSucceed);
 
             var position = ScriptableObject.CreateInstance<VFXInlineOperator>();
             position.SetSettingValue("m_Type", (SerializableType)typeof(Position));
@@ -314,7 +316,7 @@ namespace UnityEditor.VFX.Test
 
             if (linkSubSlotOnly)
             {
-                Assert.IsTrue(position.inputSlots[0][0].HasLink());
+                Assert.IsTrue(position.inputSlots[0][0][0].HasLink());
             }
             else
             {
@@ -331,14 +333,16 @@ namespace UnityEditor.VFX.Test
             var position = ScriptableObject.CreateInstance<VFXInlineOperator>();
             position.SetSettingValue("m_Type", (SerializableType)typeof(Position));
 
+            bool linkSucceed;
             if (linkSubSlotOnly)
             {
-                position.inputSlots[0][0].Link(sourceOfLink.outputSlots[0][0]);
+                linkSucceed = position.inputSlots[0][0][0].Link(sourceOfLink.outputSlots[0][0]);
             }
             else
             {
-                position.inputSlots[0].Link(sourceOfLink.outputSlots[0]);
+                linkSucceed = position.inputSlots[0].Link(sourceOfLink.outputSlots[0]);
             }
+            Assert.IsTrue(linkSucceed);
 
             var vector3 = ScriptableObject.CreateInstance<VFXInlineOperator>();
             vector3.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
