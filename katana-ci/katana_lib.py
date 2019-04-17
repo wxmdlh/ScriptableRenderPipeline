@@ -155,7 +155,7 @@ def get_build_number(build_info):
         print("Failed to get build number from build request number:\n%s" % build_number_result.content)
         raise Exception
 
-    return build_number_result.content.strip()
+    return build_number_result.content.strip()[2:-1]
 
 
 def extract_project_from_web_url(url):
