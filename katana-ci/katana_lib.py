@@ -11,7 +11,7 @@ from enum import Enum
 import logger
 import utils
 
-katana_url = 'https://staging-katana.bf.unity3d.com/json/'
+katana_url = 'https://katana.bf.unity3d.com/json/'
 
 
 class KatanaResults(Enum):
@@ -61,7 +61,7 @@ def start_katana_build(project, properties):
         "owner": "GFX Foundation Yamato <sophia@unity3d.com>",
         "sources_stamps": [
     {     
-        "branch": "master",     
+        "branch": "yamato-master",     
         "repository": "ScriptableRenderLoop",     
         "revision": ""     
     },
