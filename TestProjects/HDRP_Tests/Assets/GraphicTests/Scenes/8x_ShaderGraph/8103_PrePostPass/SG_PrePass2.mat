@@ -28,6 +28,6 @@ Material:
     m_Floats:
     - Vector1_11C8AC02: 0.5
     - Vector1_D4C3882B: 0.25
-    - Vector1_FE430A52: 0.5
+    - Vector1_FE430A52: 0.75
     m_Colors:
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
