@@ -56,7 +56,7 @@ class TestResults(Enum):
 
 #proj57-Test%20PlayMode%20-%20Mac%20%28Intel%29
 def start_katana_build(project, properties):
-    url = katana_url + "builders/proj57-Test PlayMode - Mac (Intel)/start-build/"
+    url = katana_url + "builders/%s/start-build/" % urllib.parse.quote(project)
     request = {
         "owner": "GFX Foundation Yamato <sophia@unity3d.com>",
         "sources_stamps": [
@@ -89,7 +89,7 @@ def start_katana_build(project, properties):
 
 def has_katana_finished(build_info, project):
     build_number = get_build_number(build_info)
-    print("has_katana_finished %s" % build_number)
+    #print("has_katana_finished %s" % build_number)
 
     if build_number == "null":
         return False
@@ -103,8 +103,9 @@ def has_katana_finished(build_info, project):
 
 
 def get_build_status(build_number, project):
-    print(build_number)
-    build_status_request = "%s?select=project&select=builders/proj57-Test PlayMode - Mac (Intel)/%s&as_json=1&steps=0" % (katana_url, build_number)
+    #print(build_number)
+    build_status_request = "%s?select=project&select=builders/%s/%s&as_json=1&steps=0" % (
+        katana_url, urllib.parse.quote(project), build_number)
     build_status = utils.get_url_json(build_status_request)['builders'][project]['builds'][build_number]
     return build_status
 
