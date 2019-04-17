@@ -61,14 +61,14 @@ def start_katana_build(project, properties):
         "owner": "GFX Foundation Yamato <sophia@unity3d.com>",
         "sources_stamps": [
     {     
-        "branch": "yamato-master",     
-        "repository": "ScriptableRenderLoop",     
-        "revision": ""     
+        "branch": "yamato-master",
+        "repository": "ScriptableRenderLoop",
+        "revision": ""
     },
     {
         "branch": "master",
         "repository": "automation-tools",
-        "revision": ""     
+        "revision": ""
     },
     {
         "branch": "trunk",
@@ -106,7 +106,7 @@ def get_build_status(build_number, project):
     #print(build_number)
     build_status_request = "%s?select=project&select=builders/%s/%s&as_json=1&steps=0" % (
         katana_url, urllib.parse.quote(project), build_number)
-    build_status = utils.get_url_json(build_status_request)['builders'][project]['b'][build_number]
+    build_status = utils.get_url_json(build_status_request)
     return build_status
 
 
