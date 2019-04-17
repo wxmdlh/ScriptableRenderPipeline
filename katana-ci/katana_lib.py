@@ -92,6 +92,8 @@ def has_katana_finished(build_info, project):
 
     if build_number == "null":
         return False
+	elif build_number == "b'null'":
+	    return False
 
     build_status = get_build_status(build_number, project)
 
