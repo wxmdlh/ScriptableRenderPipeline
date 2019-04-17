@@ -1630,7 +1630,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // When debug is enabled we need to clear otherwise we may see non-shadows areas with stale values.
                 if (hdCamera.frameSettings.IsEnabled(FrameSettingsField.ContactShadows) && m_CurrentDebugDisplaySettings.data.fullScreenDebugMode == FullScreenDebugMode.ContactShadows)
                 {
-                    HDUtils.SetRenderTarget(cmd, m_ScreenSpaceShadowsBuffer, ClearFlag.Color, Color.clear);
+                    //HDUtils.SetRenderTarget(cmd, m_ScreenSpaceShadowsBuffer, ClearFlag.Color, Color.clear); //seongdae;vxsm;origin
+                    HDUtils.SetRenderTarget(cmd, m_ScreenSpaceContactShadowsBuffer, ClearFlag.Color, Color.clear); //seongdae;vxsm
+                }
+                //seongdae;vxsm
+                //if (hdCamera.frameSettings.IsEnabled(FrameSettingsField.VxShadows) && m_CurrentDebugDisplaySettings.data.fullScreenDebugMode == FullScreenDebugMode.VxShadows)
+                if (false)
+                {
+                    HDUtils.SetRenderTarget(cmd, m_ScreenSpaceVxShadowsBuffer, ClearFlag.Color, Color.clear);
                 }
                 //seongdae;vxsm
 
