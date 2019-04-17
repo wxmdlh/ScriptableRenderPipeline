@@ -2756,7 +2756,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public void SetScreenSpaceVxShadowsTexture(HDCamera hdCamera, RTHandleSystem.RTHandle deferredShadowRT, CommandBuffer cmd)
         {
             AdditionalShadowData sunShadowData = m_CurrentSunLight != null ? m_CurrentSunLight.GetComponent<AdditionalShadowData>() : null;
-            DirectionalVxShadowMap dirVxShadowMap = m_CurrentSunLight.GetComponent<DirectionalVxShadowMap>();
+            DirectionalVxShadowMap dirVxShadowMap = m_CurrentSunLight != null ? m_CurrentSunLight.GetComponent<DirectionalVxShadowMap>() : null;
 
             bool hasSunLight = m_CurrentSunLight != null && sunShadowData != null;
             bool hasSunVxShadow = dirVxShadowMap != null && dirVxShadowMap.IsValid();
@@ -2901,7 +2901,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public void RenderScreenSpaceVxShadows(HDCamera hdCamera, RTHandleSystem.RTHandle deferredShadowRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
         {
             AdditionalShadowData sunShadowData = m_CurrentSunLight != null ? m_CurrentSunLight.GetComponent<AdditionalShadowData>() : null;
-            DirectionalVxShadowMap dirVxShadowMap = m_CurrentSunLight.GetComponent<DirectionalVxShadowMap>();
+            DirectionalVxShadowMap dirVxShadowMap = m_CurrentSunLight != null ? m_CurrentSunLight.GetComponent<DirectionalVxShadowMap>() : null;
 
             bool hasSunLight = m_CurrentSunLight != null && sunShadowData != null;
             bool hasSunVxShadow = dirVxShadowMap != null && dirVxShadowMap.IsValid();
