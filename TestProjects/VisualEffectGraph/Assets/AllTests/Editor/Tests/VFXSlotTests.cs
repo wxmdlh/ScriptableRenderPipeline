@@ -246,6 +246,114 @@ namespace UnityEditor.VFX.Test
             var resultGroup = result.GroupBy(o => o.res);
             Assert.AreEqual(1, resultGroup.Count());
         }
+
+        [Test]
+        public void Slot_Copy_Value_Vector3_To_Position()
+        {
+            var vector3 = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            vector3.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
+
+            var position = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            position.SetSettingValue("m_Type", (SerializableType)typeof(Position));
+
+            var v3_Ref = new Vector3(1, 2, 3);
+            vector3.inputSlots[0].value = v3_Ref;
+
+            VFXSlot.CopyLinksAndValue(position.inputSlots[0], vector3.inputSlots[0], true);
+
+            var positionValue = (Position)position.inputSlots[0].value;
+
+            Assert.AreEqual(v3_Ref.x, positionValue.position.x);
+            Assert.AreEqual(v3_Ref.y, positionValue.position.y);
+            Assert.AreEqual(v3_Ref.y, positionValue.position.y);
+        }
+
+        [Test]
+        public void Slot_Copy_Value_Position_To_Vector3()
+        {
+            var vector3 = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            vector3.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
+
+            var position = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            position.SetSettingValue("m_Type", (SerializableType)typeof(Position));
+
+            var v3_Ref = new Vector3(1, 2, 3);
+            position.inputSlots[0].value = (Position)v3_Ref;
+
+            VFXSlot.CopyLinksAndValue(vector3.inputSlots[0], position.inputSlots[0], true);
+
+            var vector3Value = (Vector3)vector3.inputSlots[0].value;
+
+            Assert.AreEqual(v3_Ref.x, vector3Value.x);
+            Assert.AreEqual(v3_Ref.y, vector3Value.y);
+            Assert.AreEqual(v3_Ref.y, vector3Value.y);
+        }
+
+        [Test]
+        public void Slot_Copy_Link_Vector3_To_Position([ValueSource("linkSubSlotOnly")] bool linkSubSlotOnly)
+        {
+            var sourceOfLink = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            sourceOfLink.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
+
+            var vector3 = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            vector3.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
+
+            if (linkSubSlotOnly)
+            {
+                vector3.inputSlots[0][0].Link(sourceOfLink.outputSlots[0][0]);
+            }
+            else
+            {
+                vector3.inputSlots[0].Link(sourceOfLink.outputSlots[0]);
+            }
+
+            var position = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            position.SetSettingValue("m_Type", (SerializableType)typeof(Position));
+
+            VFXSlot.CopyLinksAndValue(position.inputSlots[0], vector3.inputSlots[0], true);
+
+            if (linkSubSlotOnly)
+            {
+                Assert.IsTrue(position.inputSlots[0][0].HasLink());
+            }
+            else
+            {
+                Assert.IsTrue(position.inputSlots[0].HasLink());
+            }
+        }
+
+        [Test]
+        public void Slot_Copy_Link_Position_To_Vector3([ValueSource("linkSubSlotOnly")] bool linkSubSlotOnly)
+        {
+            var sourceOfLink = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            sourceOfLink.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
+
+            var position = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            position.SetSettingValue("m_Type", (SerializableType)typeof(Position));
+
+            if (linkSubSlotOnly)
+            {
+                position.inputSlots[0][0].Link(sourceOfLink.outputSlots[0][0]);
+            }
+            else
+            {
+                position.inputSlots[0].Link(sourceOfLink.outputSlots[0]);
+            }
+
+            var vector3 = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            vector3.SetSettingValue("m_Type", (SerializableType)typeof(Vector3));
+
+            VFXSlot.CopyLinksAndValue(vector3.inputSlots[0], position.inputSlots[0], true);
+
+            if (linkSubSlotOnly)
+            {
+                Assert.IsTrue(vector3.inputSlots[0][0].HasLink());
+            }
+            else
+            {
+                Assert.IsTrue(vector3.inputSlots[0].HasLink());
+            }
+        }
     }
 }
 #endif
