@@ -47,6 +47,7 @@ namespace UnityEditor.Rendering.LWRP
 
         MaterialProperty heightTransition = null;
         const string kHeightTransition = "_HeightTransition";
+        bool heightBlendAvailable = true;
 
         // Per-pixel Normal (while instancing)
         MaterialProperty enableInstancedPerPixelNormal = null;
@@ -95,7 +96,7 @@ namespace UnityEditor.Rendering.LWRP
             bool optionsChanged = false;
             EditorGUI.BeginChangeCheck();
             {
-                if (enableHeightBlend != null)
+                if (enableHeightBlend != null && heightBlendAvailable)
                 {
                     EditorGUI.indentLevel++;
                     materialEditorIn.ShaderProperty(enableHeightBlend, styles.enableHeightBlend);
@@ -106,6 +107,18 @@ namespace UnityEditor.Rendering.LWRP
                         EditorGUI.indentLevel--;
                     }
                     EditorGUI.indentLevel--;
+                }
+                else if (enableHeightBlend != null && !heightBlendAvailable)
+                {
+                    // Setting to zero will ensure that it's disabled in the shader
+                    // Make sure we update the shader state to reflect this (though that's
+                    // only necessary if we started out with it enabled).
+                    optionsChanged = (enableHeightBlend.floatValue > 0);
+                    enableHeightBlend.floatValue = 0;
+                    GUIStyle warnStyle = new GUIStyle(GUI.skin.label);
+                    warnStyle.fontStyle = FontStyle.BoldAndItalic;
+                    warnStyle.wordWrap = true;
+                    GUILayout.Label("WARNING : Height-based blending will not work properly with high layer counts!", warnStyle);
                 }
                 EditorGUILayout.Space();
             }
@@ -146,8 +159,10 @@ namespace UnityEditor.Rendering.LWRP
                 return false;
 
             // Don't use the member field enableHeightBlend as ShaderGUI.OnGUI might not be called if the material UI is folded.
-            bool heightBlend = terrain.materialTemplate.HasProperty(kEnableHeightBlend) && terrain.materialTemplate.GetFloat(kEnableHeightBlend) > 0;
-            
+            // heightblend shouldn't be available if we are in multi-pass mode, because it is guaranteed to be broken.
+            heightBlendAvailable = (terrainLayers.Length <= 4);
+            bool heightBlend = heightBlendAvailable && terrain.materialTemplate.HasProperty(kEnableHeightBlend) && (terrain.materialTemplate.GetFloat(kEnableHeightBlend) > 0);
+
             terrainLayer.diffuseTexture = EditorGUILayout.ObjectField(styles.diffuseTexture, terrainLayer.diffuseTexture, typeof(Texture2D), false) as Texture2D;
             TerrainLayerUtility.ValidateDiffuseTextureUI(terrainLayer.diffuseTexture);
 
