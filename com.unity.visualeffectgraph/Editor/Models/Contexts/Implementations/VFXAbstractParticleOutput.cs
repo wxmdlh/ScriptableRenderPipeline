@@ -9,7 +9,7 @@ using UnityEngine.Experimental.VFX;
 
 namespace UnityEditor.VFX
 {
-    abstract class VFXAbstractParticleOutput : VFXContext, IVFXSubRenderer
+    abstract class VFXAbstractParticleOutput : VFXAbstractSortedOutput
     {
         public enum BlendMode
         {
@@ -54,13 +54,6 @@ namespace UnityEditor.VFX
             Always
         }
 
-        public enum SortMode
-        {
-            Auto,
-            Off,
-            On
-        }
-
         [VFXSetting, SerializeField, Header("Render States")]
         protected BlendMode blendMode = BlendMode.Alpha;
 
@@ -76,45 +69,7 @@ namespace UnityEditor.VFX
         [VFXSetting, SerializeField, Header("Particle Options"), FormerlySerializedAs("flipbookMode")]
         protected UVMode uvMode;
 
-        [VFXSetting, SerializeField]
-        protected bool useSoftParticle = false;
-
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.None), SerializeField, Header("Rendering Options")]
-        protected int sortPriority = 0;
-
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
-        protected SortMode sort = SortMode.Auto;
-
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
-        protected bool indirectDraw = false;
-
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
-        protected bool castShadows = false;
-
-        [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
-        protected bool preRefraction = false;
-
-        // IVFXSubRenderer interface
-        public virtual bool hasShadowCasting { get { return castShadows; } }
-
-        public bool HasIndirectDraw()   { return indirectDraw || HasSorting(); }
-        public bool HasSorting()        { return sort == SortMode.On || (sort == SortMode.Auto && (blendMode == BlendMode.Alpha || blendMode == BlendMode.AlphaPremultiplied)); }
-        int IVFXSubRenderer.sortPriority
-        {
-            get {
-                return sortPriority;
-            }
-            set {
-                if(sortPriority != value)
-                {
-                    sortPriority = value;
-                    Invalidate(InvalidationCause.kSettingChanged);
-                }
-            }
-        }
-        public bool NeedsDeadListCount() { return HasIndirectDraw() && (taskType == VFXTaskType.ParticleQuadOutput || taskType == VFXTaskType.ParticleHexahedronOutput); } // Should take the capacity into account to avoid false positive
-
-        protected VFXAbstractParticleOutput() : base(VFXContextType.kOutput, VFXDataType.kParticle, VFXDataType.kNone) {}
+        public override bool HasSorting()        { return sort == SortMode.On || (sort == SortMode.Auto && (blendMode == BlendMode.Alpha || blendMode == BlendMode.AlphaPremultiplied)); }
 
         public override bool codeGeneratorCompute { get { return false; } }
 
@@ -123,23 +78,17 @@ namespace UnityEditor.VFX
         public virtual CullMode defaultCullMode { get { return CullMode.Off; } }
         public virtual ZTestMode defaultZTestMode { get { return ZTestMode.LEqual; } }
 
-        public virtual bool supportSoftParticles { get { return useSoftParticle && !isBlendModeOpaque; } }
-
-        protected bool isBlendModeOpaque { get { return blendMode == BlendMode.Opaque || blendMode == BlendMode.Masked; } }
+        protected override bool isBlendModeOpaque { get { return blendMode == BlendMode.Opaque || blendMode == BlendMode.Masked; } }
 
         protected bool usesFlipbook { get { return supportsUV && (uvMode == UVMode.Flipbook || uvMode == UVMode.FlipbookBlend); } }
 
-        protected virtual IEnumerable<VFXNamedExpression> CollectGPUExpressions(IEnumerable<VFXNamedExpression> slotExpressions)
+        protected override IEnumerable<VFXNamedExpression> CollectGPUExpressions(IEnumerable<VFXNamedExpression> slotExpressions)
         {
             if (blendMode == BlendMode.Masked)
                 yield return slotExpressions.First(o => o.name == "alphaThreshold");
 
-            if (supportSoftParticles)
-            {
-                var softParticleFade = slotExpressions.First(o => o.name == "softParticlesFadeDistance");
-                var invSoftParticleFade = (VFXValue.Constant(1.0f) / softParticleFade.exp);
-                yield return new VFXNamedExpression(invSoftParticleFade, "invSoftParticlesFadeDistance");
-            }
+            foreach (var exp in base.CollectGPUExpressions(slotExpressions))
+                yield return exp;
 
             if (supportsUV && uvMode != UVMode.Simple)
             {
@@ -158,17 +107,6 @@ namespace UnityEditor.VFX
                     default: throw new NotImplementedException("Unimplemented UVMode: " + uvMode);
                 }
             }
-        }
-
-        public override VFXExpressionMapper GetExpressionMapper(VFXDeviceTarget target)
-        {
-            if (target == VFXDeviceTarget.GPU)
-            {
-                var gpuMapper = VFXExpressionMapper.FromBlocks(activeChildrenWithImplicit);
-                gpuMapper.AddExpressions(CollectGPUExpressions(GetExpressionsFromSlots(this)), -1);
-                return gpuMapper;
-            }
-            return new VFXExpressionMapper();
         }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
@@ -196,8 +134,9 @@ namespace UnityEditor.VFX
 
                 if (blendMode == BlendMode.Masked)
                     yield return new VFXPropertyWithValue(new VFXProperty(typeof(float), "alphaThreshold", VFXPropertyAttribute.Create(new RangeAttribute(0.0f, 1.0f))), 0.5f);
-                if (supportSoftParticles)
-                    yield return new VFXPropertyWithValue(new VFXProperty(typeof(float), "softParticlesFadeDistance", VFXPropertyAttribute.Create(new MinAttribute(0.001f))), 1.0f);
+
+                foreach (var prop in base.inputProperties)
+                    yield return prop;
             }
         }
 
@@ -205,15 +144,10 @@ namespace UnityEditor.VFX
         {
             get
             {
-                if (isBlendModeOpaque)
-                    yield return "IS_OPAQUE_PARTICLE";
-                else
-                    yield return "IS_TRANSPARENT_PARTICLE";
-
                 if (blendMode == BlendMode.Masked)
                     yield return "USE_ALPHA_TEST";
-                if (supportSoftParticles)
-                    yield return "USE_SOFT_PARTICLE";
+                foreach (var define in base.additionalDefines)
+                    yield return define;
 
                 switch (blendMode)
                 {
@@ -238,9 +172,6 @@ namespace UnityEditor.VFX
                         yield return "USE_CAST_SHADOWS_PASS";
                 }
 
-                if (HasIndirectDraw())
-                    yield return "VFX_HAS_INDIRECT_DRAW";
-
                 if (supportsUV && uvMode != UVMode.Simple)
                 {
                     switch (uvMode)
@@ -258,9 +189,6 @@ namespace UnityEditor.VFX
                         default: throw new NotImplementedException("Unimplemented UVMode: " + uvMode);
                     }
                 }
-
-                if (NeedsDeadListCount() && GetData().IsAttributeStored(VFXAttribute.Alive)) //Actually, there are still corner cases, e.g.: particles spawning immortal particles through GPU Event
-                    yield return "USE_DEAD_LIST_COUNT";
             }
         }
 

@@ -668,7 +668,7 @@ namespace UnityEditor.VFX.UI
             if (desc == null)
                 return false;
 
-            if (!(desc.model is VFXAbstractParticleOutput))
+            if (!(desc.model is VFXAbstractSortedOutput))
                 return false;
 
             return (desc.model as VFXContext).contextType == VFXContextType.kOutput;
@@ -767,7 +767,7 @@ namespace UnityEditor.VFX.UI
                 }
             }
 
-            if (evt.target is VFXContextUI && controller.model is VFXAbstractParticleOutput)
+            if (evt.target is VFXContextUI && controller.model is VFXAbstractSortedOutput)
             {
                 evt.menu.InsertAction(1, "Convert Output", OnConvertContext, e => DropdownMenuAction.Status.Normal);
             }

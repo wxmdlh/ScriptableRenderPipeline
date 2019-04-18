@@ -400,12 +400,12 @@ namespace UnityEditor.VFX
 
         public bool NeedsIndirectBuffer()
         {
-            return owners.OfType<VFXAbstractParticleOutput>().Any(o => o.HasIndirectDraw());
+            return owners.OfType<VFXAbstractSortedOutput>().Any(o => o.HasIndirectDraw());
         }
 
         public bool NeedsSort()
         {
-            return owners.OfType<VFXAbstractParticleOutput>().Any(o => o.HasSorting());
+            return owners.OfType<VFXAbstractSortedOutput>().Any(o => o.HasSorting());
         }
 
         public override void FillDescs(
@@ -559,12 +559,12 @@ namespace UnityEditor.VFX
 
                 if (indirectBufferIndex != -1 &&
                     (context.contextType == VFXContextType.kUpdate ||
-                     (context.contextType == VFXContextType.kOutput && (context as VFXAbstractParticleOutput).HasIndirectDraw())))
+                     (context.contextType == VFXContextType.kOutput && (context as VFXAbstractSortedOutput).HasIndirectDraw())))
                 {
                     bufferMappings.Add(new VFXMapping(context.taskType == VFXTaskType.CameraSort ? "inputBuffer" : "indirectBuffer", indirectBufferIndex));
                 }
 
-                if (deadListBufferIndex != -1 && context.contextType == VFXContextType.kOutput && (context as VFXAbstractParticleOutput).NeedsDeadListCount())
+                if (deadListBufferIndex != -1 && context.contextType == VFXContextType.kOutput && (context as VFXAbstractSortedOutput).NeedsDeadListCount())
                     bufferMappings.Add(new VFXMapping("deadListCount", deadListCountIndex));
 
                 if (context.taskType == VFXTaskType.CameraSort)

@@ -6,17 +6,56 @@ using System.Text;
 using UnityEditor.VFX;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.VFX;
+using UnityEditor.Experimental.VFX;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
+
+    class VFXShaderGraphPostProcessor : AssetPostprocessor
+    {
+        static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
+        {
+            string[] guids = AssetDatabase.FindAssets("t:VisualEffectAsset");
+
+            var assetsToReimport = new HashSet<VFXGraph>();
+
+            var modifiedShaderGraphs = new HashSet<Shader>();
+
+            foreach( var asset in importedAssets.Concat(deletedAssets))
+            {
+                if (asset.EndsWith(".shadergraph", StringComparison.InvariantCultureIgnoreCase))
+                    modifiedShaderGraphs.Add(AssetDatabase.LoadAssetAtPath<Shader>(asset));
+            }
+
+            foreach( var vfxPath in guids.Select(t => AssetDatabase.GUIDToAssetPath(t)))
+            {
+                VFXGraph graph = VisualEffectResource.GetResourceAtPath(vfxPath).GetOrCreateGraph();
+
+                if( graph != null)
+                {
+                    if (graph.children.OfType<VFXHDRPShaderGraphOutput>().Any(t => modifiedShaderGraphs.Contains(t.shaderGraph)))
+                        assetsToReimport.Add(graph);
+                }
+            }
+
+            foreach( var graph in assetsToReimport)
+            {
+                foreach (var sgOutput in graph.children.OfType<VFXHDRPShaderGraphOutput>().Where(t => modifiedShaderGraphs.Contains(t.shaderGraph)))
+                    sgOutput.ResyncSlots(true);
+
+                graph.SetExpressionGraphDirty();
+                graph.RecompileIfNeeded();
+            }
+        }
+    }
+
+
     [VFXInfo]
-    class VFXHDRPShaderGraphOutput : VFXAbstractParticleOutput, ISpecificGenerationOutput
+    class VFXHDRPShaderGraphOutput : VFXAbstractSortedOutput, ISpecificGenerationOutput
     {
         public override string name { get { return "Shader Graph Mesh Output"; } }
-        public override string codeGeneratorTemplate { get { return RenderPipeTemplate("VFXParticleLitMesh"); } }
+        public override string codeGeneratorTemplate { get { return ""; } }
         public override VFXTaskType taskType { get { return VFXTaskType.ParticleMeshOutput; } }
-        public override bool supportsUV { get { return true; } }
-        public override CullMode defaultCullMode { get { return CullMode.Back; } }
 
         [VFXSetting(VFXSettingAttribute.VisibleFlags.InGraph), SerializeField]
         protected Shader m_ShaderGraph;

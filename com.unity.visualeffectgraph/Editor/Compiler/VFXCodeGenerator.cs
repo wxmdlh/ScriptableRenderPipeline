@@ -374,7 +374,6 @@ namespace UnityEditor.VFX
 
         static private StringBuilder Build(VFXContext context, string templatePath, VFXCompilationMode compilationMode, VFXContextCompiledData contextData)
         {
-            var stringBuilder = GetFlattenedTemplateContent(templatePath, new List<string>(), context.additionalDefines);
 
             var globalDeclaration = new VFXShaderWriter();
             globalDeclaration.WriteCBuffer(contextData.uniformMapper, "parameters");
@@ -519,26 +518,23 @@ namespace UnityEditor.VFX
 
             if ( context is ISpecificGenerationOutput)
             {
-                    {
+                VFXInfos infos = new VFXInfos();
+                infos.vertexFunctions = blockFunction.ToString();
+                infos.vertexShaderContent = blockCallFunction.ToString();
+                infos.attributes = context.GetData().GetAttributes().Select(t=>t.attrib.name).ToList();
+                infos.attributeTypes = context.GetData().GetAttributes().Select(t => t.attrib.type).ToList();
+                infos.loadAttributes = GenerateLoadAttribute(".*", context).ToString();
+                infos.modifiedByOutputAttributes = context.children.Where(t=>t.enabled).SelectMany(t=>t.attributes).Where(t=>(t.mode & VFXAttributeMode.Write) != 0).Select(t=>t.attrib.name).Distinct().ToList();
 
-                        VFXInfos infos = new VFXInfos();
-                        infos.vertexFunctions = blockFunction.ToString();
-                        infos.vertexShaderContent = blockCallFunction.ToString();
-                        infos.attributes = context.GetData().GetAttributes().Select(t=>t.attrib.name).ToList();
-                        infos.attributeTypes = context.GetData().GetAttributes().Select(t => t.attrib.type).ToList();
-                        infos.loadAttributes = GenerateLoadAttribute(".*", context).ToString();
-                        infos.modifiedByOutputAttributes = context.children.Where(t=>t.enabled).SelectMany(t=>t.attributes).Where(t=>(t.mode & VFXAttributeMode.Write) != 0).Select(t=>t.attrib.name).Distinct().ToList();
+                var parameters = new VFXShaderWriter();
+                parameters.WriteCBuffer(contextData.uniformMapper, "parameters");
+                parameters.WriteTexture(contextData.uniformMapper);
 
-                        var parameters = new VFXShaderWriter();
-                        parameters.WriteCBuffer(contextData.uniformMapper, "parameters");
-                        parameters.WriteTexture(contextData.uniformMapper);
+                infos.parameters = parameters.ToString();
 
-                        infos.parameters = parameters.ToString();
-
-                        return (context as ISpecificGenerationOutput).GenerateShader(ref infos);
-
-                    }
-            }
+                return (context as ISpecificGenerationOutput).GenerateShader(ref infos);
+            } 
+            var stringBuilder = GetFlattenedTemplateContent(templatePath, new List<string>(), context.additionalDefines);
 
             ReplaceMultiline(stringBuilder, "${VFXGlobalInclude}", globalIncludeContent.builder);
             ReplaceMultiline(stringBuilder, "${VFXGlobalDeclaration}", globalDeclaration.builder);
