@@ -2,6 +2,8 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Add Pass)"
 {
     Properties
     {
+        [HideInInspector] [PerRendererData] _NumLayersCount ("Total Layer Count", Float) = 1.0
+            
         // set by terrain engine
         [HideInInspector] _Control("Control (RGBA)", 2D) = "red" {}
         [HideInInspector] _Splat3("Layer 3 (A)", 2D) = "white" {}
@@ -65,11 +67,11 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Add Pass)"
             #pragma multi_compile_instancing
             #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
 
-            #pragma shader_feature _TERRAIN_BLEND_HEIGHT
-            #pragma shader_feature _NORMALMAP
-            #pragma shader_feature _MASKMAP    
+            #pragma shader_feature_local _TERRAIN_BLEND_HEIGHT
+            #pragma shader_feature_local _NORMALMAP
+            #pragma shader_feature_local _MASKMAP    
             // Sample normal in pixel shader when doing instancing
-            #pragma shader_feature _TERRAIN_INSTANCED_PERPIXEL_NORMAL            
+            #pragma shader_feature_local _TERRAIN_INSTANCED_PERPIXEL_NORMAL            
             #define TERRAIN_SPLAT_ADDPASS
 
             #include "Packages/com.unity.render-pipelines.lightweight/Shaders/Terrain/TerrainLitInput.hlsl"

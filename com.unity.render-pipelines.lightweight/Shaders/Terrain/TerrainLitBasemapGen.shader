@@ -2,6 +2,7 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Basemap Gen)"
 {
     Properties
     {
+        [HideInInspector] [PerRendererData] _NumLayersCount ("Total Layer Count", Float) = 1.0
         [HideInInspector] _Control("AlphaMap", 2D) = "" {}
 
         [HideInInspector] _Splat0 ("Layer 0 (R)", 2D) = "white" {}
@@ -35,8 +36,8 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Basemap Gen)"
         #define _METALLICSPECGLOSSMAP 1
         #define _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A 1
 
-        #pragma shader_feature _TERRAIN_BLEND_HEIGHT
-        #pragma shader_feature _MASKMAP
+        #pragma shader_feature_local _TERRAIN_BLEND_HEIGHT
+        #pragma shader_feature_local _MASKMAP
         
         #include "TerrainLitInput.hlsl"
         #include "TerrainLitPasses.hlsl"

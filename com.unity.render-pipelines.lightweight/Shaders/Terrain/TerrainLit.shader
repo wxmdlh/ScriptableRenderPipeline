@@ -4,6 +4,7 @@ Shader "Lightweight Render Pipeline/Terrain/Lit"
     {
         [HideInInspector] [ToggleUI] _EnableHeightBlend("EnableHeightBlend", Float) = 0.0
         _HeightTransition("Height Transition", Range(0, 1.0)) = 0.0
+        [HideInInspector] [PerRendererData] _NumLayersCount ("Total Layer Count", Float) = 1.0
     
         // set by terrain engine
         [HideInInspector] _Control("Control (RGBA)", 2D) = "red" {}
