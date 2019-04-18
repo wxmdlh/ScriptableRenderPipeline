@@ -28,6 +28,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             return null;
         }
 
+        public static Dictionary<string,Texture> GetUsedTextures(Graph graph)
+        {
+            var shaderProperties = new PropertyCollector();
+            foreach( var node in graph.passes.SelectMany(t => t.pixel.nodes.Concat(t.vertex.nodes)))
+            {
+                node.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
+            }
+
+            return shaderProperties.GetConfiguredTexutres().ToDictionary(t=>t.name,t=>(Texture)EditorUtility.InstanceIDToObject(t.textureId));
+        }
+
         public static Graph LoadShaderGraph(string shaderFilePath)
         {
             var textGraph = File.ReadAllText(shaderFilePath, Encoding.UTF8);

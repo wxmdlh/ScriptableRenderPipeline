@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using System.Text;
 using UnityEditor.VFX;
+using UnityEngine.Rendering;
 using UnityEngine.Experimental.VFX;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
@@ -139,7 +140,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                             VFXNamedExpression expression = slotExpressions.FirstOrDefault(o => o.name == variable);
                             if( expression.exp != null)
                                 yield return expression;
-                        }   
+                        }
                     }
                 }
 
@@ -156,8 +157,37 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 case VFXDeviceTarget.CPU:
                     mapper.AddExpression(inputSlots.First(s => s.name == "mesh").GetExpression(), "mesh", -1);
                     mapper.AddExpression(inputSlots.First(s => s.name == "subMeshMask").GetExpression(), "subMeshMask", -1);
+
+
                     break;
                 default:
+                    var graph = VFXSGHDRPShaderGenerator.LoadShaderGraph(shaderGraph);
+                    if (graph != null)
+                    {
+                        Dictionary<string,Texture> textures = VFXSGHDRPShaderGenerator.GetUsedTextures(graph);
+                        foreach( var tex in textures.Where(t=>t.Value != null).OrderBy(t=>t.Key))
+                        {
+                            var renderTex = tex.Value as RenderTexture;
+                            switch( tex.Value.dimension)
+                            {
+                                case TextureDimension.Tex2D:
+                                    mapper.AddExpression(new VFXTexture2DValue(tex.Value, VFXValue.Mode.Variable), tex.Key, -1);
+                                    break;
+                                case TextureDimension.Tex3D:
+                                    mapper.AddExpression(new VFXTexture3DValue(tex.Value, VFXValue.Mode.Variable), tex.Key, -1);
+                                    break;
+                                case TextureDimension.Cube:
+                                    mapper.AddExpression(new VFXTextureCubeValue(tex.Value, VFXValue.Mode.Variable), tex.Key, -1);
+                                    break;
+                                case TextureDimension.Tex2DArray:
+                                    mapper.AddExpression(new VFXTexture2DArrayValue(tex.Value, VFXValue.Mode.Variable), tex.Key, -1);
+                                    break;
+                                case TextureDimension.CubeArray:
+                                    mapper.AddExpression(new VFXTextureCubeArrayValue(tex.Value, VFXValue.Mode.Variable), tex.Key, -1);
+                                    break;
+                            }
+                        }
+                    }
                     break;
             }
 
