@@ -21,6 +21,7 @@ namespace UnityEditor.VFX
         public string shaderName;
         public string parameters;
         public List<string> attributes;
+        public List<VFXValueType> attributeTypes;
         public string loadAttributes;
 
         public List<string> modifiedByOutputAttributes;
@@ -524,8 +525,9 @@ namespace UnityEditor.VFX
                         infos.vertexFunctions = blockFunction.ToString();
                         infos.vertexShaderContent = blockCallFunction.ToString();
                         infos.attributes = context.GetData().GetAttributes().Select(t=>t.attrib.name).ToList();
+                        infos.attributeTypes = context.GetData().GetAttributes().Select(t => t.attrib.type).ToList();
                         infos.loadAttributes = GenerateLoadAttribute(".*", context).ToString();
-                        infos.modifiedByOutputAttributes = context.children.SelectMany(t=>t.attributes).Where(t=>(t.mode & VFXAttributeMode.Write) != 0).Select(t=>t.attrib.name).Distinct().ToList();
+                        infos.modifiedByOutputAttributes = context.children.Where(t=>t.enabled).SelectMany(t=>t.attributes).Where(t=>(t.mode & VFXAttributeMode.Write) != 0).Select(t=>t.attrib.name).Distinct().ToList();
 
                         var parameters = new VFXShaderWriter();
                         parameters.WriteCBuffer(contextData.uniformMapper, "parameters");

@@ -11,6 +11,7 @@ using UnityEngine.Rendering;
 using UnityEditor.ShaderGraph;
 using UnityEditor.VFX;
 using UnityEngine.Experimental.Rendering.HDPipeline;
+using UnityEngine.Experimental.VFX;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 {
@@ -147,6 +148,53 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
         static readonly HashSet<string> customBehaviourSlots = new HashSet<string>(new[]{ "Normal", "BentNormal", "Emission" , "Alpha" , "AlphaClipThreshold" , "SpecularOcclusion" , "Tangent", "DepthOffset", "SpecularAAScreenSpaceVariance", "SpecularAAThreshold", "RefractionIndex" , "RefractionColor" , "RefractionDistance" });
 
 
+        struct VaryingAttribute
+        {
+            public string name;
+            public VFXValueType type;
+        }
+
+        static List<VaryingAttribute> ComputeVaryingAttribute(Graph graph,VFXInfos vfxInfos)
+        {
+            var shaderProperties = new PropertyCollector();
+            graph.graphData.CollectShaderProperties(shaderProperties, GenerationMode.ForReals);
+
+
+            // In the varying we must put all attributes that are modified by a block from this outputcontext and that are used by the shadergraph
+            //Alpha is a special case that is always used (alpha from SG is multiplied by alpha from VFX) .
+
+            List<VaryingAttribute> result = new List<VaryingAttribute>();
+            foreach (var info in vfxInfos.attributes.Zip(vfxInfos.attributeTypes, (a, b) => new KeyValuePair<string, VFXValueType>(a, b)).Where(t => vfxInfos.modifiedByOutputAttributes.Contains(t.Key) && (t.Key == "alpha" || shaderProperties.properties.Any(u => u.displayName.Equals(t.Key, StringComparison.InvariantCultureIgnoreCase)))))
+            {
+                result.Add(new VaryingAttribute { name = info.Key, type = info.Value});
+            }
+
+            return result;
+        }
+        
+
+        static string GenerateVaryingVFXAttribute(Graph graph,VFXInfos vfxInfos,List<VaryingAttribute> varyingAttributes)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append(@"
+struct VaryingVFXAttribute
+{
+");
+            // In the varying we must put all attributes that are modified by a block from this outputcontext and that are used by the shadergraph
+            //Alpha is a special case that is always used (alpha from SG is multiplied by alpha from VFX) .
+            int texCoordNum = 6;
+            foreach (var info in varyingAttributes)
+            {
+                if( texCoordNum < 10)
+                    sb.AppendFormat("    nointerpolation {0} {1} : TEXCOORD{2};\n",VFXExpression.TypeToCode(info.type),info.name,texCoordNum++);
+                else
+                    sb.AppendFormat("    nointerpolation {0} {1} : NORMAL{2};\n", VFXExpression.TypeToCode(info.type), info.name, (texCoordNum++) - 10 + 2); //Start with NORMAL3
+            }
+            sb.Append(@"};");
+            return sb.ToString();
+        }
+
         internal static string NewGenerateShader(Shader shaderGraph, ref VFXInfos vfxInfos)
         {
             Graph graph = LoadShaderGraph(shaderGraph);
@@ -189,7 +237,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             var defines = new Dictionary<string, int>();
             var killPasses = new HashSet<string>();
 
-            document.InsertShaderLine(0, "#define UNITY_VERTEX_INPUT_INSTANCE_ID nointerpolation uint instanceID : SV_InstanceID;");
+            document.InsertShaderLine(0, "#define UNITY_VERTEX_INPUT_INSTANCE_ID VaryingVFXAttribute vfxAttributes; nointerpolation uint instanceID : SV_InstanceID;");
             document.InsertShaderLine(1, "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXDefines.hlsl\"");
             document.InsertShaderLine(2, "#include \"Packages/com.unity.visualeffectgraph/Shaders/RenderPipeline/HDRP/VFXCommon.cginc\"");
             document.InsertShaderLine(3, "#include \"Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.cginc\"");
@@ -401,6 +449,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 }
             }
 
+            List<VaryingAttribute> varyingAttributes = ComputeVaryingAttribute(graph,vfxInfos);
+
+
             foreach (var pass in document.passes)
             {
 
@@ -413,8 +464,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                 {
                     if (graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains((UVChannel)i))
                     {
-                        passDefines["ATTRIBUTES_NEED_TEXCOORD" + i] = 1;
-                        passDefines["VARYINGS_NEED_TEXCOORD" + i] = 1;
+                        passDefines["_REQUIRE_UV" + i] = 1;
                     }
                     else if(graph.passes[currentPass].vertex.requirements.requiresMeshUVs.Contains((UVChannel)i))
                         passDefines["ATTRIBUTES_NEED_TEXCOORD" + i] = 1;
@@ -429,12 +479,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
 
 
                 var sb = new StringBuilder();
-                GenerateParticleVert(graph, vfxInfos, sb, currentPass,passDefines);
+                GenerateParticleVert(graph, vfxInfos, sb, currentPass,passDefines, varyingAttributes);
+
+                pass.InsertShaderCode(0, GenerateVaryingVFXAttribute(graph,vfxInfos, varyingAttributes));
 
                 foreach( var define in passDefines)
                     pass.InsertShaderCode(0, string.Format("#define {0} {1}", define.Key, define.Value));
 
-                string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass, pass, guiVariables, defines);
+
+                string getSurfaceDataFunction = GenerateParticleGetSurfaceAndBuiltinData(graph, ref vfxInfos, currentPass, pass, guiVariables, defines, varyingAttributes);
 
                 pass.ReplaceInclude("Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl", getSurfaceDataFunction);
 
@@ -470,7 +523,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
                         ssb.Append(passFile.Substring(0, callIndex));
                         ssb.Append("ParticleGetSurfaceAndBuiltinData(");
 
-                        var args = parameters.Take(1).Concat(Enumerable.Repeat("packedInput.vmesh.instanceID", 1).Concat(parameters.Skip(1)));
+                        var args = parameters.Take(1).Concat(Enumerable.Repeat("packedInput.vmesh.instanceID", 1)).Concat(Enumerable.Repeat("packedInput.vmesh.vfxAttributes", 1)).Concat(parameters.Skip(1));
 
                         ssb.Append(args.Aggregate((a, b) => a + "," + b));
 
@@ -489,7 +542,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             return document.ToString(false).Replace("\r", "");
         }
 
-        static string GenerateParticleGetSurfaceAndBuiltinData(Graph graph, ref VFXInfos vfxInfos, int currentPass, PassPart pass,Dictionary<string, string> guiVariables,Dictionary<string, int> defines)
+        static string GenerateParticleGetSurfaceAndBuiltinData(Graph graph, ref VFXInfos vfxInfos, int currentPass, PassPart pass,Dictionary<string, string> guiVariables,Dictionary<string, int> defines , List<VaryingAttribute> varyingAttributes)
         {
             var getSurfaceDataFunction = new ShaderStringBuilder();
 
@@ -553,7 +606,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.VFXSG
             getSurfaceDataFunction.Append(@"
 #include ""Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/VFX/VFXSGCommonLit.hlsl""
 
-void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
+void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,VaryingVFXAttribute vfxAttributes,float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
 {
     FragInputForSG IN = InitializeFragStructs(input, posInput,V, surfaceData, builtinData);
 
@@ -574,22 +627,16 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
 ");
             getSurfaceDataFunction.AppendLine("    " + vfxInfos.loadAttributes.Replace("\n", "\n    "));
 
+
+
             getSurfaceDataFunction.Append(@"
 
-            if( !alive) discard;
-
-    #ifdef VFX_ALPHA_IN_UV3
-        alpha = IN.uv3.y;
-    #elif defined(VFX_ALPHA_IN_COLOR)
-        alpha = IN.VertexColor.a;
-    #endif
-
-    #ifdef VFX_COLOR_IN_UV23
-        color = float3(IN.uv2.xy,IN.uv3.x);
-    #elif defined(VFX_COLOR_IN_COLOR)
-        color = IN.VertexColor.rgb;
-    #endif
+    if( !alive) discard;
     ");
+            foreach (var varyingAttribute in varyingAttributes)
+            {
+                getSurfaceDataFunction.AppendLine("{0} = vfxAttributes.{0};", varyingAttribute.name); // override attribute load with value from varyings
+            }
 
 
             foreach (var prop in shaderProperties.properties)
@@ -724,7 +771,7 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
             return getSurfaceDataFunction.ToString();
         }
 
-        private static void GenerateParticleVert(Graph graph,VFXInfos vfxInfos, StringBuilder shader, int currentPass, Dictionary<string, int> defines)
+        private static void GenerateParticleVert(Graph graph,VFXInfos vfxInfos, StringBuilder shader, int currentPass, Dictionary<string, int> defines, List<VaryingAttribute> varyingAttributes)
         {
             shader.Append(vfxInfos.vertexFunctions);
 
@@ -810,57 +857,6 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                 }
             }
 
-            bool hasColorInOutputBlocks = vfxInfos.modifiedByOutputAttributes.Contains("color");
-            bool hasAlphaInOutputBlocks = vfxInfos.modifiedByOutputAttributes.Contains("alpha");
-
-            if( hasAlphaInOutputBlocks || hasColorInOutputBlocks)
-            {
-                if( ! hasColorInOutputBlocks && !graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains(UVChannel.UV3)) // need only one float interpolator try uv3
-                {
-                    defines["VFX_ALPHA_IN_UV3"] = 1;
-                    defines["VARYINGS_NEED_TEXCOORD3"] = 1;
-                    shader.AppendLine(@"
-varyingsType.vmesh.texCoord3.y = alpha;");
-                }
-                else if( !graph.passes[currentPass].pixel.requirements.requiresVertexColor)
-                {   
-                    defines["VARYINGS_NEED_COLOR"] = 1;
-                    if(hasAlphaInOutputBlocks)
-                    {
-                        defines["VFX_ALPHA_IN_COLOR"] = 1;
-                        shader.AppendLine(@"
-    varyingsType.vmesh.color.a = alpha;");
-                    }
-                    
-                    if( hasColorInOutputBlocks)
-                    {
-                        defines["VFX_COLOR_IN_COLOR"] = 1;
-                        shader.AppendLine(@"
-    varyingsType.vmesh.color.rgb = color;");
-                    }
-                }
-                else if( !graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains(UVChannel.UV3) && !graph.passes[currentPass].pixel.requirements.requiresMeshUVs.Contains(UVChannel.UV2))
-                {   
-                    defines["VARYINGS_NEED_TEXCOORD3"] = 1;
-                    defines["VARYINGS_NEED_TEXCOORD2"] = 1;
-                    if(hasAlphaInOutputBlocks)
-                    {
-                        defines["VFX_ALPHA_IN_UV3"] = 1;
-                        shader.AppendLine(@"
-varyingsType.vmesh.texCoord3.y = alpha;");
-                    }
-                    
-                    if( hasColorInOutputBlocks)
-                    {
-                        defines["VFX_COLOR_IN_UV23"] = 1;
-                        shader.AppendLine(@"
-    varyingsType.vmesh.texCoord2.xy = color.rg;
-    varyingsType.vmesh.texCoord3.x = color.b;");
-                    }
-                }
-                
-            }
-
             shader.AppendLine(@"
     float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
 
@@ -881,6 +877,15 @@ varyingsType.vmesh.texCoord3.y = alpha;");
     #endif
 
     PackedVaryingsType result = PackVaryingsType(varyingsType);
+");
+
+            foreach (var varyingAttribute in varyingAttributes)
+            {
+                shader.AppendFormat(@"
+    result.vmesh.vfxAttributes.{0} = {0};", varyingAttribute.name);
+            }
+
+            shader.Append(@"
     result.vmesh.instanceID = inputMesh.instanceID; // transmit the instanceID to the pixel shader through the varyings
 
     return result;
