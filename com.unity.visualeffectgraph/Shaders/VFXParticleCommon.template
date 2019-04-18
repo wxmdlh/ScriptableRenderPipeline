@@ -63,7 +63,11 @@ uint deadCount = 0;
 deadCount = deadListCount.Load(0);
 #endif	
 if (index >= asuint(nbMax) - deadCount)
+#if USE_GEOMETRY_SHADER
+	return; // cull
+#else
 	return o; // cull
+#endif
 
 #if VFX_HAS_INDIRECT_DRAW
 index = indirectBuffer[index];
@@ -75,4 +79,23 @@ if (!alive)
 	
 ${VFXLoadAttributes:{(?!(alive))(\b\w)}}
 #endif
+${VFXEnd}
+
+${VFXBegin:VFXApplyColor}
+
+float4 color = VFXGetFragmentColor(i);
+
+#ifndef VFX_TEXTURE_COLOR
+	#define VFX_TEXTURE_COLOR float4(1.0,1.0,1.0,1.0)
+#endif
+
+#if VFX_COLORMAPPING_DEFAULT
+	o.color = color * VFX_TEXTURE_COLOR;
+#endif
+
+#if VFX_COLORMAPPING_GRADIENTMAPPED
+	${VFXLoadAttributes:{gradient}}
+	o.color = SampleGradient(gradient, VFX_TEXTURE_COLOR.a * color.a) * float4(color.rgb,1.0);
+#endif
+
 ${VFXEnd}
