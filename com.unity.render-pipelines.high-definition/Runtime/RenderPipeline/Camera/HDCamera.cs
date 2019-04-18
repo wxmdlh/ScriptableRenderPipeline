@@ -27,6 +27,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Matrix4x4 prevViewProjMatrix;
             public Matrix4x4 prevViewProjMatrixNoCameraTrans;
 
+            // Utility matrix (used by sky) to map screen position to WS view direction
+            public Matrix4x4 pixelCoordToViewDirWS;
+
             public Vector3 worldSpaceCameraPos;
             public float pad0;
             public Vector3 worldSpaceCameraPosViewOffset;
@@ -294,9 +297,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 }
             }
 
-            UpdateAllViewConstants(IsTAAEnabled());
-            isFirstFrame = false;
-
             // Update viewport
             {
                 finalViewport = new Rect(camera.pixelRect.x, camera.pixelRect.y, camera.pixelWidth, camera.pixelHeight);
@@ -338,6 +338,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             screenSize = new Vector4(screenWidth, screenHeight, 1.0f / screenWidth, 1.0f / screenHeight);
             screenParams = new Vector4(screenSize.x, screenSize.y, 1 + screenSize.z, 1 + screenSize.w);
+            
+            UpdateAllViewConstants(IsTAAEnabled());
+            isFirstFrame = false;
 
             if (vlSys != null)
             {
@@ -565,16 +568,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             viewConstants.nonJitteredViewProjMatrix = gpuNonJitteredProj * gpuView;
             viewConstants.worldSpaceCameraPos = cameraPosition;
             viewConstants.worldSpaceCameraPosViewOffset = Vector3.zero;
+            viewConstants.pixelCoordToViewDirWS = ComputePixelCoordToWorldSpaceViewDirectionMatrix(viewConstants);
 
             if (ShaderConfig.s_CameraRelativeRendering != 0)
             {
-                viewConstants.prevWorldSpaceCameraPos = viewConstants.worldSpaceCameraPos - viewConstants.prevWorldSpaceCameraPos;
+                Vector3 cameraDisplacement = viewConstants.worldSpaceCameraPos - viewConstants.prevWorldSpaceCameraPos;
+
+                viewConstants.prevWorldSpaceCameraPos -= viewConstants.worldSpaceCameraPos; // Make it relative w.r.t. the curr cam pos
+
                 // This fixes issue with cameraDisplacement stacking in prevViewProjMatrix when same camera renders multiple times each logical frame
                 // causing glitchy motion blur when editor paused.
                 if (m_LastFrameActive != Time.frameCount)
                 {
-                    Matrix4x4 cameraDisplacement = Matrix4x4.Translate(viewConstants.prevWorldSpaceCameraPos);
-                    viewConstants.prevViewProjMatrix *= cameraDisplacement; // Now prevViewProjMatrix correctly transforms this frame's camera-relative positionWS
+                    viewConstants.prevViewProjMatrix *= Matrix4x4.Translate(cameraDisplacement); // Now prevViewProjMatrix correctly transforms this frame's camera-relative positionWS
                 }
             }
             else
@@ -730,6 +736,31 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
 
             return proj;
+        }
+
+        public Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(ViewConstants viewConstants)
+        {
+            // In XR mode, use a more generic matrix to account for asymmetry in the projection
+            //XRTODO: if (xr.enabled)
+            if (camera.stereoEnabled)
+            {
+                var transform = Matrix4x4.Scale(new Vector3(-1.0f, -1.0f, -1.0f)) * viewConstants.invViewProjMatrix;
+                transform = transform * Matrix4x4.Scale(new Vector3(1.0f, -1.0f, 1.0f));
+                transform = transform * Matrix4x4.Translate(new Vector3(-1.0f, -1.0f, 0.0f));
+                transform = transform * Matrix4x4.Scale(new Vector3(2.0f * screenSize.z, 2.0f * screenSize.w, 1.0f));
+
+                return transform.transpose;
+            }
+
+#if UNITY_2019_1_OR_NEWER
+            float verticalFoV = camera.GetGateFittedFieldOfView() * Mathf.Deg2Rad;
+            Vector2 lensShift = camera.GetGateFittedLensShift();
+#else
+            float verticalFoV = camera.fieldOfView * Mathf.Deg2Rad;
+            Vector2 lensShift = Vector2.zero;
+#endif
+
+            return HDUtils.ComputePixelCoordToWorldSpaceViewDirectionMatrix(verticalFoV, lensShift, screenSize, viewConstants.viewMatrix, false);
         }
 
         // Warning: different views can use the same camera!
