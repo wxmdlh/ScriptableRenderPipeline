@@ -14,15 +14,6 @@ namespace UnityEditor.ShaderGraph
         }
 
         public readonly List<AbstractShaderProperty> properties = new List<AbstractShaderProperty>();
-        public interface ICustomGenerator
-        {
-            bool ShouldGeneratePropertyDeclaration(AbstractShaderProperty property);
-
-            bool GenerateCustomPropertyCode(out string getter, AbstractShaderProperty property);
-        }
-        public static ICustomGenerator customGenerator { get; set; }
-
-        public readonly List<AbstractShaderProperty> m_Properties = new List<AbstractShaderProperty>();
 
         public void AddShaderProperty(AbstractShaderProperty chunk)
         {
@@ -41,9 +32,7 @@ namespace UnityEditor.ShaderGraph
                     //sb.Append("\t");
                     sb.Append("    "); // unity convention use space instead of tab...
                 }
-
-                if( customGenerator == null || customGenerator.ShouldGeneratePropertyDeclaration(prop))
-                    sb.AppendLine(prop.GetPropertyBlockString());
+                sb.AppendLine(prop.GetPropertyBlockString());
             }
             return sb.ToString();
         }
@@ -61,8 +50,7 @@ namespace UnityEditor.ShaderGraph
             builder.AppendLine("CBUFFER_START(UnityPerMaterial)");
             foreach (var prop in properties.Where(n => batchAll || (n.generatePropertyBlock && n.isBatchable)))
             {
-                if (customGenerator == null || customGenerator.ShouldGeneratePropertyDeclaration(prop))
-                    builder.AppendLine(prop.GetPropertyDeclarationString());
+                builder.AppendLine(prop.GetPropertyDeclarationString());
             }
             builder.AppendLine("CBUFFER_END");
             builder.AppendNewLine();
@@ -72,8 +60,7 @@ namespace UnityEditor.ShaderGraph
             
             foreach (var prop in properties.Where(n => !n.isBatchable || !n.generatePropertyBlock))
             {
-                if (customGenerator == null || customGenerator.ShouldGeneratePropertyDeclaration(prop))
-                    builder.AppendLine(prop.GetPropertyDeclarationString());
+                builder.AppendLine(prop.GetPropertyDeclarationString());
             }
         }
 
