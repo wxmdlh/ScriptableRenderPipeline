@@ -1,4 +1,4 @@
-Shader "Hidden/HDRP/Sky/RenderPbrSky"
+Shader "Hidden/HDRP/Sky/PbrSky"
 {
     HLSLINCLUDE
 
@@ -102,7 +102,7 @@ Shader "Hidden/HDRP/Sky/RenderPbrSky"
         // Do we see the ground?
         if (cosChi < cosHor)
         {
-            float  t  = IntersectPlanetFromOutside(cosChi, h);
+            float  t  = IntersectSphere(_PlanetaryRadiusSquared, cosChi, r).x;
             float3 gP = P + t * -V;
             float3 gN = normalize(gP);
 

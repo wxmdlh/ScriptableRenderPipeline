@@ -61,6 +61,8 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float tMax = aboveHorizon ? IntersectSphere(_AtmosphericRadiusSquared, cosChi, r).y  // Max root
                               : IntersectSphere(_PlanetaryRadiusSquared,   cosChi, r).x; // Min root
 
+    // tMax = max(tMax, h * -cosChi);
+
     float3 radiance = 0;
 
 #if (SCATTERING_ORDER == 1)
@@ -93,12 +95,12 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         float  height1 = length(P1) - R;
         float  cosChi1 = dot(normalize(P1), D);
 
-        float3 inScatterTerm1 = 0;
-
         // TODO: perform an early termination of the loop if the ray enters planet's shadow
         // (light becomes occluded by the planet).
         float NdotL1  = dot(normalize(P1), L.xy);
         float cosHor1 = GetCosineOfHorizonZenithAngle(height1);
+
+        float3 inScatterTerm1 = 0;
 
         if (NdotL1 > cosHor)
         {
@@ -116,9 +118,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         // (Transmittance(0, a) + Transmittance(0, b)) * (b - a) / 2 =
         // (Transmittance(0, a) + Transmittance(0, tMax) / Transmittance(b, tMax)) * (b - a) / 2.
         // We handle other terms in a similar way (by pre-multiplying transmittance).
-        float3 lightInt = (inScatterTerm0 + inScatterTerm1) * _SunRadiance * (0.5 * dt);
-
-        radiance += lightInt;
+        radiance += (inScatterTerm0 + inScatterTerm1) * _SunRadiance * (0.5 * dt);
 
         // Carry these over to the next iteration...
         t0             = t1;
@@ -180,6 +180,8 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     //         radiance += weight * scatter * transm * gBrdf * SampleGroundIrradianceTexture(dot(gN, L));
     //     }
     // }
+
+    // if (!aboveHorizon) radiance = 0;
 
     // TODO: deep compositing.
     float4 tableEntry = float4(radiance, tMax);

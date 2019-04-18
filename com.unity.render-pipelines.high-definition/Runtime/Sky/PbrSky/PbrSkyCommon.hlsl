@@ -60,37 +60,6 @@ float3 AtmosphereScatter(float LdotV, float height)
     return AirScatter(LdotV, height) + AerosolScatter(LdotV, height);
 }
 
-// Returns a negative number if there's no intersection.
-float IntersectAtmosphereFromOutside(float cosChi, float height)
-{
-    float R = _PlanetaryRadius;
-    float h = height;
-    float r = R + h;
-
-    // r_o = float2(0, r)
-    // r_d = float2(sinChi, cosChi)
-    // p_s = r_o + t * r_d
-    //
-    // (R + H)^2 = dot(r_o + t * r_d, r_o + t * r_d)
-    // (R + H)^2 = ((r_o + t * r_d).x)^2 + ((r_o + t * r_d).y)^2
-    // (R + H)^2 = t^2 + 2 * dot(r_o, r_d) + dot(r_o, r_o)
-    //
-    // t^2 + 2 * dot(r_o, r_d) + dot(r_o, r_o) - (R + H)^2 = 0
-    //
-    // Solve: t^2 + (2 * b) * t + c = 0.
-    //
-    // t = (-2 * b + sqrt((2 * b)^2 - 4 * c)) / 2
-    // t = -b + sqrt(b^2 - c)
-    // t = -b + sqrt(d)
-
-    float b = r * cosChi;
-    float c = r * r - _AtmosphericRadiusSquared;
-    float d = b * b - c;
-
-    // We are only interested in the smallest root (closest intersection).
-    return (d >= 0) ? (-b - sqrt(d)) : d;
-}
-
 // Returns the closest hit in X and the farthest hit in Y.
 // Returns a negative number if there's no intersection.
 float2 IntersectSphere(float radiusSquared, float cosChi, float radialDistance)
@@ -112,28 +81,15 @@ float2 IntersectSphere(float radiusSquared, float cosChi, float radialDistance)
     //
     // t = (-2 * b + sqrt((2 * b)^2 - 4 * c)) / 2
     // t = -b + sqrt(b^2 - c)
+    // t = -b + sqrt(R^2 - r^2 + (r * cosChi)^2)
+    // t = -b + sqrt(R^2 - r^2 * (1 - cosChi)^2)
+    // t = -b + sqrt(R^2 - (r * sinChi)^2)
     // t = -b + sqrt(d)
 
     float b = r * cosChi;
-    float c = r * r - R2;
-    float d = b * b - c;
+    float d = R2 - ((r * r) * saturate((1 - cosChi * cosChi)));
 
     return (d >= 0) ? float2(-b - sqrt(d), -b + sqrt(d)) : d;
-}
-
-// Assumes there is an intersection.
-float IntersectPlanetFromOutside(float cosChi, float height)
-{
-    float R = _PlanetaryRadius;
-    float h = height;
-    float r = R + h;
-
-    float b = r * cosChi;
-    float c = r * r - _PlanetaryRadiusSquared;
-    float d = b * b - c;
-
-    // We are only interested in the smallest root (closest intersection).
-    return -b - sqrt(abs(d)); // Prevent NaNs
 }
 
 float MapQuadraticHeight(float height)
@@ -170,11 +126,11 @@ float2 MapAerialPerspective(float cosChi, float height, float texelSize)
 
     // The pow(u, 0.2) will allocate most samples near the horizon.
     float x = (cosChi - cosHor) * rcp(1 - s * cosHor); // in [-1, 1]
-    float m = s * pow(abs(x), 0.2);
+    float m = pow(abs(x), 0.2);
 
     // Lighting must be discontinuous across the horizon.
     // Thus, we offset by half a texel to avoid interpolation artifacts.
-    m = CopySign(max(abs(m), texelSize), m);
+    m = s * max(m, texelSize);
 
     float u = saturate(m * 0.5 + 0.5);
     float v = MapQuadraticHeight(height);
