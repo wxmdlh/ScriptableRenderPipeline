@@ -564,6 +564,9 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
             getSurfaceDataFunction.AppendLine("    " + vfxInfos.loadAttributes.Replace("\n", "\n    "));
 
             getSurfaceDataFunction.Append(@"
+
+            if( !alive) discard;
+
     #ifdef VFX_ALPHA_IN_UV3
         alpha = IN.uv3.y;
     #elif defined(VFX_ALPHA_IN_COLOR)
@@ -572,7 +575,7 @@ void ParticleGetSurfaceAndBuiltinData(FragInputs input, uint index,float3 V, ino
 
     #ifdef VFX_COLOR_IN_UV23
         color = float3(IN.uv2.xy,IN.uv3.x);
-    #elif defined(VFX_ALPHA_IN_UV3)
+    #elif defined(VFX_COLOR_IN_COLOR)
         color = IN.VertexColor.rgb;
     #endif
     ");
