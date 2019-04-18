@@ -13,7 +13,6 @@ namespace UnityEditor.VFX
         public override string codeGeneratorTemplate { get { return RenderPipeTemplate("VFXParticleLitTriangle"); } }
         public override VFXTaskType taskType { get { return VFXTaskType.ParticleTriangleOutput; } }
         public override bool supportsUV { get { return true; } }
-        public override bool supportsMotionVector { get { return true; } }
 
         [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField]
         protected bool normalBending = false;
