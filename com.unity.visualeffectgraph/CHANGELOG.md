@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [6.7.0-preview] - 2019-XX-XX
 ### Added
 - Distortion Outputs (Quad / Mesh)
+- Set Attribute is now spaceable on a specific set of attributes (position, velocity, axis...)
 
 ### Fixed
 - Fix shader compilation error with debug views
