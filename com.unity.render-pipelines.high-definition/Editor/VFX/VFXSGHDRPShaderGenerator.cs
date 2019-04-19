@@ -843,9 +843,15 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
 
 
             shader.Append("\t" + vfxInfos.vertexShaderContent.Replace("\n", "\n\t"));
+
+            shader.AppendLine(@"
+    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
+
+    float3 particlePos;
+    VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);");
+
             // add shader code to compute Position if any
             shader.AppendLine(sb.ToString());
-
             // add shader code to take new objectPos into account if the position slot is linked to something
             var slot = graph.passes[currentPass].vertex.slots.FirstOrDefault(t => t.shaderOutputName == "Position");
             if (slot != null)
@@ -856,12 +862,6 @@ PackedVaryingsType ParticleVert(AttributesMesh inputMesh)
                     shader.AppendFormat("float3 objectPos = {0};\nparticlePos = mul(elementToVFX,float4(objectPos,1)).xyz; \n", graph.graphData.outputNode.GetSlotValue(slot.id, GenerationMode.ForReals));
                 }
             }
-
-            shader.AppendLine(@"
-    float4x4 elementToVFX = GetElementToVFXMatrix(axisX,axisY,axisZ,float3(angleX,angleY,angleZ),float3(pivotX,pivotY,pivotZ),size3,position);
-
-    float3 particlePos;
-    VertInputForSG IN = InitializeVertStructs(inputMesh,elementToVFX, particlePos);");
 
             shader.Append(@"
 

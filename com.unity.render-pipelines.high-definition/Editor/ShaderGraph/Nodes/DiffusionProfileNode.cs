@@ -7,6 +7,9 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 using System;
 using UnityEngine.Rendering;
 
+
+using SGPopupList = UnityEditor.ShaderGraph.Drawing.Controls.PopupList;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     [Title("Input", "High Definition Render Pipeline", "Diffusion Profile")]
@@ -25,7 +28,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         }
 
         [SerializeField, Obsolete("Use m_DiffusionProfileAsset instead.")]
-        PopupList m_DiffusionProfile = new PopupList();
+        SGPopupList m_DiffusionProfile = new SGPopupList();
 
         // Helper class to serialize an asset inside a shader graph
         [Serializable]
