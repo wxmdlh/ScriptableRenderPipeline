@@ -124,15 +124,26 @@ float2 MapAerialPerspective(float cosChi, float height, float texelSize)
     // Above horizon?
     float s = FastSign(cosChi - cosHor);
 
-    // The pow(u, 0.2) will allocate most samples near the horizon.
     float x = (cosChi - cosHor) * rcp(1 - s * cosHor); // in [-1, 1]
-    float m = pow(abs(x), 0.2);
+    // The pow(u, 0.25) will allocate most samples near the horizon.
+    float m = pow(abs(x), 0.25);
 
     // Lighting must be discontinuous across the horizon.
     // Thus, we offset by half a texel to avoid interpolation artifacts.
     m = s * max(m, texelSize);
 
     float u = saturate(m * 0.5 + 0.5);
+    float v = MapQuadraticHeight(height);
+
+    return float2(u, v);
+}
+
+float2 MapAerialPerspectiveAboveHorizon(float cosChi, float height)
+{
+    float cosHor = GetCosineOfHorizonZenithAngle(height);
+
+    float x = (cosChi - cosHor) * rcp(1 - cosHor);
+    float u = pow(saturate(x), 0.25);
     float v = MapQuadraticHeight(height);
 
     return float2(u, v);
@@ -146,22 +157,11 @@ float2 UnmapAerialPerspective(float2 uv)
 
     float m = uv.x * 2 - 1;
     float s = FastSign(m);
-    float x = m * (m * m) * (m * m);
+    float x = s * (m * m) * (m * m);
 
     float cosChi = x * (1 - s * cosHor) + cosHor;
 
     return float2(cosChi, height);
-}
-
-float2 MapAerialPerspectiveAboveHorizon(float cosChi, float height)
-{
-    float cosHor = GetCosineOfHorizonZenithAngle(height);
-
-    float x = (cosChi - cosHor) * rcp(1 - cosHor);
-    float u = pow(saturate(x), 0.2);
-    float v = MapQuadraticHeight(height);
-
-    return float2(u, v);
 }
 
 float2 UnmapAerialPerspectiveAboveHorizon(float2 uv)
@@ -169,7 +169,7 @@ float2 UnmapAerialPerspectiveAboveHorizon(float2 uv)
     float height = UnmapQuadraticHeight(uv.y);
     float cosHor = GetCosineOfHorizonZenithAngle(height);
 
-    float x = uv.x * (uv.x * uv.x) * (uv.x * uv.x);
+    float x = (uv.x * uv.x) * (uv.x * uv.x);
 
     float cosChi = x * (1 - cosHor) + cosHor;
 

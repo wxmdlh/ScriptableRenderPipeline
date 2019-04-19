@@ -340,8 +340,8 @@ real RadToDeg(real rad)
 }
 
 // Square functions for cleaner code
-TEMPLATE_1_REAL(Sq, x, return x * x)
-TEMPLATE_1_INT(Sq, x, return x * x)
+TEMPLATE_1_REAL(Sq, x, return (x) * (x))
+TEMPLATE_1_INT(Sq, x, return (x) * (x))
 
 bool IsPower2(uint x)
 {
