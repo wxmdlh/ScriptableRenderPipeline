@@ -8,25 +8,6 @@ namespace UnityEngine.Rendering.LWRP
 {    
     public class ForwardRendererData : ScriptableRendererData
     {
-#if UNITY_EDITOR
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812")]
-        internal class CreateForwardRendererAsset : EndNameEditAction
-        {
-            public override void Action(int instanceId, string pathName, string resourceFile)
-            {
-                var instance = CreateInstance<ForwardRendererData>();
-                AssetDatabase.CreateAsset(instance, pathName);
-                Selection.activeObject = instance;
-            }
-        }
-
-        [MenuItem("Assets/Create/Rendering/Lightweight Render Pipeline/Forward Renderer", priority = CoreUtils.assetCreateMenuPriority1)]
-        static void CreateForwardRendererData()
-        {
-            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, CreateInstance<CreateForwardRendererAsset>(), "CustomForwardRendererData.asset", null, null);
-        }
-#endif
-
         [Serializable, ReloadGroup]
         public sealed class ShaderResources
         {
@@ -38,6 +19,25 @@ namespace UnityEngine.Rendering.LWRP
 
             [SerializeField, Reload("Shaders/Utils/ScreenSpaceShadows.shader")]
             public Shader screenSpaceShadowPS;
+
+#if UNITY_EDITOR
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812")]
+        internal class CreateForwardRendererAsset : EndNameEditAction
+        {
+            public override void Action(int instanceId, string pathName, string resourceFile)
+            {
+                var instance = CreateInstance<ForwardRendererData>();
+                AssetDatabase.CreateAsset(instance, pathName);
+                Selection.activeObject = instance;
+            }
+        }
+        
+        [MenuItem("Assets/Create/Rendering/Lightweight Render Pipeline/Forward Renderer", priority = CoreUtils.assetCreateMenuPriority1)]
+        static void CreateForwardRendererData()
+        {
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, CreateInstance<CreateForwardRendererAsset>(), "CustomForwardRendererData.asset", null, null);
+        }
+#endif
         
             [SerializeField, Reload("Shaders/Utils/Sampling.shader")]
             public Shader samplingPS;

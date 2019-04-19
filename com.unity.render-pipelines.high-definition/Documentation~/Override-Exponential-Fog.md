@@ -4,12 +4,11 @@ The High Definition Render Pipeline (HDRP) provides a type of [fog](Fog-Overview
 
 ## Using Exponential Fog
 
-**Exponential Fog** uses the [Volume](Volumes.html) framework, so to enable and modify **Exponential Fog** properties, you must add an **Exponential Fog** override to a [Volume](Volumes.html) in your Scene. To add **Exponential Fog** to a Volume:
+Exponential Fog uses the [Volume](Volumes.html) framework, which means that to enable and modify Exponential Fog properties, you must add an **Exponential Fog** override to a [Volume](Volumes.html) in your Scene.
 
-1. Select the Volume component in the Scene or Hierarchy to view it in the Inspector.
-2. In the Inspector, navigate to **Add Override > Fog** and click on **Exponential Fog**.
+To add **Exponential Fog** to a Volume, select the Volume component in the Scene or Hierarchy to view it in the Inspector, then navigate to **Add Override > Fog** and click on **Exponential Fog**.
 
-After you add an **Exponential Fog** override, you must set the Volume to use **Exponential Fog**. The [Visual Environment](Override-Visual-Environment.html) override controls which type of fog the Volume uses. In the **Visual Environment** override, navigate to the **Fog** section and set the **Type** to **Exponential Fog**. HDRP now renders **Exponential Fog** for any Camera this Volume affects.
+After you add an **Exponential Fog** override, you must set the Volume to use Exponential Fog. The [Visual Environment](Override-Visual-Environment.html) override controls which type of fog the Volume uses. In the Visual Environment override, navigate to the **Fog** section and set the **Type** to **Exponential Fog**. HDRP now applies **Exponential Fog** to any Camera this Volume affects.
 
 ## Properties
 

@@ -60,7 +60,7 @@ ${VFXBegin:VFXVertexAdditionalProcess}
 ${VFXHDRPLitFillVaryings}
 ${VFXEnd}
 
-	${VFXInclude("Shaders/ParticlePlanarPrimitives/Pass.template")}
+	${VFXInclude("Shaders/ParticleQuads/Pass.template")}
 	#define SHADERPASS SHADERPASS_DEPTH_ONLY
 	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLit.template")}
 		

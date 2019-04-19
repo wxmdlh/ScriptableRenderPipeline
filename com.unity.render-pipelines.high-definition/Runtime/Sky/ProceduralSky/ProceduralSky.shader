@@ -21,6 +21,7 @@ Shader "Hidden/HDRP/Sky/ProceduralSky"
     #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Sky/SkyUtils.hlsl"
 
     float4   _SkyParam; // x exposure, y multiplier
+    float4x4 _PixelCoordToViewDirWS; // Actually just 3x3, but Unity can only set 4x4
 
     float _SunSize;
     float _SunSizeConvergence;
@@ -123,7 +124,7 @@ Shader "Hidden/HDRP/Sky/ProceduralSky"
 
     float4 RenderSky(Varyings input)
     {
-        float3 viewDirWS = GetSkyViewDirWS(input.positionCS.xy);
+        float3 viewDirWS = GetSkyViewDirWS(input.positionCS.xy, (float3x3)_PixelCoordToViewDirWS);
 
         // Reverse it to point into the scene
         float3 dir = -viewDirWS;
