@@ -2,12 +2,12 @@
 #pragma kernel DeferredContactShadow                DEFERRED_CONTACT_SHADOW_GENERIC=DeferredContactShadow
 #pragma kernel DeferredContactShadowMSAA            DEFERRED_CONTACT_SHADOW_GENERIC=DeferredContactShadowMSAA         ENABLE_MSAA
 //seongdae;vxsm
-#pragma kernel DeferredVxShadowNearest              DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowNearest                NEAREST_SAMPLE
-#pragma kernel DeferredVxShadowBilinear             DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowBilinear               BILINEAR_SAMPLE
-#pragma kernel DeferredVxShadowTrilinear            DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowTrilinear              TRILINEAR_SAMPLE
-#pragma kernel DeferredVxShadowNearestMSAA          DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowNearestMSAA            NEAREST_SAMPLE   ENABLE_MSAA
-#pragma kernel DeferredVxShadowBilinearMSAA         DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowBilinearMSAA           BILINEAR_SAMPLE  ENABLE_MSAA
-#pragma kernel DeferredVxShadowTrilinearMSAA        DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowTrilinearMSAA          TRILINEAR_SAMPLE ENABLE_MSAA
+#pragma kernel DeferredVxShadowNearest              DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowNearest                VX_SHADOWS NEAREST_SAMPLE
+#pragma kernel DeferredVxShadowBilinear             DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowBilinear               VX_SHADOWS BILINEAR_SAMPLE
+#pragma kernel DeferredVxShadowTrilinear            DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowTrilinear              VX_SHADOWS TRILINEAR_SAMPLE
+#pragma kernel DeferredVxShadowNearestMSAA          DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowNearestMSAA            VX_SHADOWS NEAREST_SAMPLE   ENABLE_MSAA
+#pragma kernel DeferredVxShadowBilinearMSAA         DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowBilinearMSAA           VX_SHADOWS BILINEAR_SAMPLE  ENABLE_MSAA
+#pragma kernel DeferredVxShadowTrilinearMSAA        DEFERRED_VX_SHADOW_GENERIC=DeferredVxShadowTrilinearMSAA          VX_SHADOWS TRILINEAR_SAMPLE ENABLE_MSAA
 //seongdae;vxsm
 
 #ifdef SHADER_API_PSSL
@@ -275,10 +275,11 @@ void DEFERRED_CONTACT_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uin
 
 //seongdae;vxsm
 [numthreads(DEFERRED_SHADOW_TILE_SIZE, DEFERRED_SHADOW_TILE_SIZE, 1)]
-void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
+void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID, uint3 dispatchThreadId : SV_DispatchThreadID)
 {
+    UNITY_STEREO_ASSIGN_COMPUTE_EYE_INDEX(dispatchThreadId.z);
+
     uint2 pixelCoord = groupId * DEFERRED_SHADOW_TILE_SIZE + groupThreadId;
-    pixelCoord.x = pixelCoord.x + (unity_StereoEyeIndex * _ScreenSize.x);
     uint2 tileCoord = groupId;
 
 #ifdef ENABLE_MSAA
@@ -288,7 +289,10 @@ void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 gr
 #endif
 
     if (depth == UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = 0;
         return;
+    }
 
     PositionInputs posInput = GetPositionInput_Stereo(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_V, tileCoord, unity_StereoEyeIndex);
     float3 positionWS = posInput.positionWS + _WorldSpaceCameraPos;
@@ -334,11 +338,11 @@ void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 gr
 
     if (any(posQ >= (voxelResolution.xxx - 1)))
     {
-        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = 0.0;
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = 0;
         return;
     }
 
-    float attenuation = 1.0;
+    float shadowing = 1.0;
 
 #if NEAREST_SAMPLE
     uint4 result;
@@ -346,31 +350,31 @@ void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 gr
 
     if (result.w == 0)
     {
-        attenuation = result.y ? 0.0 : 1.0;
-        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = attenuation;
+        shadowing = result.y ? 0.0 : 1.0;
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = PackVxShadowData(shadowing);
         return;
     }
 
-    attenuation = TraverseNearestSampleVxShadowMap(begin, OFFSET_DIR, posQ, result);
+    shadowing = 1.0 - TraverseNearestSampleVxShadowMap(begin, OFFSET_DIR, posQ, result);
 #elif BILINEAR_SAMPLE
     uint4 results[4];
     TraverseVxShadowMapPosQ2x2(begin, OFFSET_DIR, posQ, results);
 
     if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0)
     {
-        float4 attenuation4 = float4(
+        float4 shadowing4 = float4(
             results[0].y ? 0.0 : 1.0,
             results[1].y ? 0.0 : 1.0,
             results[2].y ? 0.0 : 1.0,
             results[3].y ? 0.0 : 1.0);
-        attenuation4.xy = lerp(attenuation4.xz, attenuation4.yw, lerpWeight.x);
+        shadowing4.xy = lerp(shadowing4.xz, shadowing4.yw, lerpWeight.x);
 
-        attenuation = lerp(attenuation4.x, attenuation4.y, lerpWeight.y);
-        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = attenuation;
+        shadowing = lerp(shadowing4.x, shadowing4.y, lerpWeight.y);
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = PackVxShadowData(shadowing);
         return;
     }
 
-    attenuation = TraverseBilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight.xy);
+    shadowing = 1.0 - TraverseBilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight.xy);
 #elif TRILINEAR_SAMPLE
     uint4 results[8];
     TraverseVxShadowMapPosQ2x2x2(begin, OFFSET_DIR, posQ, results);
@@ -378,28 +382,28 @@ void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 gr
     if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0 &&
         results[4].w == 0 && results[5].w == 0 && results[6].w == 0 && results[7].w == 0)
     {
-        float4 attenuation4_0 = float4(
+        float4 shadowing4_0 = float4(
             results[0].y ? 0.0 : 1.0,
             results[2].y ? 0.0 : 1.0,
             results[4].y ? 0.0 : 1.0,
             results[6].y ? 0.0 : 1.0);
-        float4 attenuation4_1 = float4(
+        float4 shadowing4_1 = float4(
             results[1].y ? 0.0 : 1.0,
             results[3].y ? 0.0 : 1.0,
             results[5].y ? 0.0 : 1.0,
             results[7].y ? 0.0 : 1.0);
 
-        attenuation4_0 = lerp(attenuation4_0, attenuation4_1, lerpWeight.x);
-        attenuation4_0.xy = lerp(attenuation4_0.xz, attenuation4_0.yw, lerpWeight.y);
+        shadowing4_0    = lerp(shadowing4_0,    shadowing4_1,    lerpWeight.x);
+        shadowing4_0.xy = lerp(shadowing4_0.xz, shadowing4_0.yw, lerpWeight.y);
 
-        attenuation = lerp(attenuation4_0.x, attenuation4_0.y, lerpWeight.z);
-        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = attenuation;
+        shadowing = lerp(shadowing4_0.x, shadowing4_0.y, lerpWeight.z);
+        _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = PackVxShadowData(shadowing);
         return;
     }
 
-    attenuation = TravereTrilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight);
+    shadowing = 1.0 - TravereTrilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight);
 #endif
 
-    _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = 1.0 - attenuation;
+    _DeferredShadowTextureUAV[COORD_TEXTURE2D_X(pixelCoord)] = PackVxShadowData(shadowing);
 }
 //seongdae;vxsm

@@ -449,7 +449,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // TODO: For MSAA, we'll need to add a Draw path in order to support MSAA properly
             // Use RG16 as we only have one deferred directional and one screen space shadow light currently
-            m_ScreenSpaceShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R32_UInt, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceShadowsBuffer");
+            //m_ScreenSpaceShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R32_UInt, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceShadowsBuffer"); //seongdae;vxsm;origin
+            m_ScreenSpaceContactShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R32_UInt, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceContactShadowsBuffer"); //seongdae;vxsm
+            m_ScreenSpaceVxShadowsBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: GraphicsFormat.R16_UInt, enableRandomWrite: true, xrInstancing: true, useDynamicScale: true, name: "ScreenSpaceVxShadowsBuffer"); //seongdae;vxsm
 
             if (m_Asset.currentPlatformRenderPipelineSettings.lowresTransparentSettings.enabled)
             {
@@ -1756,6 +1758,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // Contact shadows needs the light loop so we do them after the build light list
                 void RenderScreenSpaceShadows()
                 {
+                    //seongdae;vxsm;origin
+#if false
                     if (hdCamera.frameSettings.ContactShadowsRunAsync())
                     {
                         contactShadowsTask.Start(cmd, renderContext, ContactShadowStartCallback, !haveAsyncTaskWithShadows);
@@ -1778,6 +1782,52 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                         PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceShadowsBuffer, FullScreenDebugMode.ContactShadows);
                     }
+#endif
+                    //seongdae;vxsm;origin
+                    //seongdae;vxsm
+                    if (hdCamera.frameSettings.ContactShadowsRunAsync())
+                    {
+                        contactShadowsTask.Start(cmd, renderContext, ContactShadowStartCallback, !haveAsyncTaskWithShadows);
+
+                        haveAsyncTaskWithShadows = true;
+
+                        void ContactShadowStartCallback(CommandBuffer asyncCmd)
+                        {
+                            var firstMipOffsetY = m_SharedRTManager.GetDepthBufferMipChainInfo().mipLevelOffsets[1].y;
+                            m_LightLoop.RenderScreenSpaceContactShadows(hdCamera, m_ScreenSpaceContactShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, asyncCmd);
+                        }
+                    }
+                    else
+                    {
+                        HDUtils.CheckRTCreated(m_ScreenSpaceContactShadowsBuffer);
+
+                        int firstMipOffsetY = m_SharedRTManager.GetDepthBufferMipChainInfo().mipLevelOffsets[1].y;
+                        m_LightLoop.RenderScreenSpaceContactShadows(hdCamera, m_ScreenSpaceContactShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), firstMipOffsetY, cmd);
+                        m_LightLoop.SetScreenSpaceContactShadowsTexture(hdCamera, m_ScreenSpaceContactShadowsBuffer, cmd);
+
+                        PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceContactShadowsBuffer, FullScreenDebugMode.ContactShadows);
+                    }
+                    if (hdCamera.frameSettings.VxShadowsRunAsync())
+                    {
+                        vxShadowsTask.Start(cmd, renderContext, VxShadowStartCallback, !haveAsyncTaskWithShadows);
+
+                        haveAsyncTaskWithShadows = true;
+
+                        void VxShadowStartCallback(CommandBuffer asyncCmd)
+                        {
+                            m_LightLoop.RenderScreenSpaceVxShadows(hdCamera, m_ScreenSpaceVxShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), asyncCmd);
+                        }
+                    }
+                    else
+                    {
+                        HDUtils.CheckRTCreated(m_ScreenSpaceVxShadowsBuffer);
+
+                        m_LightLoop.RenderScreenSpaceVxShadows(hdCamera, m_ScreenSpaceVxShadowsBuffer, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? m_SharedRTManager.GetDepthValuesTexture() : m_SharedRTManager.GetDepthTexture(), cmd);
+                        m_LightLoop.SetScreenSpaceVxShadowsTexture(hdCamera, m_ScreenSpaceVxShadowsBuffer, cmd);
+
+                        PushFullScreenDebugTexture(hdCamera, cmd, m_ScreenSpaceVxShadowsBuffer, FullScreenDebugMode.VxShadows);
+                    }
+                    //seongdae;vxsm
                 }
 
                 {
@@ -2948,12 +2998,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 HDUtils.SetRenderTarget(cmd, m_SharedRTManager.GetDepthStencilBuffer());
                 RenderTransparentRenderList(cullResults, hdCamera, renderContext, cmd, m_TransparentDepthPostpassNames);
 
-                #if ENABLE_RAYTRACING
+#if ENABLE_RAYTRACING
                 // If there is a ray-tracing environment and the feature is enabled we want to push these objects to the transparent postpass (they are not rendered in the first call because they are not in the generic transparent render queue)
                 HDRaytracingEnvironment currentEnv = m_RayTracingManager.CurrentEnvironment();
                 if (currentEnv != null && currentEnv.raytracedObjects)
                     RenderTransparentRenderList(cullResults, hdCamera, renderContext, cmd, m_TransparentDepthPostpassNames, inRenderQueueRange : HDRenderQueue.k_RenderQueue_AllTransparentRaytracing);
-                #endif
+#endif
             }
         }
 

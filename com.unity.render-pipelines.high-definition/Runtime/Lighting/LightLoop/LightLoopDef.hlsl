@@ -12,6 +12,7 @@ struct LightLoopContext
 
     uint contactShadow;         // a bit mask of 24 bits that tell if the pixel is in a contact shadow or not
     float contactShadowFade;    // combined fade factor of all contact shadows
+    float vxShadowValue;        //seongdae;vxsm Stores the value of the voxelized shadow map
     float shadowValue;          // Stores the value of the cascade shadow map
 };
 
@@ -345,6 +346,20 @@ uint PackContactShadowData(float fade, uint mask)
     return fadeAsByte | mask;
 }
 
+//seongdae;vxsm
+void UnpackVxShadowData(uint vxShadowData, out float shadowing)
+{
+    shadowing = (float)vxShadowData / 65535.0;
+}
+
+uint PackVxShadowData(float shadowing)
+{
+    uint shadowingAsUint16 = shadowing * 65535.0;
+
+    return shadowingAsUint16;
+}
+//seongdae;vxsm
+
 // We always fetch the screen space shadow texture to reduce the number of shader variant, overhead is negligible,
 // it is a 1x1 white texture if deferred directional shadow and/or contact shadow are disabled
 // We perform a single featch a the beginning of the lightloop
@@ -355,7 +370,8 @@ void InitContactShadow(PositionInputs posInput, inout LightLoopContext context)
     // Note: When we ImageLoad outside of texture size, the value returned by Load is 0 (Note: On Metal maybe it clamp to value of texture which is also fine)
     // We use this property to have a neutral value for contact shadows that doesn't consume a sampler and work also with compute shader (i.e use ImageLoad)
     // We store inverse contact shadow so neutral is white. So either we sample inside or outside the texture it return 1 in case of neutral
-    uint packedContactShadow = LOAD_TEXTURE2D_X(_DeferredShadowTexture, posInput.positionSS).x;
+    //uint packedContactShadow = LOAD_TEXTURE2D_X(_DeferredShadowTexture, posInput.positionSS).x; //seongdae;vxsm;origin
+    uint packedContactShadow = LOAD_TEXTURE2D_X(_DeferredContactShadowTexture, posInput.positionSS).x; //seongdae;vxsm;
     UnpackContactShadowData(packedContactShadow, context.contactShadowFade, context.contactShadow);
 }
 
@@ -366,9 +382,13 @@ float GetContactShadow(LightLoopContext lightLoopContext, int contactShadowMask)
 }
 
 //seongdae;vxsm
-float InitVxShadow(PositionInputs posInput)
+void InitVxShadow(PositionInputs posInput, inout LightLoopContext context)
 {
-    return 1.0 - LOAD_TEXTURE2D_X(_DeferredVxShadowTexture, posInput.positionSS).x;
+    uint vxShadowData = LOAD_TEXTURE2D_X(_DeferredVxShadowTexture, posInput.positionSS).x;
+    float vxShadowing;
+
+    UnpackVxShadowData(vxShadowData, vxShadowing);
+    context.vxShadowValue = 1.0 - vxShadowing;
 }
 
 float GetVxShadow(LightLoopContext lightLoopContext)
