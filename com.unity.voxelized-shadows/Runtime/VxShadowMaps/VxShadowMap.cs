@@ -3,22 +3,22 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 {
     public enum VoxelResolution
     {
-        // for debugging
-        _64 = 64,
-        _128 = 64 << 1,
-        _256 = 64 << 2,
-        _512 = 64 << 3,
+        _64      = 64,
+        _128     = 64 << 1,
+        _256     = 64 << 2,
+        _512     = 64 << 3,
 
-        // actually exposed in editor
-        _1024 = 1024,
-        _2048 = _1024 << 1,
-        _4096 = _1024 << 2,
-        _8192 = _1024 << 3,
-        _16384 = _1024 << 4,
-        _32768 = _1024 << 5,
-        _65536 = _1024 << 6,
-        _131072 = _1024 << 7,
-        _262144 = _1024 << 8,
+        _1024    = 1024,       //    1K
+        _2048    = 1024 << 1,  //    2K
+        _4096    = 1024 << 2,  //    4K
+        _8192    = 1024 << 3,  //    8K
+        _16384   = 1024 << 4,  //   16K
+        _32768   = 1024 << 5,  //   32K
+        _65536   = 1024 << 6,  //   64K
+        _131072  = 1024 << 7,  //  128K
+        _262144  = 1024 << 8,  //  256K
+        _524288  = 1024 << 9,  //  512K
+        _1048576 = 1024 << 10, // 1024K
     }
 
     public enum ShadowsBlendMode
@@ -35,6 +35,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         public abstract int voxelResolutionInt { get; }
         public abstract VoxelResolution subtreeResolution { get; }
         public int subtreeResolutionInt { get { return (int)subtreeResolution; } }
+        public int index = -1;
         public ShadowsBlendMode shadowsBlendMode = ShadowsBlendMode.OnlyVxShadowMaps;
 
         public abstract bool IsValid();
