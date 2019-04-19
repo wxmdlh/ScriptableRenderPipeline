@@ -16,10 +16,6 @@
     #define SHADERPASS_FORWARD_BYPASS_ALPHA_TEST
 #endif
 
-#if SHADERPASS == SHADERPASS_SHADOWS
-    #define USE_LEGACY_UNITY_MATRIX_VARIABLES
-#endif
-
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
 #ifdef DEBUG_DISPLAY
     #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
@@ -69,7 +65,7 @@
 #endif
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/VaryingMesh.hlsl"
-#include "TerrainLitData.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitData.hlsl"
 
 #if SHADERPASS == SHADERPASS_GBUFFER
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassGBuffer.hlsl"

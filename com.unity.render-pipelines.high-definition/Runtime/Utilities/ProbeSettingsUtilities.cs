@@ -58,7 +58,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         cameraPosition.position = proxyMatrix.MultiplyPoint(settings.proxySettings.capturePositionProxySpace);
                         cameraPosition.rotation = proxyMatrix.rotation * settings.proxySettings.captureRotationProxySpace;
 
-                        
+                        // In case of probe baking, 99% of the time, orientation of the cubemap doesn't matters
+                        //   so, we build one without any rotation, thus we don't have to change the basis
+                        //   during sampling the cubemap.
+                        if (settings.type == ProbeSettings.ProbeType.ReflectionProbe)
+                            cameraPosition.rotation = Quaternion.identity;
                         break;
                     }
                 case PositionMode.MirrorReferenceTransformWithProbePlane:
@@ -91,6 +95,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 case ProbeSettings.Mode.Baked:
                 case ProbeSettings.Mode.Custom:
                     cameraSettings.defaultFrameSettings = FrameSettingsRenderType.CustomOrBakedReflection;
+                    break;
+            }
+
+            switch (settings.type)
+            {
+                case ProbeSettings.ProbeType.ReflectionProbe:
+                    cameraSettings.customRenderingSettings = true;
+                    // Disable specular lighting for reflection probes, they must not have view dependent information when baking
+                    cameraSettings.renderingPathCustomFrameSettings.SetEnabled(FrameSettingsField.SpecularLighting, false);
+                    cameraSettings.renderingPathCustomFrameSettingsOverrideMask.mask[(int)FrameSettingsField.SpecularLighting] = true;
                     break;
             }
         }
