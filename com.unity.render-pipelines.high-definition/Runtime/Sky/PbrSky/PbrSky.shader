@@ -65,7 +65,8 @@ Shader "Hidden/HDRP/Sky/PbrSky"
         else
         {
             // We are observing the planet from space.
-            float t = IntersectSphere(_AtmosphericRadiusSquared, dot(N, -V), r).x; // Min root
+            float _AtmosphericRadius = _PlanetaryRadius + _AtmosphericDepth;
+            float t = IntersectSphere(_AtmosphericRadius, dot(N, -V), r).x; // Min root
 
             if (t >= 0)
             {
@@ -100,7 +101,7 @@ Shader "Hidden/HDRP/Sky/PbrSky"
         float k = INV_PI * phiL;
 
         // Do we see the ground?
-        if (cosChi < cosHor)
+        if (cosChi <= cosHor)
         {
             float  t  = IntersectSphere(_PlanetaryRadiusSquared, cosChi, r).x;
             float3 gP = P + t * -V;

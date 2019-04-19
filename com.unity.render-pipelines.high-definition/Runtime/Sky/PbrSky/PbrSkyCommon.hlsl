@@ -62,10 +62,10 @@ float3 AtmosphereScatter(float LdotV, float height)
 
 // Returns the closest hit in X and the farthest hit in Y.
 // Returns a negative number if there's no intersection.
-float2 IntersectSphere(float radiusSquared, float cosChi, float radialDistance)
+float2 IntersectSphere(float sphereRadius, float cosChi, float radialDistance)
 {
-    float r  = radialDistance;
-    float R2 = radiusSquared;
+    float R = sphereRadius;
+    float r = radialDistance;
 
     // r_o = float2(0, r)
     // r_d = float2(sinChi, cosChi)
@@ -77,19 +77,25 @@ float2 IntersectSphere(float radiusSquared, float cosChi, float radialDistance)
     //
     // t^2 + 2 * dot(r_o, r_d) + dot(r_o, r_o) - R^2 = 0
     //
-    // Solve: t^2 + (2 * b) * t + c = 0.
+    // Solve: t^2 + (2 * b) * t + c = 0, where
+    // b = -r * cosChi,
+    // c = r^2 - R^2.
     //
     // t = (-2 * b + sqrt((2 * b)^2 - 4 * c)) / 2
     // t = -b + sqrt(b^2 - c)
-    // t = -b + sqrt(R^2 - r^2 + (r * cosChi)^2)
-    // t = -b + sqrt(R^2 - r^2 * (1 - cosChi)^2)
-    // t = -b + sqrt(R^2 - (r * sinChi)^2)
-    // t = -b + sqrt(d)
+    // t = -b + sqrt((r * cosChi)^2 + R^2 - r^2)
+    // t = -b + r * sqrt((cosChi)^2 + (R/r)^2 - 1)
+    // t = -b + r * sqrt((cosChi)^2 - (1 - (R/r)^2))
+    // t = -b + r * sqrt(d)
+    // t = r * (-cosChi + sqrt(d))
+    //
+    // Why do we do this? Because it is more numerically robust.
 
-    float b = r * cosChi;
-    float d = R2 - ((r * r) * saturate((1 - cosChi * cosChi)));
+    float d = cosChi * cosChi - (1 - Sq(R * rcp(r)));
 
-    return (d >= 0) ? float2(-b - sqrt(d), -b + sqrt(d)) : d;
+    // Return the value of 'd' for debugging purposes.
+    return (d < 0) ? d : (r * float2(-cosChi - sqrt(d),
+                                     -cosChi + sqrt(d)));
 }
 
 float MapQuadraticHeight(float height)
@@ -161,6 +167,8 @@ float2 UnmapAerialPerspective(float2 uv)
 
     float cosChi = x * (1 - s * cosHor) + cosHor;
 
+    cosChi += s * FLT_EPS; // Avoid the (cosChi == cosHor) case due to the FP arithmetic
+
     return float2(cosChi, height);
 }
 
@@ -172,6 +180,8 @@ float2 UnmapAerialPerspectiveAboveHorizon(float2 uv)
     float x = (uv.x * uv.x) * (uv.x * uv.x);
 
     float cosChi = x * (1 - cosHor) + cosHor;
+
+    cosChi += FLT_EPS; // Avoid the (cosChi == cosHor) case due to the FP arithmetic
 
     return float2(cosChi, height);
 }

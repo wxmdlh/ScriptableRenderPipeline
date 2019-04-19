@@ -41,7 +41,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float phiL   = PI * saturate(texId * rcp(zTexCnt - 1));
     float NdotV  = -cosChi;
 
-    bool aboveHorizon = (cosChi >= cosHor);
+    bool aboveHorizon = (cosChi > cosHor);
 
     float3 N = float3(0, 0, 1);
     float3 V = SphericalToCartesian(0, NdotV);
@@ -57,11 +57,17 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float2 O = float2(0, r);
     float2 D = float2(SinFromCos(cosChi), cosChi);
 
-    // Compute the distance to the atmospheric boundary.
-    float tMax = aboveHorizon ? IntersectSphere(_AtmosphericRadiusSquared, cosChi, r).y  // Max root
-                              : IntersectSphere(_PlanetaryRadiusSquared,   cosChi, r).x; // Min root
+    float tMax;
 
-    // tMax = max(tMax, h * -cosChi);
+    if (aboveHorizon)
+    {
+        float _AtmosphericRadius = _PlanetaryRadius + _AtmosphericDepth;
+        tMax = IntersectSphere(_AtmosphericRadius, cosChi, r).y; // Max root
+    }
+    else
+    {
+        tMax = IntersectSphere(_PlanetaryRadius, cosChi, r).x; // Min root
+    }
 
     float3 radiance = 0;
 
@@ -74,15 +80,23 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     // and for horizontal rays (due to the exponential transmittance term).
     // It's easy enough to use a simple quadratic remap.
 
-    float  t0            = 0;
-    float3 viewTransmX   = SampleTransmittanceTexture(cosChi, height); // Start to end
-    float3 viewTransm0   = 1;                                          // Start to sample
+    float  t0          = 0;
+    float3 viewTransmX = SampleTransmittanceTexture(cosChi, height); // Start to end
+
     // TODO: we don't have to apply the phase function here.
     // It's a better idea to apply it when sampling the texture.
     // We can even make the single scattering texture 3D instead of 4D!
-    float3 lightScatter0  = AtmosphereScatter(LdotV, height);
-    float3 lightTransm0   = SampleTransmittanceTexture(NdotL, height);
-    float3 inScatterTerm0 = viewTransm0 * lightScatter0 * lightTransm0;
+
+    float3 inScatterTerm0 = 0;
+
+    if (NdotL > cosHor)
+    {
+        float3 viewTransm0   = 1;
+        float3 lightScatter0 = AtmosphereScatter(LdotV, height);
+        float3 lightTransm0  = SampleTransmittanceTexture(NdotL, height);
+
+        inScatterTerm0 = viewTransm0 * lightScatter0 * lightTransm0;
+    }
 
     // const int numSamples = 4096;
     const int numSamples = 256;
@@ -185,6 +199,9 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     // TODO: deep compositing.
     float4 tableEntry = float4(radiance, tMax);
+    // float4 tableEntry = float4(radiance, tMax);
+    // float4 tableEntry = float4(cosChi, h, NdotL, tMax);
+    // float4 tableEntry = float4(viewTransmX, tMax);
 
     _InScatteredRadianceTable[tableCoord] = tableEntry;
 }
