@@ -247,7 +247,9 @@ float3 SampleTransmittanceTexture(float cosChi, float height)
 // Map: [-0.1975, 1] -> [0, 1].
 float MapCosineOfZenithAngle(float NdotL)
 {
-    // Clamp to around 101 degrees. Seems arbitrary?
+    // Clamp to around 101 degrees.
+    // Note: this only makes sense for Earth's atmosphere.
+    // It would not work for a tiny planet with a huge atmosphere, for instance.
     float x = max(NdotL, -0.1975);
     return 0.5 * (atan(x * 5.34962350) * rcp(1.1) + (1 - 0.26));
 }
