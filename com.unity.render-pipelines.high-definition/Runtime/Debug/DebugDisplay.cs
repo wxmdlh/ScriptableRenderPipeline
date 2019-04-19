@@ -18,6 +18,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         SSAO,
         ScreenSpaceReflections,
         ContactShadows,
+        ContactShadowsFade,
         VxShadows, //seongdae;vxsm
         PreRefractionColorPyramid,
         DepthPyramid,
@@ -70,13 +71,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         static int[] s_CameraNamesValues = null;
 
         static bool needsRefreshingCameraFreezeList = true;
-        
+
         public class DebugData
         {
             public float debugOverlayRatio = 0.33f;
             public FullScreenDebugMode fullScreenDebugMode = FullScreenDebugMode.None;
             public float fullscreenDebugMip = 0.0f;
+            public int fullScreenContactShadowLightIndex = 0;
             public bool showSSSampledColor = false;
+            public bool showContactShadowFade = false;
 
             public MaterialDebugSettings materialDebugSettings = new MaterialDebugSettings();
             public LightingDebugSettings lightingDebugSettings = new LightingDebugSettings();
@@ -117,7 +120,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public DebugData data { get => m_Data; }
 
-        public static GUIContent[] renderingFullScreenDebugStrings => s_RenderingFullScreenDebugStrings; 
+        public static GUIContent[] renderingFullScreenDebugStrings => s_RenderingFullScreenDebugStrings;
         public static int[] renderingFullScreenDebugValues => s_RenderingFullScreenDebugValues;
 
         public DebugDisplaySettings()
@@ -136,9 +139,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_Data = new DebugData();
         }
-        
+
         Action IDebugData.GetReset() => () => m_Data = new DebugData();
-        
+
         public float[] GetDebugMaterialIndexes()
         {
             return data.materialDebugSettings.GetDebugMaterialIndexes();
@@ -261,7 +264,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             if (data.lightingDebugSettings.shadowDebugMode == ShadowMapDebugMode.SingleShadow)
                 value = 0;
-            
+
             data.fullScreenDebugMode = value;
         }
 
@@ -527,6 +530,28 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     });
                     break;
                 }
+                case FullScreenDebugMode.ContactShadows:
+                    list.Add(new DebugUI.Container
+                    {
+                        children =
+                        {
+                            new DebugUI.IntField
+                            {
+                                displayName = "Light Index",
+                                getter = () =>
+                                {
+                                    return data.fullScreenContactShadowLightIndex;
+                                },
+                                setter = value =>
+                                {
+                                    data.fullScreenContactShadowLightIndex = value;
+                                },
+                                min = () => -1, // -1 will display all contact shadow
+                                max = () => LightDefinitions.s_LightListMaxPrunedEntries - 1
+                            },
+                        }
+                    });
+                    break;
                 default:
                     data.fullscreenDebugMip = 0;
                     break;
@@ -662,13 +687,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     }
                 }
             });
-            
+
             widgetList.Add(new DebugUI.BoolField  { displayName = "False Color Mode", getter = () => data.falseColorDebugSettings.falseColor, setter = value => data.falseColorDebugSettings.falseColor = value, onValueChanged = RefreshRenderingDebug });
             if (data.falseColorDebugSettings.falseColor)
             {
                 widgetList.Add(new DebugUI.Container{
                     flags = DebugUI.Flags.EditorOnly,
-                    children = 
+                    children =
                     {
                         new DebugUI.FloatField { displayName = "Range Threshold 0", getter = () => data.falseColorDebugSettings.colorThreshold0, setter = value => data.falseColorDebugSettings.colorThreshold0 = Mathf.Min(value, data.falseColorDebugSettings.colorThreshold1) },
                         new DebugUI.FloatField { displayName = "Range Threshold 1", getter = () => data.falseColorDebugSettings.colorThreshold1, setter = value => data.falseColorDebugSettings.colorThreshold1 = Mathf.Clamp(value, data.falseColorDebugSettings.colorThreshold0, data.falseColorDebugSettings.colorThreshold2) },
@@ -761,7 +786,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 s_CameraNames.Add(new GUIContent(name));
                 needsRefreshingCameraFreezeList = true;
             }
-            
+
             var history = FrameSettingsHistory.RegisterDebug(camera, additionalData);
             DebugManager.instance.RegisterData(history);
         }
