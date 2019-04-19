@@ -22,10 +22,6 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         private List<PointVxShadowMap> _pointVxShadowMapList = new List<PointVxShadowMap>();
         private List<SpotVxShadowMap> _spotVxShadowMapList = new List<SpotVxShadowMap>();
 
-        private VxShadowMap _vxShadowMapOnStage = null;
-
-        public delegate bool VerifyValidation();
-
         private static VxShadowMapsManager _instance = null;
         public static VxShadowMapsManager instance
         {
@@ -206,55 +202,9 @@ namespace UnityEngine.Experimental.VoxelizedShadows
             return _vxShadowMapsBuffer != null ? (uint)_vxShadowMapsBuffer.count * 4 : 0;
         }
 
-        public void Stage(DirectionalVxShadowMap vxsm)
-        {
-            foreach (var dirVxsm in _dirVxShadowMapList)
-            {
-                if (dirVxsm == vxsm)
-                {
-                    _vxShadowMapOnStage = dirVxsm;
-                    break;
-                }
-            }
-        }
-        public void Stage(PointVxShadowMap vxsm)
-        {
-            foreach (var pointVxsm in _pointVxShadowMapList)
-            {
-                if (pointVxsm == vxsm)
-                {
-                    _vxShadowMapOnStage = pointVxsm;
-                    break;
-                }
-            }
-        }
-        public void Stage(SpotVxShadowMap vxsm)
-        {
-            foreach (var spotVxsm in _spotVxShadowMapList)
-            {
-                if (spotVxsm == vxsm)
-                {
-                    _vxShadowMapOnStage = spotVxsm;
-                    break;
-                }
-            }
-        }
-        public void Unstage()
-        {
-            _vxShadowMapOnStage = null;
-        }
-
         public List<DirectionalVxShadowMap> DirVxShadowMaps { get { return _dirVxShadowMapList; } }
         public List<PointVxShadowMap> PointVxShadowMaps { get { return _pointVxShadowMapList; } }
         public List<SpotVxShadowMap> SpotVxShadowMaps { get { return _spotVxShadowMapList; } }
-
-        public VxShadowMap VxShadowMapOnStage
-        {
-            get
-            {
-                return _vxShadowMapOnStage;
-            }
-        }
 
         public ComputeBuffer VxShadowMapsNullBuffer
         {
