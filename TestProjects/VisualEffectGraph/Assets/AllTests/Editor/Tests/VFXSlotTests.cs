@@ -289,6 +289,41 @@ namespace UnityEditor.VFX.Test
             Assert.AreEqual(v3_Ref.y, vector3Value.y);
         }
 
+
+        [Test]
+        public void Slot_Copy_Link_Transform_To_OrientedBox()
+        {
+            var sourceOfLink = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            sourceOfLink.SetSettingValue("m_Type", (SerializableType)typeof(float));
+
+            var transform = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            transform.SetSettingValue("m_Type", (SerializableType)typeof(Transform));
+
+            var orientedBox = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            orientedBox.SetSettingValue("m_Type", (SerializableType)typeof(OrientedBox));
+
+            Assert.IsTrue(transform.inputSlots[0][0][0].Link(sourceOfLink.outputSlots[0]));
+            VFXSlot.CopyLinksAndValue(orientedBox.inputSlots[0], transform.inputSlots[0], true);
+            Assert.IsTrue(orientedBox.inputSlots[0][0][0].HasLink());
+        }
+
+        [Test]
+        public void Slot_Copy_Link_OrientedBox_To_Transform()
+        {
+            var sourceOfLink = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            sourceOfLink.SetSettingValue("m_Type", (SerializableType)typeof(float));
+
+            var transform = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            transform.SetSettingValue("m_Type", (SerializableType)typeof(Transform));
+
+            var orientedBox = ScriptableObject.CreateInstance<VFXInlineOperator>();
+            orientedBox.SetSettingValue("m_Type", (SerializableType)typeof(OrientedBox));
+
+            Assert.IsTrue(orientedBox.inputSlots[0][0][0].Link(sourceOfLink.outputSlots[0]));
+            VFXSlot.CopyLinksAndValue(transform.inputSlots[0], orientedBox.inputSlots[0], true);
+            Assert.IsTrue(transform.inputSlots[0][0][0].HasLink());
+        }
+
         [Test]
         public void Slot_Copy_Link_Vector3_To_Position([ValueSource("linkSubSlotOnly")] bool linkSubSlotOnly)
         {

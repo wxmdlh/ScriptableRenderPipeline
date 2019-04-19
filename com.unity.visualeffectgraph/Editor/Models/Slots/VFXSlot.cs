@@ -484,8 +484,7 @@ namespace UnityEditor.VFX
                 ++index;
             }
 
-            var copySubLinks = dst.CanConvertFrom(src.property.type) ||
-                (src.property.type == typeof(Transform) && dst.property.type == typeof(OrientedBox)); // This is bad but needed to keep sublinks when changing transform to orientedbox
+            var copySubLinks = dst.CanConvertFrom(src.property.type);
 
             //Automatically skip encapsulation
             //TODO : Should rework this to avoid these several "is VFXSlotEncapsulated" special cases (see also "SlotShouldSkipFirstLevel" at controller level)
