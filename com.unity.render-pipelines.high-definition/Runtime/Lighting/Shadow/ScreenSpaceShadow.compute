@@ -216,7 +216,9 @@ void DEFERRED_VX_SHADOW_GENERIC(uint2 groupThreadId : SV_GroupThreadID, uint2 gr
     NormalData normalData;
     DecodeFromNormalBuffer(posInput.positionSS, normalData);
 
-    uint begin = 0;
+    DirectionalLightData light = _DirectionalLightDatas[_DirectionalShadowIndex];
+
+    uint begin = MaskBitsetVxShadowMapBegin(light.vxShadowsBitset);
 
     float volumeScale = asfloat(_VxShadowMapsBuffer[begin + 1]);
     uint dagScale = _VxShadowMapsBuffer[begin + 2];

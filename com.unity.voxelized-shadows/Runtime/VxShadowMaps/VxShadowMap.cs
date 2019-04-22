@@ -39,5 +39,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         public ShadowsBlendMode shadowsBlendMode = ShadowsBlendMode.OnlyVxShadowMaps;
 
         public abstract bool IsValid();
+        public abstract void SetIndex(int index);
+        public abstract uint GetBitset();
     }
 }

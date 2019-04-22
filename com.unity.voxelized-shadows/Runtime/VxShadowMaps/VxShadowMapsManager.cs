@@ -15,12 +15,14 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     {
         private RenderPipelineType _renderPipelineType = RenderPipelineType.Unknown;
 
-        private ComputeBuffer _vxShadowMapsNullBuffer = null;
-        private ComputeBuffer _vxShadowMapsBuffer = null;
+        private VxShadowMapsContainer _container = null;
 
         private List<DirectionalVxShadowMap> _dirVxShadowMapList = new List<DirectionalVxShadowMap>();
         private List<PointVxShadowMap> _pointVxShadowMapList = new List<PointVxShadowMap>();
         private List<SpotVxShadowMap> _spotVxShadowMapList = new List<SpotVxShadowMap>();
+
+        private ComputeBuffer _vxShadowMapsNullBuffer = null;
+        private ComputeBuffer _vxShadowMapsBuffer = null;
 
         private static VxShadowMapsManager _instance = null;
         public static VxShadowMapsManager instance
@@ -64,6 +66,27 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
             _vxShadowMapsNullBuffer = new ComputeBuffer(nullData.Length, 4);
             _vxShadowMapsNullBuffer.SetData(nullData);
+        }
+
+        public void RegisterVxShadowMapsContainer(VxShadowMapsContainer container)
+        {
+            if (_container != null)
+            {
+                Debug.LogError("Failed to register container, VxShadowMapsContainer must be single one.");
+                return;
+            }
+
+            _container = container;
+        }
+        public void UnregisterVxShadowMapsContainer(VxShadowMapsContainer container)
+        {
+            if (_container != container)
+            {
+                Debug.LogError("Failed to unregister container, Are there VxShadowMapsContainers more than one?");
+                return;
+            }
+
+            _container = null;
         }
 
         public void RegisterVxShadowMapComponent(DirectionalVxShadowMap dirVxsm)
@@ -180,6 +203,9 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         public void LoadResources(VxShadowMapsResources resources)
         {
+            for (int i = 0; i < resources.Table.Length; i++)
+                AddVxShadowsLight(resources.Table[i]);
+
             int count = resources.Vxsms.Length;
             int stride = 4;
 
@@ -188,6 +214,8 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
             _vxShadowMapsBuffer = new ComputeBuffer(count, stride);
             _vxShadowMapsBuffer.SetData(resources.Vxsms);
+
+            // todo : deallocate resources.Vxsms?
         }
         public void Unloadresources()
         {
@@ -201,6 +229,66 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         {
             return _vxShadowMapsBuffer != null ? (uint)_vxShadowMapsBuffer.count * 4 : 0;
         }
+
+        private DirectionalVxShadowMap FindDirVxShadowMap(int instanceId)
+        {
+            foreach (var vxsm in _dirVxShadowMapList)
+                if (vxsm.GetInstanceID() == instanceId)
+                    return vxsm;
+
+            return null;
+        }
+        private PointVxShadowMap FindPointVxShadowMap(int instanceId)
+        {
+            foreach (var vxsm in _pointVxShadowMapList)
+                if (vxsm.GetInstanceID() == instanceId)
+                    return vxsm;
+
+            return null;
+        }
+        private SpotVxShadowMap FindSpotVxShadowMap(int instanceId)
+        {
+            foreach (var vxsm in _spotVxShadowMapList)
+                if (vxsm.GetInstanceID() == instanceId)
+                    return vxsm;
+
+            return null;
+        }
+
+        private void AddVxShadowsLight(VxShadowsLight light)
+        {
+            switch (light.Type)
+            {
+                case VxShadowsLightType.Directional:
+                {
+                    var vxsm = FindDirVxShadowMap(light.InstanceId);
+                    if (vxsm != null)
+                        vxsm.vxShadowsLightList.Add(light);
+
+                    break;
+                }
+                case VxShadowsLightType.Point:
+                {
+                    var vxsm = FindPointVxShadowMap(light.InstanceId);
+                    // todo : implement this
+                    //if (vxsm != null)
+                        //vxsm.vxShadowsLightList.Add(light);
+
+                    break;
+                }
+                case VxShadowsLightType.Spot:
+                {
+                    var vxsm = FindSpotVxShadowMap(light.InstanceId);
+                    // todo : implement this
+                    //if (vxsm != null)
+                        //vxsm.vxShadowsLightList.Add(light);
+
+                    break;
+                }
+            }
+        }
+
+        public VxShadowMapsContainer Container { get { return _container; } }
 
         public List<DirectionalVxShadowMap> DirVxShadowMaps { get { return _dirVxShadowMapList; } }
         public List<PointVxShadowMap> PointVxShadowMaps { get { return _pointVxShadowMapList; } }
