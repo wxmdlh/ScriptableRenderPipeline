@@ -80,7 +80,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public float   diffuseDimmer;
         public float   specularDimmer;
-        public int     vxShadowsValues;         // Used for VxShadows //seongdae;vxsm
+        public uint    vxShadowsBitset;         // Used for VxShadows //seongdae;vxsm
     };
 
     [GenerateHLSL(PackingRules.Exact, false)]
@@ -130,7 +130,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float   diffuseDimmer;
         public float   specularDimmer;
 
-        public int     vxShadowsValues;         // Used for VxShadows //seongdae;vxsm
+        public uint    vxShadowsBitset;         // Used for VxShadows //seongdae;vxsm
     };
 
 

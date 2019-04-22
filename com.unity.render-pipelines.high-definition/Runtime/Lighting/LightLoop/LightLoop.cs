@@ -789,7 +789,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_ContactShadows = VolumeManager.instance.stack.GetComponent<ContactShadows>();
             m_EnableContactShadow = m_FrameSettings.IsEnabled(FrameSettingsField.ContactShadows) && m_ContactShadows.enable.value && m_ContactShadows.length.value > 0;
-            m_EnableVxShadows = m_FrameSettings.IsEnabled(FrameSettingsField.Shadow) && m_FrameSettings.IsEnabled(FrameSettingsField.VxShadows); //seongdae;vxsm
+            m_EnableVxShadows = m_FrameSettings.IsEnabled(FrameSettingsField.Shadow) && m_FrameSettings.IsEnabled(FrameSettingsField.VxShadows) && VxShadowMapsManager.instance.Container != null; //seongdae;vxsm
             m_indirectLightingController = VolumeManager.instance.stack.GetComponent<IndirectLightingController>();
 
             m_ContactShadowIndex = 0;
@@ -1047,11 +1047,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
             if (canRenderVxShadows)
             {
-                lightData.vxShadowsValues = vxsm.shadowsBlendMode == ShadowsBlendMode.OnlyVxShadowMaps ? 1 : 2;
+                lightData.vxShadowsBitset = vxsm.GetBitset();
             }
             else
             {
-                lightData.vxShadowsValues = 0;
+                lightData.vxShadowsBitset = 0;
             }
             //seongdae;vxsm
 

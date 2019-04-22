@@ -17,6 +17,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         public Vector3 Position;
         public Quaternion Rotation;
         public uint SizeInBytes;
+        public uint BeginOffset;
     }
 
     public class VxShadowMapsResources : ScriptableObject
