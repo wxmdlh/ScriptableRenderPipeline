@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [6.5.0] - 2019-XX-XX
 ### Changed
-- The Sub Graph Outputs node can no longer be duplicated.
+- You can no longer duplicate the Sub Graph Outputs node.
 
 ### Fixed
 - Fixed master preview for HDRP master nodes when alpha clip is enabled.
