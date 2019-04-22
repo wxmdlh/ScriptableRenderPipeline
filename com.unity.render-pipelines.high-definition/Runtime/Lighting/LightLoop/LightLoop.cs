@@ -775,7 +775,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_ContactShadows = VolumeManager.instance.stack.GetComponent<ContactShadows>();
             m_EnableContactShadow = m_FrameSettings.IsEnabled(FrameSettingsField.ContactShadows) && m_ContactShadows.enable.value && m_ContactShadows.length.value > 0;
-            m_EnableVxShadows = m_FrameSettings.IsEnabled(FrameSettingsField.Shadow) && m_FrameSettings.IsEnabled(FrameSettingsField.VxShadows); //seongdae;vxsm
+            m_EnableVxShadows = m_FrameSettings.IsEnabled(FrameSettingsField.Shadow) && m_FrameSettings.IsEnabled(FrameSettingsField.VxShadows) && VxShadowMapsManager.instance.Container != null; //seongdae;vxsm
             m_indirectLightingController = VolumeManager.instance.stack.GetComponent<IndirectLightingController>();
 
             // Cluster
@@ -1034,30 +1034,32 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lightData.volumetricShadowDimmer = 1.0f;
             }
 
+            //seongdae;vxsm;origin
+            //// fix up shadow information
+            //lightData.shadowIndex = shadowIndex;
+            //if (shadowIndex != -1)
+            //{
+            //    m_CurrentSunLight = lightComponent;
+            //    m_CurrentShadowSortedSunLightIndex = sortedIndex;
+            //}
+            //seongdae;vxsm;origin
+            //seongdae;vxsm
+            bool canRenderVxShadows = CanRenderVxShadows(lightComponent, out VxShadowMap vxsm);
+
             // fix up shadow information
             lightData.shadowIndex = shadowIndex;
-            if (shadowIndex != -1)
+            if (shadowIndex != -1 || canRenderVxShadows)
             {
                 m_CurrentSunLight = lightComponent;
                 m_CurrentShadowSortedSunLightIndex = sortedIndex;
             }
-
-            //seongdae;vxsm
-            if (CanRenderVxShadows(lightComponent, out VxShadowMap vxsm))
+            if (canRenderVxShadows)
             {
-                if (vxsm.shadowsBlendMode == ShadowsBlendMode.OnlyVxShadowMaps)
-                {
-                    lightData.vxShadowsValues = 1;
-                    m_CurrentShadowSortedSunLightIndex = sortedIndex;
-                }
-                else if (vxsm.shadowsBlendMode == ShadowsBlendMode.BlendDynamicShadows)
-                {
-                    lightData.vxShadowsValues = 2;
-                }
+                lightData.vxShadowsBitset = vxsm.GetBitset();
             }
             else
             {
-                lightData.vxShadowsValues = 0;
+                lightData.vxShadowsBitset = 0;
             }
             //seongdae;vxsm
 

@@ -6,6 +6,9 @@
 #define OFFSET_POINT 15 // TODO : define it for point light
 #define OFFSET_SPOT 15 // TODO : define it for spot light
 
+#define VX_SHADOWS_ONLY  0x80000000
+#define VX_SHADOWS_BLEND 0x40000000
+
 StructuredBuffer<uint> _VxShadowMapsBuffer;
 
 
@@ -468,6 +471,26 @@ float TravereTrilinearSampleVxShadowMap(uint begin, uint typeOffset, uint3 posQ_
     attenuation4_1.x  = lerp(attenuation4_1.x,  attenuation4_1.y,  lerpWeight.y);
 
     return lerp(attenuation4_0.x, attenuation4_1.x, lerpWeight.z);
+}
+
+uint MaskBitsetVxShadowsType(uint vxShadowsBitset)
+{
+    return vxShadowsBitset & 0xC0000000;
+}
+
+uint MaskBitsetVxShadowMapBegin(uint vxShadowsBitset)
+{
+    return vxShadowsBitset & 0x3FFFFFFF;
+}
+
+bool IsVxShadowsEnabled(uint vxShadowsBitset)
+{
+    return MaskBitsetVxShadowsType(vxShadowsBitset) != 0x00000000;
+}
+
+bool IsVxShadowsOnly(uint vxShadowsBitset)
+{
+    return MaskBitsetVxShadowsType(vxShadowsBitset) == VX_SHADOWS_ONLY;
 }
 
 float NearestSampleVxShadowing(uint begin, float3 positionWS)

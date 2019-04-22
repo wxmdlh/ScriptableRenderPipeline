@@ -22,5 +22,16 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         {
             return false;
         }
+
+        public override void SetIndex(int index)
+        {
+            // TODO : 
+        }
+
+        public override uint GetBitset()
+        {
+            // TODO :
+            return 0;
+        }
     }
 }
