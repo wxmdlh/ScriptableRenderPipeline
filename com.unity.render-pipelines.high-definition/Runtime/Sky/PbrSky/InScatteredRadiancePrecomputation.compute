@@ -13,6 +13,26 @@
 
 RW_TEXTURE3D(float4, _InScatteredRadianceTable); // Emulate a 4D texture with a "deep" 3D texture
 
+
+float2 IntersectRayCylinder(float3 cylOrigin, float3 cylAxis, float cylRadiusSquared,
+                            float3 rayOrigin, float3 rayDir)
+{
+    float3 start = rayOrigin - cylOrigin;
+
+    float c1 = dot(cylAxis, rayDir);
+    float c2 = dot(cylAxis, start);
+
+    // Solve: t^2 + 2 * (b / a) * t + (c / a) = 0.
+    float a = 1.0 - c1 * c1;
+    float b = rcp(a) * (dot(start, rayDir) - c2 * c1);
+    float c = rcp(a) * (dot(start, start) - c2 * c2 - cylRadiusSquared);
+
+    float d = b * b - c;
+
+    return ((abs(a) < FLT_EPS) || (d < 0)) ? -1 : float2(-b - sqrt(d),
+                                                         -b + sqrt(d));
+}
+
 [numthreads(4, 4, 4)]
 void main(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
@@ -24,10 +44,10 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     // Let the hardware and the driver handle the ordering of the computation.
     uint3 tableCoord = dispatchThreadId;
-    uint  texId      = dispatchThreadId.z / zTexSize;
+    uint  texId      = dispatchThreadId.z / zTexSize; // [0, zTexCnt - 1]
 
     // We don't care about the extremal points.
-    float3 uvw = tableCoord * scale + bias;
+    float3 uvw = tableCoord * scale + bias;           // z: [0.5/zTexSize, zTexCnt - 0.5/zTexSize]
 
     // Convention:
     // V points towards the camera.
@@ -41,7 +61,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float phiL   = PI * saturate(texId * rcp(zTexCnt - 1));
     float NdotV  = -cosChi;
 
-    bool aboveHorizon = (cosChi > cosHor);
+    bool lookAboveHorizon = (cosChi > cosHor);
 
     float3 N = float3(0, 0, 1);
     float3 V = SphericalToCartesian(0, NdotV);
@@ -54,24 +74,65 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float  h = height;
     float  R = _PlanetaryRadius;
     float  r = h + R;
-    float2 O = float2(0, r);
-    float2 D = float2(SinFromCos(cosChi), cosChi);
+    float3 O = float3(0, 0, r);
 
+    // Determine the region of integration.
+    float tMin = 0;
     float tMax;
 
-    if (aboveHorizon)
+    if (lookAboveHorizon)
     {
         float _AtmosphericRadius = _PlanetaryRadius + _AtmosphericDepth;
         tMax = IntersectSphere(_AtmosphericRadius, cosChi, r).y; // Max root
     }
     else
     {
-        tMax = IntersectSphere(_PlanetaryRadius, cosChi, r).x; // Min root
+        tMax = IntersectSphere(_PlanetaryRadius,   cosChi, r).x; // Min root
     }
 
-    float3 radiance = 0;
+    float3 radiance   = 0;
+    float4 tableEntry = float4(radiance, tMax - tMin);
 
 #if (SCATTERING_ORDER == 1)
+    // For single scattering with the directional light assumption, planet's shadow forms a shadow volume
+    // which is shaped like a cylinder with the planet's radius, aligned with the light direction.
+    // We can use it to optimize the integration process, as the shadowed region has 0 contribution.
+
+    float2 tCyl = IntersectRayCylinder(0, L, _PlanetaryRadiusSquared, O, -V);
+
+    if (tCyl.y >= 0) // Exited?
+    {
+        // We found an intersection with the shadow volume.
+        // It could be either the entry or the exit.
+
+        if (tCyl.x >= 0) // Entered?
+        {
+            float zHit = dot(L, O + tCyl.x * -V);
+
+            if (zHit < 0) // Below?
+            {
+                // Stop the ray at the entry.
+                // We assume that the ray does not exit the shadow volume before exiting the atmosphere.
+                // The error of that assumption should be reasonably low.
+                tMax = min(tMax, tCyl.x);
+            }
+        }
+
+        bool inShadow = (L.z < 0);
+
+        if (inShadow)
+        {
+            // Start the ray at the exit.
+            tMin = max(tMin, tCyl.y);
+        }
+    }
+
+    if (tMin >= tMax)
+    {
+        _InScatteredRadianceTable[tableCoord] = tableEntry; // Return 0
+        return;
+    }
+
     // Integrate in-scattered radiance along -V.
     // Note that we have to evaluate the transmittance integral along -V as well.
     // The transmittance integral is pretty smooth (I plotted it in Mathematica).
@@ -80,51 +141,54 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     // and for horizontal rays (due to the exponential transmittance term).
     // It's easy enough to use a simple quadratic remap.
 
-    float  t0          = 0;
+    float  t0          = tMin;
     float3 viewTransmX = SampleTransmittanceTexture(cosChi, height); // Start to end
+    float3 viewTransm0 = 1;
+
+    if (tMin > 0) // Start changed?
+    {
+        float3 P = O + tMin * -V;
+
+        // Update these for the step along the ray...
+        height = length(P) - R;
+        cosChi = dot(normalize(P), -V);
+        NdotL  = dot(normalize(P),  L);
+
+        // TODO: maybe better to use optical depth?
+        viewTransm0 = viewTransmX * rcp(SampleTransmittanceTexture(cosChi, height)); // Start to sample
+    }
+
+    float3 inScatterTerm0;
 
     // TODO: we don't have to apply the phase function here.
     // It's a better idea to apply it when sampling the texture.
-    // We can even make the single scattering texture 3D instead of 4D!
-
-    float3 inScatterTerm0 = 0;
-
-    if (NdotL > cosHor)
     {
-        float3 viewTransm0   = 1;
-        float3 lightScatter0 = AtmosphereScatter(LdotV, height);
-        float3 lightTransm0  = SampleTransmittanceTexture(NdotL, height);
+        float3 lightScatter = AtmosphereScatter(LdotV, height);
+        float3 lightTransm  = SampleTransmittanceTexture(NdotL, height);
 
-        inScatterTerm0 = viewTransm0 * lightScatter0 * lightTransm0;
+        inScatterTerm0 = viewTransm0 * lightScatter * lightTransm;
     }
 
     // const int numSamples = 4096;
     const int numSamples = 256;
     for (int i = 0; i < numSamples; i++)
     {
-        float t1 = tMax * Sq((i + 1) * rcp(numSamples));
+        float t1 = tMin + (tMax - tMin) * Sq((i + 1) * rcp(numSamples));
         float dt = t1 - t0;
 
-        float2 P1      = O + t1 * D;
-        float  height1 = length(P1) - R;
-        float  cosChi1 = dot(normalize(P1), D);
+        float3 P = O + t1 * -V;
 
-        // TODO: perform an early termination of the loop if the ray enters planet's shadow
-        // (light becomes occluded by the planet).
-        float NdotL1  = dot(normalize(P1), L.xy);
-        float cosHor1 = GetCosineOfHorizonZenithAngle(height1);
+        // Update these for the step along the ray...
+        height = length(P) - R;
+        cosChi = dot(normalize(P), -V);
+        NdotL  = dot(normalize(P),  L);
 
-        float3 inScatterTerm1 = 0;
+        // TODO: maybe better to use optical depth?
+        float3 viewTransm   = viewTransmX * rcp(SampleTransmittanceTexture(cosChi, height));
+        float3 lightScatter = AtmosphereScatter(LdotV, height);
+        float3 lightTransm  = SampleTransmittanceTexture(NdotL, height);
 
-        if (NdotL1 > cosHor)
-        {
-            float3 viewTransmB   = SampleTransmittanceTexture(cosChi1, height1);
-            float3 viewTransm1   = viewTransmX * rcp(viewTransmB);
-            float3 lightScatter1 = AtmosphereScatter(LdotV, height1);
-            float3 lightTransm1  = SampleTransmittanceTexture(NdotL1, height1);
-
-            inScatterTerm1 = viewTransm1 * lightScatter1 * lightTransm1;
-        }
+        float3 inScatterTerm1 = viewTransm * lightScatter * lightTransm;
 
         // Compute the amount of in-scattered radiance.
         // Evaluate the transmittance integral from 't0' to 't1' using the trapezoid rule.
@@ -132,7 +196,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         // (Transmittance(0, a) + Transmittance(0, b)) * (b - a) / 2 =
         // (Transmittance(0, a) + Transmittance(0, tMax) / Transmittance(b, tMax)) * (b - a) / 2.
         // We handle other terms in a similar way (by pre-multiplying transmittance).
-        radiance += (inScatterTerm0 + inScatterTerm1) * _SunRadiance * (0.5 * dt);
+        radiance += (inScatterTerm0 + inScatterTerm1) * (0.5 * dt) * _SunRadiance;
 
         // Carry these over to the next iteration...
         t0             = t1;
@@ -195,13 +259,11 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     //     }
     // }
 
-    // if (!aboveHorizon) radiance = 0;
-
     // TODO: deep compositing.
-    float4 tableEntry = float4(radiance, tMax);
-    // float4 tableEntry = float4(radiance, tMax);
-    // float4 tableEntry = float4(cosChi, h, NdotL, tMax);
-    // float4 tableEntry = float4(viewTransmX, tMax);
+    tableEntry = float4(radiance, tMax - tMin);
+    // tableEntry = float4(radiance, tMax);
+    // tableEntry = float4(cosChi, h, NdotL, tMax);
+    // tableEntry = float4(viewTransmX, tMax);
 
     _InScatteredRadianceTable[tableCoord] = tableEntry;
 }

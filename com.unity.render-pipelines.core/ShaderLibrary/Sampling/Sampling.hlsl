@@ -13,11 +13,11 @@
 //-----------------------------------------------------------------------------
 
 // Transforms the unit vector from the spherical to the Cartesian (right-handed, Z up) coordinate.
-real3 SphericalToCartesian(real sinPhi, real cosPhi, real cosTheta)
+real3 SphericalToCartesian(real cosPhi, real sinPhi, real cosTheta)
 {
     real sinTheta = SinFromCos(cosTheta);
 
-    return real3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+    return real3(real2(cosPhi, sinPhi) * sinTheta, cosTheta);
 }
 
 real3 SphericalToCartesian(real phi, real cosTheta)
@@ -25,7 +25,7 @@ real3 SphericalToCartesian(real phi, real cosTheta)
     real sinPhi, cosPhi;
     sincos(phi, sinPhi, cosPhi);
 
-    return SphericalToCartesian(sinPhi, cosPhi, cosTheta);
+    return SphericalToCartesian(cosPhi, sinPhi, cosTheta);
 }
 
 // Converts Cartesian coordinates given in the right-handed coordinate system

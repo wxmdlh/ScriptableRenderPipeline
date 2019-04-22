@@ -238,10 +238,10 @@ float3 SampleTransmittanceTexture(float cosChi, float height, bool belowHorizon)
 
 float3 SampleTransmittanceTexture(float cosChi, float height)
 {
-    float cosHor       = GetCosineOfHorizonZenithAngle(height);
-    bool  belowHorizon = cosChi < cosHor;
+    float cosHor           = GetCosineOfHorizonZenithAngle(height);
+    bool  lookAboveHorizon = (cosChi > cosHor);
 
-    return SampleTransmittanceTexture(cosChi, height, belowHorizon);
+    return SampleTransmittanceTexture(cosChi, height, !lookAboveHorizon);
 }
 
 // Map: [-0.1975, 1] -> [0, 1].

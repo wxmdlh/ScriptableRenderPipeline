@@ -95,13 +95,14 @@ Shader "Hidden/HDRP/Sky/PbrSky"
 
         float cosHor = GetCosineOfHorizonZenithAngle(h);
 
+        bool lookAboveHorizon = (cosChi > cosHor);
+
         float u = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).x;
         float v = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).y;
         float w = MapCosineOfZenithAngle(NdotL);
         float k = saturate(INV_PI * phiL) * (zTexCnt - 1);
 
-        // Do we see the ground?
-        if (cosChi <= cosHor)
+        if (!lookAboveHorizon) // See the ground?
         {
             float  t  = IntersectSphere(_PlanetaryRadius, cosChi, r).x;
             float3 gP = P + t * -V;
