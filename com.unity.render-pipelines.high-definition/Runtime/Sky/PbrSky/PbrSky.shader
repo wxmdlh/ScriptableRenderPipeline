@@ -97,13 +97,13 @@ Shader "Hidden/HDRP/Sky/PbrSky"
 
         float u = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).x;
         float v = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).y;
-        float t = MapCosineOfZenithAngle(NdotL);
-        float k = INV_PI * phiL;
+        float w = MapCosineOfZenithAngle(NdotL);
+        float k = saturate(INV_PI * phiL) * (zTexCnt - 1);
 
         // Do we see the ground?
         if (cosChi <= cosHor)
         {
-            float  t  = IntersectSphere(_PlanetaryRadiusSquared, cosChi, r).x;
+            float  t  = IntersectSphere(_PlanetaryRadius, cosChi, r).x;
             float3 gP = P + t * -V;
             float3 gN = normalize(gP);
 
@@ -115,12 +115,12 @@ Shader "Hidden/HDRP/Sky/PbrSky"
 
         // We have 'zTexCnt' textures along the Z dimension.
         // We treat them as separate textures (slices) and must NOT leak between them.
-        t = clamp(t, 0 - 0.5 * rcp(zTexSize),
+        w = clamp(w, 0 + 0.5 * rcp(zTexSize),
                      1 - 0.5 * rcp(zTexSize));
 
         // Shrink by the 'zTexCount' and offset according to the above/below horizon direction and phiV.
-        float w0 = t * rcp(zTexCnt) + floor(k) * ((zTexCnt - 1) * rcp(zTexCnt));
-        float w1 = t * rcp(zTexCnt) + ceil(k)  * ((zTexCnt - 1) * rcp(zTexCnt));
+        float w0 = (floor(k) + w) * rcp(zTexCnt);
+        float w1 = (ceil(k)  + w) * rcp(zTexCnt);
 
         radiance += lerp(SAMPLE_TEXTURE3D(_InScatteredRadianceTexture, s_linear_clamp_sampler, float3(u, v, w0)),
                          SAMPLE_TEXTURE3D(_InScatteredRadianceTexture, s_linear_clamp_sampler, float3(u, v, w1)),
