@@ -32,6 +32,7 @@ These settings determine the method that the Cameras and Reflection Probes using
 | **Realtime Planar Reflection**    | Enable this checkbox to make HDRP support real-time [Planar Reflection Probe](Planar-Reflection-Probe.html) updates. HDRP updates Planar Reflection Probes every frame, because they are view dependent. Disabling this feature causes HDRP to stop updating Planar Reflection Probes every frame, but they still render in the Scene. |
 | **Transparent Prepass**           | Enable this checkbox to make HDRP perform a Transparent Prepass. Enabling this feature causes HDRP to add polygons from transparent Materials to the depth buffer to improve sorting. |
 | **Transparent Postpass**          | Enable this checkbox to make HDRP perform a Transparent Postpass. Enabling this feature causes HDRP to add polygons to the depth buffer that postprocessing uses. |
+| **Transparents Write Velocity**   | Enable this checkbox to allow HDRP to write the velocity of transparent GameObjects to the velocity buffer. To make HDRP write transparent GameObjects to the velocity buffer, you must also enable the **Transparent Writes Velocity** checkbox on each transparent Material. Enabling this feature means that effects, such as motion blur, affect transparent GameObjects.  This is useful for alpha blended objects like hair. |
 | **Motion Vectors**                | Enable this checkbox to make HDRP perform a Motion Vectors pass, allowing Cameras using these Frame Settings to use Motion Vectors. Disabling this feature means the Cameras using these Frame Settings do not calculate object motion vectors or camera motion vectors. |
 | **Object Motion Vectors**         | Enable this checkbox to make HDRP support object motion vectors. Enabling this feature causes HDRP to calculate motion vectors for moving objects and objects with vertex animations. HDRP Cameras using these Frame Settings still calculate camera motion vectors if you disable this feature. |
 | **Decals**                        | Enable this checkbox to make HDRP process decals. Enable this on cameras that you want to render decals. |
@@ -47,7 +48,7 @@ These settings control lighting features for your rendering components. Here you
 | **Property**                     | **Description**                                              |
 | -------------------------------- | ------------------------------------------------------------ |
 | **Shadow**                       | Enable this checkbox to make HDRP process Shadows. This makes this Camera/Reflection Probe capture shadows. |
-| **Contact Shadows**              | Enable this checkbox to make HDRP process [Contact Shadows](Contact-Shadows.html). Enabling this feature causes HDRP to calculate Contact Shadows for this Camera/Reflection Probe. |
+| **Contact Shadows**              | Enable this checkbox to make HDRP process [Contact Shadows](Override-Contact-Shadows.html). Enabling this feature causes HDRP to calculate Contact Shadows for this Camera/Reflection Probe. |
 | **Shadow Masks**                 | Enable this checkbox to make HDRP support Shadow Masks.      |
 | **SSR**                          | Enable this checkbox to make HDRP process Screen Space Reflections (SSR). This allows HDRP to calculate SSR for this Camera/Reflection Probe. |
 | **SSAO**                         | Enable this checkbox to make HDRP process Screen Space Ambient Occlusion (SSAO). This allows HDRP to calculate SSAO for this Camera/Reflection Probe. |
@@ -89,22 +90,4 @@ Note: These settings are for debugging purposes only so do not alter these value
 
 ## Debugging Frame Settings
 
-To open the **Debug** window, go to **Window > Analysis > Render Pipeline Debug**. This window allows you to debug the Frame Settings for each Camera. A list of every Camera in your Scene is on the left side of the window. Click on a Camera  to select it and view its Frame Settings.
-
-![](Images/FrameSettings2.png)This window of the selected Camera’s Frame Settings helps you understand why a feature may not work correctly. Here, you can access all of the information that HDRP uses to render the Camera you select.
-
-Note: The debug menu is currently only accessible for Cameras and not for Reflection Probes.
-
-| **Column**     | **Description**                                              |
-| -------------- | ------------------------------------------------------------ |
-| **Debug**      | Displays modifiable Frame Setting values for the selected Camera. You can use these to temporarily alter the Camera’s Frame Settings for debugging purposes. Note that you can not enable Frame Setting features that your HDRP Asset does not support. |
-| **Sanitized**  | Displays the Frame Setting values that the selected Camera uses after Unity checks to see if your HDRP Asset supports them. |
-| **Overridden** | Displays the Frame Setting values that the selected Camera overrides. If you do not check the **Custom Frame Settings** checkbox, or do check it and do not override any settings, this column is identical to the **Default** column. |
-| **Default**    | Displays the default Frame Setting values in your current [HDRP Asset](HDRP-Asset.html). |
-
-Unity processes **Sanitized**, **Overridden**, and **Default** in a specific order. First it checks the **Default** Frame Settings, then checks the selected Camera’s **Overridden** Frame Settings. Finally, it checks whether the HDRP Asset supports the selected Camera’s Frame Settings and displays that result in the **Sanitized** column.
-
-### Interpreting the Debug Window
-
-- In the image above, you can see that the **Light Layers** checkbox is disabled at the **Sanitized** step. This means that, although you enabled **Light Layers** in the Frame Settings this Camera uses, you did not enable it in your HDRP Asset’s **Render Pipeline Supported Features**.
-- Also in the image above, you can also see that the **Decals** checkbox is disabled at the **Overridden** step. This means that you enabled **Decals** in the default Camera Frame Settings and then disabled **Decals** for that specific Camera’s **Custom Frame Settings**.
+Frame Settings can be changed on the fly without altering the actual camera data by using the Render Pipeline Debug in the editor and the player. See the [corresponding page](Render-Pipeline-Debug-Camera).

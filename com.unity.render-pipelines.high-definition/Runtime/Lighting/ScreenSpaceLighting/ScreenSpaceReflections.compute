@@ -49,7 +49,7 @@
     RW_TEXTURE2D_X(float4, _SsrLightingTextureRW); // ShaderVariablesScreenSpaceLighting.hlsl already pulls in a non-RW _SsrLightingTexture
 #endif
 
-    TEXTURE2D(              _SsrClearCoatMaskTexture);
+    TEXTURE2D_X(            _SsrClearCoatMaskTexture);
     StructuredBuffer<int2>  _SsrDepthPyramidMipLevelOffsets;
 
 CBUFFER_START(UnityScreenSpaceReflections)
@@ -80,7 +80,7 @@ void GetNormalAndPerceptualRoughness(uint2 positionSS, out float3 normalWS, out 
     NormalData normalData;
     DecodeFromNormalBuffer(positionSS, normalData);
     normalWS = normalData.normalWS;
-    float4 packedCoatMask = _SsrClearCoatMaskTexture[positionSS];
+    float4 packedCoatMask = _SsrClearCoatMaskTexture[COORD_TEXTURE2D_X(positionSS)];
     perceptualRoughness = HasClearCoatMask(packedCoatMask) ? CLEAR_COAT_PERCEPTUAL_ROUGHNESS : normalData.perceptualRoughness;
 }
 
@@ -312,9 +312,9 @@ void ScreenSpaceReflectionsReprojection(uint3 dispatchThreadId : SV_DispatchThre
 
     // TODO: it's important to account for occlusion/disocclusion to avoid artifacts in motion.
     // This would require keeping the depth buffer from the previous frame.
-    float2 velocityNDC;
-    DecodeVelocity(SAMPLE_TEXTURE2D_X_LOD(_CameraMotionVectorsTexture, s_linear_clamp_sampler, min(hitPositionNDC, 1.0f - 0.5f * _ScreenSize.zw) * _ScreenToTargetScale.zw, 0), velocityNDC);
-    float2 prevFrameNDC = hitPositionNDC - velocityNDC;
+    float2 motionVectorNDC;
+    DecodeMotionVector(SAMPLE_TEXTURE2D_X_LOD(_CameraMotionVectorsTexture, s_linear_clamp_sampler, min(hitPositionNDC, 1.0f - 0.5f * _ScreenSize.zw) * _RTHandleScale.xy, 0), motionVectorNDC);
+    float2 prevFrameNDC = hitPositionNDC - motionVectorNDC;
     float2 prevFrameUV  = prevFrameNDC * _ColorPyramidUvScaleAndLimitPrevFrame.xy;
 
     // TODO: optimize with max().

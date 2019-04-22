@@ -425,11 +425,11 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
     float3 transmittance = float3(0.0, 0.0, 0.0);
 #if HDRP_MATERIAL_TYPE_SIMPLELIT_TRANSLUCENT
-    if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THIN_THICKNESS))
+    if (!HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THICK_THICKNESS))
     {
         float3 a = 0; float b = 0;
-        // Caution: This function modify N and contactShadowIndex
-        transmittance = PreEvaluateDirectionalLightTransmission(bsdfData, lightData, a, b); // contactShadowIndex is only modify for the code of this function
+        // Caution: This function modify N and contactShadowMask
+        transmittance = PreEvaluateDirectionalLightTransmission(bsdfData, lightData, a, b); // contactShadowMask is only modify for the code of this function
     }
 #endif
 
@@ -450,7 +450,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
 #if HDRP_MATERIAL_TYPE_SIMPLELIT_TRANSLUCENT
     // The mixed thickness mode is not supported by directional lights due to poor quality and high performance impact.
-    if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THIN_THICKNESS))
+    if (!HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THICK_THICKNESS))
     {
         float  NdotV = ClampNdotV(preLightData.NdotV);
         float  LdotV = dot(L, V);
@@ -510,7 +510,7 @@ void EvaluateLight_Punctual(LightLoopContext lightLoopContext, PositionInputs po
 
     // Transparent have no contact shadow information
 #ifndef _SURFACE_TYPE_TRANSPARENT
-    shadow = min(shadow, GetContactShadow(lightLoopContext, lightData.contactShadowIndex));
+    shadow = min(shadow, GetContactShadow(lightLoopContext, lightData.contactShadowMask));
 #endif
 
 #endif // HDRP_ENABLE_SHADOWS
@@ -532,10 +532,10 @@ float3 PreEvaluatePunctualLightTransmission(LightLoopContext lightLoopContext, P
     // (Note: EvaluateLight_Punctual discard the fetch if NdotL < 0)
     if (NdotL < 0 && lightData.shadowIndex >= 0)
     {
-        if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THIN_THICKNESS))
+        if (!HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THICK_THICKNESS))
         {
             normalWS = -normalWS; // Flip normal for shadow bias
-            lightData.contactShadowIndex = -1;  //  Disable shadow contact
+            lightData.contactShadowMask = 0;  //  Disable shadow contact
         }
         transmittance = lerp( bsdfData.transmittance, transmittance, lightData.shadowDimmer);
     }
@@ -562,7 +562,7 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
 #if HDRP_MATERIAL_TYPE_SIMPLELIT_TRANSLUCENT
     if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
     {
-        // Caution: This function modify N and lightData.contactShadowIndex
+        // Caution: This function modify N and lightData.contactShadowMask
         transmittance = PreEvaluatePunctualLightTransmission(lightLoopContext, posInput, distances.x, NdotL, L, bsdfData, N, lightData);
     }
 #endif
@@ -709,12 +709,15 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
     // Subsurface scattering mode
     float3 modifiedDiffuseColor = GetModifiedDiffuseColorForSSS(bsdfData);
 
-    // Apply the albedo to the direct diffuse lighting (only once). The indirect (baked)
-    // diffuse lighting has already multiply the albedo in ModifyBakedDiffuseLighting().
+    // Note: Unlike Lit material, the SimpleLit material don't have ModifyBakedDiffuseLighting() function
+    // So we need to multiply by the diffuse albedo here.
     // Note: In deferred bakeDiffuseLighting also contain emissive and in this case emissiveColor is 0
     diffuseLighting = modifiedDiffuseColor * lighting.direct.diffuse + builtinData.emissiveColor;
     #ifdef HDRP_ENABLE_ENV_LIGHT
-    diffuseLighting += builtinData.bakeDiffuseLighting;
+    // Note: When baking reflection probes, we approximate the diffuse with the fresnel0
+    diffuseLighting += ReplaceDiffuseForReflectionPass(bsdfData.fresnel0)
+        ? bsdfData.fresnel0
+        : builtinData.bakeDiffuseLighting * modifiedDiffuseColor;
     #endif
     specularLighting = lighting.direct.specular + lighting.indirect.specularReflected;
 

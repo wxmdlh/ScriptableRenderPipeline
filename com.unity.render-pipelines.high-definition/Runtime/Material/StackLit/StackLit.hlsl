@@ -2450,7 +2450,10 @@ void ModifyBakedDiffuseLighting(float3 V, PositionInputs posInput, SurfaceData s
     // Premultiply baked (possibly with back facing added) diffuse lighting information with diffuse
     // pre-integration and energy term.
     // preLightData.diffuseEnergy will be 1,1,1 if no vlayering or no VLAYERED_DIFFUSE_ENERGY_HACKED_TERM
-    builtinData.bakeDiffuseLighting *= preLightData.diffuseFGD * preLightData.diffuseEnergy * bsdfData.diffuseColor;
+    // Note: When baking reflection probes, we approximate the diffuse with the fresnel0
+    builtinData.bakeDiffuseLighting *= ReplaceDiffuseForReflectionPass(bsdfData.fresnel0)
+        ? bsdfData.fresnel0
+        : preLightData.diffuseFGD * preLightData.diffuseEnergy * bsdfData.diffuseColor;
 
     // The lobe specific specular occlusion data, along with the result of the screen space occlusion sampling 
     // will be computed in PreLightData.
@@ -3167,7 +3170,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
 
-    // Caution: this function modifies N, NdotL, contactShadowIndex and shadowMaskSelector.
+    // Caution: this function modifies N, NdotL, contactShadowMask and shadowMaskSelector.
     float3 transmittance = PreEvaluateDirectionalLightTransmission(bsdfData, light, N, NdotL);
 
     float3 color; float attenuation;
@@ -3252,7 +3255,7 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
                                       N, L, NdotL, lightCanOnlyBeTransmitted, /* computeSunDiscEffect*/ false);
     surfaceReflection = !lightCanOnlyBeTransmitted;
 
-    // Caution: this function modifies N, NdotL, shadowIndex, contactShadowIndex and shadowMaskSelector.
+    // Caution: this function modifies N, NdotL, shadowIndex, contactShadowMask and shadowMaskSelector.
     float3 transmittance = PreEvaluatePunctualLightTransmission(lightLoopContext, posInput, bsdfData,
                                                                 light, distances.x, N, L, NdotL);
     float3 color; float attenuation;

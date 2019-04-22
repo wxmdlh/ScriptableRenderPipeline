@@ -19,6 +19,8 @@ namespace UnityEditor.ShaderGraph
                 Debug.Assert(importer != null, "importer != null");
                 ShowGraphEditWindow(importer.assetPath);
             }
+
+            ApplyRevertGUI();
         }
 
         internal static bool ShowGraphEditWindow(string path)
@@ -46,8 +48,8 @@ namespace UnityEditor.ShaderGraph
             if (!foundWindow)
             {
                 var window = CreateInstance<MaterialGraphEditWindow>();
-                window.Show();
                 window.Initialize(guid);
+                window.Show();
             }
 
             return true;
