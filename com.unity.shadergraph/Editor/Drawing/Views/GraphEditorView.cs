@@ -83,6 +83,11 @@ namespace UnityEditor.ShaderGraph.Drawing
                 m_BlackboardProvider.assetName = value;
             }
         }
+        
+        public ColorManager colorManager
+        {
+            get => m_ColorManager;
+        }
 
         public GraphEditorView(EditorWindow editorWindow, GraphData graph, MessageManager messageManager)
         {
@@ -142,6 +147,15 @@ namespace UnityEditor.ShaderGraph.Drawing
 
                     GUILayout.FlexibleSpace();
 
+                    var newIdx = EditorGUILayout.Popup("Node Colors:", m_ColorManager.activeIndex, m_ColorManager.providerNames.ToArray());
+                    if(newIdx != m_ColorManager.activeIndex)
+                    {
+                        m_ColorManager.activeIndex = newIdx;
+                        m_Graph.colorProvider = m_ColorManager.activeProviderName;
+                        m_Graph.owner.isDirty = true;
+                        UpdateNodeColors();
+                    }
+                    
                     EditorGUI.BeginChangeCheck();
                     m_ToggleSettings.isBlackboardVisible = GUILayout.Toggle(m_ToggleSettings.isBlackboardVisible, "Blackboard", EditorStyles.toolbarButton);
 
@@ -612,10 +626,10 @@ namespace UnityEditor.ShaderGraph.Drawing
             }
             else
             {
-                var materialNodeView = new MaterialNodeView { userData = materialNode };
+                var materialNodeView = new MaterialNodeView {userData = materialNode};
                 m_GraphView.AddElement(materialNodeView);
                 materialNodeView.Initialize(materialNode, m_PreviewManager, m_EdgeConnectorListener);
-                materialNodeView.SetColor(m_ColorManager.GetColor(materialNodeView.node));
+                m_ColorManager.SetColor(materialNodeView);
                 nodeView = materialNodeView;
             }
 
@@ -774,6 +788,14 @@ namespace UnityEditor.ShaderGraph.Drawing
                         }
                     }
                 }
+            }
+        }
+
+        void UpdateNodeColors()
+        {
+            foreach (var nodeView in m_GraphView.Query<MaterialNodeView>().ToList())
+            {
+                m_ColorManager.SetColor(nodeView);
             }
         }
 

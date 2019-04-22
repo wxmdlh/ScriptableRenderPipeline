@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.Graphing;
 using UnityEditor.ShaderGraph.Drawing;
@@ -38,6 +39,13 @@ namespace UnityEditor.ShaderGraph
         public static readonly Texture2D exposedIcon = Resources.Load<Texture2D>("GraphView/Nodes/BlackboardFieldExposed");
         public Node gvNode => this;
         public AbstractMaterialNode node { get; }
+
+        public VisualElement colorElement => null;
+
+        public void SetColor(Color? newColor)
+        {
+            // Nothing to do here yet
+        }
 
         public void UpdatePortInputTypes()
         {

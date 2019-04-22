@@ -1,0 +1,27 @@
+MaterialNodeView #title.Artistic {
+    border-color:#004C4C;
+}
+
+MaterialNodeView #title.Channel {
+    border-color:#3C4C1E;
+}
+
+MaterialNodeView #title.Input {
+    border-color:#7F1414;
+}
+
+MaterialNodeView #title.Math {
+    border-color:#26447F;
+}
+
+MaterialNodeView #title.Procedural {
+    border-color:#66335D;
+}
+
+MaterialNodeView #title.Utility {
+    border-color:#322824;
+}
+
+MaterialNodeView #title.UV {
+    border-color:#0C380C;
+}

@@ -8,6 +8,7 @@ using Object = UnityEngine.Object;
 using UnityEditor.Graphs;
 
 using UnityEditor.Experimental.GraphView;
+using UnityEditor.ShaderGraph.Drawing.Colors;
 using UnityEngine.UIElements;
 using Edge = UnityEditor.Experimental.GraphView.Edge;
 using Node = UnityEditor.Experimental.GraphView.Node;
@@ -129,6 +130,26 @@ namespace UnityEditor.ShaderGraph.Drawing
                         return DropdownMenuAction.Status.Disabled;
                 });
 
+                var editorView = GetFirstAncestorOfType<GraphEditorView>();
+                if (editorView.colorManager.activeSupportsCustom && selection.OfType<MaterialNodeView>().Any())
+                {
+                    evt.menu.AppendSeparator();
+                    evt.menu.AppendAction("Color/Change...", ChangeCustomNodeColor,
+                        eventBase => DropdownMenuAction.Status.Normal);
+
+                    evt.menu.AppendAction("Color/Reset", menuAction =>
+                    {
+                        foreach (var selectable in selection)
+                        {
+                            if (selectable is MaterialNodeView nodeView)
+                            {
+                                nodeView.node.ResetColor(graph.colorProvider);
+                                editorView.colorManager.SetColor(nodeView);
+                            }
+                        }
+                    }, eventBase => DropdownMenuAction.Status.Normal);
+                }
+
                 if (selection.OfType<IShaderNodeView>().Count() == 1)
                 {
                     evt.menu.AppendSeparator();
@@ -151,6 +172,39 @@ namespace UnityEditor.ShaderGraph.Drawing
                 evt.menu.AppendAction("Expand Previews", ExpandPreviews, (a) => DropdownMenuAction.Status.Normal);
                 evt.menu.AppendSeparator();
             }
+        }
+
+        void ChangeCustomNodeColor(DropdownMenuAction menuAction)
+        {
+            var t = typeof(EditorWindow).Assembly.GetTypes().FirstOrDefault(ty => ty.Name == "ColorPicker");
+            var m = t?.GetMethod("Show", new[] {typeof(Action<Color>), typeof(Color), typeof(bool), typeof(bool)});
+            if (m == null)
+            {
+                Debug.LogWarning("Could not invoke Color Picker for ShaderGraph.");
+                return;
+            }
+
+            var editorView = GetFirstAncestorOfType<GraphEditorView>();
+            var defaultColor = Color.gray;
+            if (selection.FirstOrDefault(sel => sel is MaterialNodeView) is MaterialNodeView selNode1)
+            {
+                defaultColor = selNode1.GetColor();
+                defaultColor.a = 1.0f;
+            }
+
+            void ApplyColor(Color pickedColor)
+            {
+                foreach (var selectable in selection)
+                {
+                    if(selectable is MaterialNodeView nodeView)
+                    {
+                        nodeView.node.SetColor(editorView.colorManager.activeProviderName, pickedColor);
+                        editorView.colorManager.SetColor(nodeView);
+                    }
+                }
+            }
+
+            m.Invoke(null, new object[] {(Action<Color>) ApplyColor, defaultColor, true, false});
         }
 
         public void GroupSelection()

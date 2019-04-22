@@ -9,7 +9,6 @@ using UnityEngine.Rendering;
 
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.Rendering;
-using UnityEditor.ShaderGraph.Drawing.Colors;
 using UnityEngine.UIElements;
 using Node = UnityEditor.Experimental.GraphView.Node;
 
@@ -35,10 +34,10 @@ namespace UnityEditor.ShaderGraph.Drawing
         VisualElement m_Settings;
         VisualElement m_NodeSettingsView;
 
-
         public void Initialize(AbstractMaterialNode inNode, PreviewManager previewManager, IEdgeConnectorListener connectorListener)
         {
             styleSheets.Add(Resources.Load<StyleSheet>("Styles/MaterialNodeView"));
+            styleSheets.Add(Resources.Load<StyleSheet>("Styles/NodeColors"));
             AddToClassList("MaterialNode");
 
             if (inNode == null)
@@ -207,8 +206,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             }
 
             Add(badge);
-            var myTitle = this.Q("title");
-            badge.AttachTo(myTitle, SpriteAlignment.RightCenter);
+            badge.AttachTo(m_TitleContainer, SpriteAlignment.RightCenter);
         }
 
         public void ClearMessage()
@@ -221,9 +219,20 @@ namespace UnityEditor.ShaderGraph.Drawing
             }
         }
 
-        public void SetColor(Color color)
+        public VisualElement colorElement
         {
-            m_TitleContainer.style.backgroundColor = color;
+            get { return m_TitleContainer; }
+        }
+
+        static readonly StyleColor noColor = new StyleColor(StyleKeyword.Null);
+        public void SetColor(Color? color)
+        {
+            m_TitleContainer.style.borderColor = color ?? noColor;
+        }
+
+        public Color GetColor()
+        {
+            return m_TitleContainer.style.borderColor.value;
         }
 
         void OnGeometryChanged(GeometryChangedEvent evt)

@@ -2,79 +2,165 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace UnityEditor.ShaderGraph.Drawing.Colors
 {
+    // Use this to set colors on your node titles.
+    // There are 2 methods of setting colors - direct Color objects via code (such as data saved in the node itself),
+    // or setting classes on a VisualElement, allowing the colors themselves to be defined in USS. See notes on
+    // IColorProvider for how to use these different methods.
     class ColorManager
     {
+        static string DefaultProvider = NoColors.NoColorTitle;
+    
         List<IColorProvider> m_Providers;
-        IColorProvider m_ActiveColors;
+        
+        int m_ActiveIndex = 0;
+        public int activeIndex
+        {
+            get => m_ActiveIndex;
+            set
+            {
+                if (value < 0 || value >= m_Providers.Count)
+                    return;
+                
+                m_ActiveIndex = value;
+            }
+        }
 
         public ColorManager(string activeColors)
         {
             m_Providers = new List<IColorProvider>();
 
             if (string.IsNullOrEmpty(activeColors))
-                activeColors = "Category";
+                activeColors = DefaultProvider;
 
             foreach (var colorType in UnityEditor.TypeCache.GetTypesDerivedFrom<IColorProvider>())
             {
                 var provider = (IColorProvider) Activator.CreateInstance(colorType);
+                m_Providers.Add(provider);
                 if (provider.Title == activeColors)
                 {
-                    m_ActiveColors = provider;
+                    activeIndex = m_Providers.Count-1;
                 }
-
-                m_Providers.Add(provider);
             }
         }
 
-        public Color GetColor(AbstractMaterialNode node)
+        public void SetColor(IShaderNodeView nodeView)
         {
-            return m_ActiveColors.GetColor(node);
+            var curProvider = m_Providers[m_ActiveIndex];
+            nodeView.colorElement.ClearClassList();
+            if (curProvider.ApplyColorTo(nodeView.node, nodeView.colorElement))
+            {
+                nodeView.SetColor(null);
+                return;
+            }
+            
+            nodeView.SetColor(curProvider.GetColor(nodeView.node));
+        }
+
+        public IEnumerable<string> providerNames
+        {
+            get => m_Providers.Select(p => p.Title);
+        }
+
+        public string activeProviderName
+        {
+            get => m_Providers[activeIndex].Title;
+        }
+
+        public bool activeSupportsCustom
+        {
+            get => m_Providers[activeIndex].AllowCustom;
         }
     }
 
+    // Implement this to provide colors based on whatever factor you want
     interface IColorProvider
     {
         string Title { get; }
+        
+        bool AllowCustom { get; }
 
-        Color GetColor(AbstractMaterialNode node);
+        // If your color must be set programatically, return it here.
+        // If your colors are in USS and set via classes, return null here.
+        Color? GetColor(AbstractMaterialNode node);
+        // If your color is defined in USS and set via classes, set them on the element here and return true.
+        // If your color must be set programatically, return false here.
+        bool ApplyColorTo(AbstractMaterialNode node, VisualElement el);
     }
 
+    class NoColors : IColorProvider
+    {
+        public static string NoColorTitle = "<None>";
+        public string Title => NoColorTitle;
+        public bool AllowCustom => false;
+
+        public Color? GetColor(AbstractMaterialNode node)
+        {
+            return null;
+        }
+
+        public bool ApplyColorTo(AbstractMaterialNode node, VisualElement el)
+        {
+            return true;
+        }
+    }
+    
+    
     class CategoryColors : IColorProvider
     {
         public string Title => "Category";
+        public bool AllowCustom => false;
 
-        public Color GetColor(AbstractMaterialNode node)
+        public Color? GetColor(AbstractMaterialNode node)
         {
-            var title = node.GetType().GetCustomAttributes(typeof(TitleAttribute), false).FirstOrDefault() as TitleAttribute;
-            if(!typeColors.TryGetValue(title.title[0], out var ret))
-                ret = Color.magenta;
-            return ret;
+            return null;
         }
 
-        public CategoryColors()
+        public bool ApplyColorTo(AbstractMaterialNode node, VisualElement el)
         {
-            typeColors = new Dictionary<string, Color>();
-            typeColors.Add("Artistic", new Color(0.0f, 0.3f, 0.3f));
-            typeColors.Add("Channel", new Color(0.237f, 0.3f, 0.12f));
-            typeColors.Add("Input", new Color(0.5f, 0.07499999f, 0.07499999f));
-            typeColors.Add("Master", new Color(0.2235294f, 0.2235294f, 0.2235294f)); // this should actually just stay the same grey we used to have
-            typeColors.Add("Math", new Color(0.1494118f, 0.265621f, 0.4980392f));
-            typeColors.Add("Procedural", new Color(0.4f, 0.2f, 0.3662921f));
-            typeColors.Add("Utility", new Color(0.1935937f, 0.1575f, 0.35f));
-            typeColors.Add("UV", new Color(0.04705882f, 0.2235294f, 0.04705882f));
+            if (!(node.GetType().GetCustomAttributes(typeof(TitleAttribute), false).FirstOrDefault() is TitleAttribute title))
+                return true;
+
+            var cat = title.title[0];
             
-//            typeColors.Add("Artistic", new Color());
-//            typeColors.Add("Channel", new Color());
-//            typeColors.Add("Input", new Color());
-//            typeColors.Add("Master", new Color());
-//            typeColors.Add("Math", new Color());
-//            typeColors.Add("Procedural", new Color());
-//            typeColors.Add("Utility", new Color());
-//            typeColors.Add("UV", new Color());
+            if (string.IsNullOrEmpty(cat))
+                return true;
+            
+            el.AddToClassList(cat);
+            return true;
         }
-        Dictionary<string, Color> typeColors;
+    }
+
+    class UserColors : IColorProvider 
+    {
+        string m_Title = "User Defined";
+        public bool AllowCustom => true;
+
+        public UserColors() {}
+        
+        public UserColors(string title)
+        {
+            m_Title = title;
+        }
+
+        public void ChangeTitle(string newTitle)
+        {
+            m_Title = newTitle;
+        }
+        
+        public string Title => m_Title;
+
+        public Color? GetColor(AbstractMaterialNode node)
+        {
+            return node.GetColor(m_Title);
+        }
+
+        public bool ApplyColorTo(AbstractMaterialNode node, VisualElement el)
+        {
+            return false;
+        }
     }
 }
