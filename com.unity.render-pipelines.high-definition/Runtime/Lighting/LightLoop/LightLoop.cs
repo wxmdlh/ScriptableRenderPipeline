@@ -1804,11 +1804,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         // Return true if BakedShadowMask are enabled
         public bool PrepareLightsForGPU(CommandBuffer cmd, HDCamera hdCamera, CullingResults cullResults,
-            HDProbeCullingResults hdProbeCullingResults, DensityVolumeList densityVolumes, DebugDisplaySettings debugDisplaySettings)
+            HDProbeCullingResults hdProbeCullingResults, DensityVolumeList densityVolumes, DebugDisplaySettings debugDisplaySettings, AOVRequestData aovRequest)
         {
         #if ENABLE_RAYTRACING
             HDRaytracingEnvironment raytracingEnv = m_RayTracingManager.CurrentEnvironment();
         #endif
+
+            var debugLightFilter = debugDisplaySettings.GetDebugLightFilterMode();
+            var hasDebugLightFilter = debugLightFilter != DebugLightFilterMode.None;
 
             using (new ProfilingSample(cmd, "Prepare Lights For GPU"))
             {
@@ -1859,6 +1862,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     for (int lightIndex = 0, numLights = cullResults.visibleLights.Length; (lightIndex < numLights) && (sortCount < lightCount); ++lightIndex)
                     {
                         var light = cullResults.visibleLights[lightIndex];
+                        if (!aovRequest.IsLightEnabled(light.light.gameObject))
+                            continue;
+
                         var lightComponent = light.light;
 
                         // Light should always have additional data, however preview light right don't have, so we must handle the case by assigning HDUtils.s_DefaultHDAdditionalLightData
@@ -1945,6 +1951,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                     break;
                             }
                         }
+
+                        if (hasDebugLightFilter
+                            && !debugLightFilter.IsEnabledFor(gpuLightType, additionalData.spotLightShape))
+                            continue;
 
                         // 5 bit (0x1F) light category, 5 bit (0x1F) GPULightType, 5 bit (0x1F) lightVolume, 1 bit for shadow casting, 16 bit index
                         m_SortKeys[sortCount++] = (uint)lightCategory << 27 | (uint)gpuLightType << 22 | (uint)lightVolumeType << 17 | (uint)lightIndex;
@@ -2094,12 +2104,25 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     UpdateSortKeysArray(probeCount);
                     sortCount = 0;
 
+                    var enableReflectionProbes = !hasDebugLightFilter ||
+                                                 debugLightFilter.IsEnabledFor(ProbeSettings.ProbeType.ReflectionProbe);
+                    var enablePlanarProbes = !hasDebugLightFilter ||
+                                                 debugLightFilter.IsEnabledFor(ProbeSettings.ProbeType.PlanarProbe);
                     for (int probeIndex = 0, numProbes = totalProbes; (probeIndex < numProbes) && (sortCount < probeCount); probeIndex++)
                     {
                         if (probeIndex < cullResults.visibleReflectionProbes.Length)
                         {
+                            if (!enableReflectionProbes)
+                            {
+                                // Skip directly to planar probes
+                                probeIndex = cullResults.visibleReflectionProbes.Length - 1;
+                                continue;
+                            }
+
                             var probe = cullResults.visibleReflectionProbes[probeIndex];
-                            if (probe.reflectionProbe == null || probe.reflectionProbe.Equals(null) || !probe.reflectionProbe.isActiveAndEnabled)
+                            if (probe.reflectionProbe == null
+                                || probe.reflectionProbe.Equals(null) || !probe.reflectionProbe.isActiveAndEnabled
+                                || !aovRequest.IsLightEnabled(probe.reflectionProbe.gameObject))
                                 continue;
 
                             // Exclude env lights based on hdCamera.probeLayerMask
@@ -2130,8 +2153,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         }
                         else
                         {
+                            if (!enablePlanarProbes)
+                                // skip planar probes
+                                break;
+
                             var planarProbeIndex = probeIndex - cullResults.visibleReflectionProbes.Length;
                             var probe = hdProbeCullingResults.visibleProbes[planarProbeIndex];
+                            if (!aovRequest.IsLightEnabled(probe.gameObject))
+                                continue;
 
                             // probe.texture can be null when we are adding a reflection probe in the editor
                             if (probe.texture == null || envLightCount >= k_MaxEnvLightsOnScreen)

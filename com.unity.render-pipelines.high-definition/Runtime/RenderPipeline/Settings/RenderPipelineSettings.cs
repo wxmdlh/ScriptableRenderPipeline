@@ -45,7 +45,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             supportTransparentBackface = true,
             supportTransparentDepthPrepass = true,
             supportTransparentDepthPostpass = true,
-            supportLowResTransparent = true,
             colorBufferFormat = ColorBufferFormat.R11G11B10,
             supportedLitShaderMode = SupportedLitShaderMode.DeferredOnly,
             supportDecals = true,
@@ -75,7 +74,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool supportTransparentBackface;
         public bool supportTransparentDepthPrepass;
         public bool supportTransparentDepthPostpass;
-        public bool supportLowResTransparent;
         public ColorBufferFormat colorBufferFormat;
         public SupportedLitShaderMode supportedLitShaderMode;
 
