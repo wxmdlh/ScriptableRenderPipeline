@@ -106,8 +106,8 @@ def get_build_status(build_number, project):
     #print(build_number)
 	if build_number != "null":
 		build_number = build_number[2:-1]
-    build_status_request = "%s?select=project&select=builders/%s/builds/%s&as_json=1&steps=0" % (katana_url, urllib.parse.quote(project), build_number)
-    build_status = utils.get_url_json(build_status_request)['builders'][project]['builds'][build_number]
+	build_status_request = "%s?select=project&select=builders/%s/builds/%s&as_json=1&steps=0" % (katana_url, urllib.parse.quote(project), build_number)
+	build_status = utils.get_url_json(build_status_request)['builders'][project]['builds'][build_number]
     return build_status
 
 
