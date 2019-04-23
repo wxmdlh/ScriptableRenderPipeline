@@ -2,6 +2,8 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Add Pass)"
 {
     Properties
     {
+        // Layer count is passed down to guide height-blend enable/disable, due
+        // to the fact that heigh-based blend will be broken with multipass.
         [HideInInspector] [PerRendererData] _NumLayersCount ("Total Layer Count", Float) = 1.0
             
         // set by terrain engine

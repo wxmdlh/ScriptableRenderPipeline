@@ -160,8 +160,6 @@ namespace UnityEditor.Rendering.LWRP
         bool ITerrainLayerCustomUI.OnTerrainLayerGUI(TerrainLayer terrainLayer, Terrain terrain)
         {
             var terrainLayers = terrain.terrainData.terrainLayers;
-            if (!DoesTerrainUseMaskMaps(terrainLayers))
-                return false;
 
             // Don't use the member field enableHeightBlend as ShaderGUI.OnGUI might not be called if the material UI is folded.
             // heightblend shouldn't be available if we are in multi-pass mode, because it is guaranteed to be broken.
@@ -286,7 +284,10 @@ namespace UnityEditor.Rendering.LWRP
                     if (heightBlend)
                         maskMapRemapMin.z = maskMapRemapMax.z = EditorGUILayout.FloatField(s_Styles.heightCm, maskMapRemapMin.z * 100) / 100;
                     maskMapRemapMax.w = EditorGUILayout.Slider(s_Styles.smoothness, maskMapRemapMax.w, 0, 1);
-                    maskMapRemapMin = maskMapRemapMax;
+                    // Setting the min to zero and the max to the slider value has the same effect as
+                    // just multiplying by max.  In the case and x & y, this is just multiplied by one
+                    // when we have no mask map, and in the case of w, it's the alpha value of diffuse.
+                    maskMapRemapMin.x = maskMapRemapMin.y = maskMapRemapMin.w = 0;
                 }
             }
 
