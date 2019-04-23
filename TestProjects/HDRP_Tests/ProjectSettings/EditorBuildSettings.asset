@@ -125,7 +125,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/GraphicTests/Scenes/1x_Materials/1706_DecalsSG.unity
     guid: 4ead319809e7c8544ad909dcf8fa3c4c
-  - enabled: 0
+  - enabled: 1
     path: Assets/GraphicTests/Scenes/1x_Materials/1800_Classification.unity
     guid: 5043daebf48d1b740bb244b9a55508ef
   - enabled: 1
