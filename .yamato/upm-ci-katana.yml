@@ -9,11 +9,6 @@ run_katana_metal:
   - sudo apt-get update
   - sudo apt-get install python3.6
   - python3 katana-ci/katana_launcher.py
-
-  #triggers:
-  #  branches:
-  #    only:
-  #      - yamato-master
   artifacts:
     logs.zip:
       paths:
