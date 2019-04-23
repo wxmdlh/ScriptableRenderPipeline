@@ -65,26 +65,6 @@ namespace UnityEditor.VFX
             return m_TransientData;
         }
 
-        VFXModel m_previousParent = null;
-        protected override void OnRemoved()
-        {
-            base.OnRemoved();
-            m_previousParent = m_Parent;
-        }
-
-        protected sealed override void OnAdded()
-        {
-            base.OnAdded();
-            var parent = GetParent();
-            if (parent != null && m_previousParent == null && parent.spaceable)
-            {
-                foreach (var slot in inputSlots.Where(o => o.spaceable))
-                {
-                    slot.space = parent.space;
-                }
-            }
-        }
-
         public sealed override VFXCoordinateSpace GetOutputSpaceFromSlot(VFXSlot slot)
         {
             /* For block, space is directly inherited from parent context, this method should remains sealed */
