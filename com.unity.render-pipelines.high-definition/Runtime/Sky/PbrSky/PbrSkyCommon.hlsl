@@ -130,9 +130,9 @@ float2 MapAerialPerspective(float cosChi, float height, float texelSize)
     // Above horizon?
     float s = FastSign(cosChi - cosHor);
 
-    float x = (cosChi - cosHor) * rcp(1 - s * cosHor); // in [-1, 1]
-    // The pow(u, 0.25) will allocate most samples near the horizon.
-    float m = pow(abs(x), 0.25);
+    // float x = (cosChi - cosHor) * rcp(1 - s * cosHor); // in [-1, 1]
+    // float m = pow(abs(x), 0.5);
+    float m = sqrt(abs(cosChi - cosHor)) * rsqrt(1 - s * cosHor);
 
     // Lighting must be discontinuous across the horizon.
     // Thus, we offset by half a texel to avoid interpolation artifacts.
@@ -148,8 +148,7 @@ float2 MapAerialPerspectiveAboveHorizon(float cosChi, float height)
 {
     float cosHor = GetCosineOfHorizonZenithAngle(height);
 
-    float x = (cosChi - cosHor) * rcp(1 - cosHor);
-    float u = pow(saturate(x), 0.25);
+    float u = saturate(sqrt(cosChi - cosHor) * rsqrt(1 - cosHor));
     float v = MapQuadraticHeight(height);
 
     return float2(u, v);
@@ -163,7 +162,7 @@ float2 UnmapAerialPerspective(float2 uv)
 
     float m = uv.x * 2 - 1;
     float s = FastSign(m);
-    float x = s * (m * m) * (m * m);
+    float x = s * (m * m);
 
     float cosChi = x * (1 - s * cosHor) + cosHor;
 
@@ -177,7 +176,7 @@ float2 UnmapAerialPerspectiveAboveHorizon(float2 uv)
     float height = UnmapQuadraticHeight(uv.y);
     float cosHor = GetCosineOfHorizonZenithAngle(height);
 
-    float x = (uv.x * uv.x) * (uv.x * uv.x);
+    float x = (uv.x * uv.x);
 
     float cosChi = x * (1 - cosHor) + cosHor;
 
@@ -210,19 +209,11 @@ float3 SampleTransmittanceTexture(float cosChi, float height, bool belowHorizon)
         float rcpR = _RcpPlanetaryRadius;
         float h    = height;
         float r    = R + h;
-        float x    = r * rcpR;
 
-        // Using the Law of Sines (and remembering that the angle is obtuse),
-        //
-        // sin(beta) / b = sin(gamma) / c
-        // sin(beta) = sin(Pi - chi) = sin(chi)
-        // sin(gamma) = sin(beta) * c / b
-        // sin(gamma) = sin(chi)  * r / R
-        // cos(theta) = cos(Pi - gamma) = -cos(gamma), where 'gamma' is obtuse, so cos(theta) >= 0.
-        //
-        float sinChi   = SinFromCos(cosChi);
-        float sinGamma = x * sinChi;
-        float cosTheta = sqrt(saturate(1 - sinGamma * sinGamma));
+        float cosAlpha = -cosChi;
+        float sinAlpha = SinFromCos(cosAlpha);
+        float sinTheta = sinAlpha * (r * rcpR);
+        float cosTheta = sqrt(saturate(1 - sinTheta * sinTheta));
 
         // From the sea level to the atmospheric boundary -
         // from the current position to the atmospheric boundary.

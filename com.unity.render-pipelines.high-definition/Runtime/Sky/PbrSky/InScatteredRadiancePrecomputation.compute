@@ -91,7 +91,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     }
 
     float3 radiance   = 0;
-    float4 tableEntry = float4(radiance, tMax - tMin);
+    float4 tableEntry = float4(radiance, 0);
 
 #if (SCATTERING_ORDER == 1)
     // For single scattering with the directional light assumption, planet's shadow forms a shadow volume
@@ -129,6 +129,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     if (tMin >= tMax)
     {
+        tableEntry.a = tMax - tMin;
         _InScatteredRadianceTable[tableCoord] = tableEntry; // Return 0
         return;
     }
