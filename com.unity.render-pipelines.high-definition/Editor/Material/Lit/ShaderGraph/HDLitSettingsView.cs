@@ -48,13 +48,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                 case SurfaceType.Opaque:
                     ps.Add(new PropertyRow(CreateLabel("Rendering Pass", indentLevel)), (row) =>
                     {
-                        var valueList = HDSubShaderUtilities.GetRenderingPassList(true, false);
-
-                        row.Add(new PopupField<HDRenderQueue.RenderQueueType>(valueList, HDRenderQueue.RenderQueueType.Opaque, HDSubShaderUtilities.RenderQueueName, HDSubShaderUtilities.RenderQueueName), (field) =>
-                        {
-                            field.value = HDRenderQueue.GetOpaqueEquivalent(m_Node.renderingPass);
-                            field.RegisterValueChangedCallback(ChangeRenderingPass);
-                        });
                     });
                     break;
                 case SurfaceType.Transparent:
@@ -71,14 +64,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                                 defaultValue = HDRenderQueue.TransparentRenderQueue.BeforeRefraction;
                                 break;
                         }
-
-                        var valueList = HDSubShaderUtilities.GetRenderingPassList(false, false);
-
-                        row.Add(new PopupField<HDRenderQueue.RenderQueueType>(valueList, HDRenderQueue.RenderQueueType.Transparent, HDSubShaderUtilities.RenderQueueName, HDSubShaderUtilities.RenderQueueName), (field) =>
-                        {
-                            field.value = HDRenderQueue.GetTransparentEquivalent(m_Node.renderingPass);
-                            field.RegisterValueChangedCallback(ChangeRenderingPass);
-                        });
                     });
                     break;
                 default:

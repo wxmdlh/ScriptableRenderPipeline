@@ -6,8 +6,17 @@ using UnityEngine;              // Vector3,4
 using UnityEditor.ShaderGraph;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 
+using Float
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
+    internal enum HDRenderTypeTags
+    {
+        HDLitShader,    // For Lit, LayeredLit, LitTesselation, LayeredLitTesselation
+        HDUnlitShader,  // Unlit
+        Opaque,         // Used by Terrain
+    }
+
     static class HDRPShaderStructs
     {
         internal struct AttributesMesh
@@ -477,6 +486,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public string ZTestOverride;
         public string ZWriteOverride;
         public string ColorMaskOverride;
+        public string ZClipOverride;
         public List<string> StencilOverride;
         public List<string> RequiredFields;         // feeds into the dependency analysis
         public bool UseInPreview;
@@ -502,7 +512,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
     static class HDSubShaderUtilities
     {
-        public static bool GenerateShaderPass(AbstractMaterialNode masterNode, Pass pass, GenerationMode mode, SurfaceMaterialOptions materialOptions, HashSet<string> activeFields, ShaderGenerator result, List<string> sourceAssetDependencyPaths, bool vertexActive)
+        public static bool GenerateShaderPass(AbstractMaterialNode masterNode, Pass pass, GenerationMode mode, HashSet<string> activeFields, ShaderGenerator result, List<string> sourceAssetDependencyPaths, bool vertexActive)
         {
             string templatePath = Path.Combine(HDUtils.GetHDRenderPipelinePath(), "Editor/Material");
             string templateLocation = Path.Combine(Path.Combine(Path.Combine(templatePath, pass.MaterialName), "ShaderGraph"), pass.TemplateName);
@@ -609,7 +619,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             var zClipCode = new ShaderStringBuilder();
             var stencilCode = new ShaderStringBuilder();
             var colorMaskCode = new ShaderStringBuilder();
-            HDSubShaderUtilities.BuildRenderStatesFromPassAndMaterialOptions(pass, materialOptions, blendCode, cullCode, zTestCode, zWriteCode, zClipCode, stencilCode, colorMaskCode);
+            HDSubShaderUtilities.BuildRenderStatesFromPassAndMaterialOptions(pass, blendCode, cullCode, zTestCode, zWriteCode, zClipCode, stencilCode, colorMaskCode);
 
             HDRPShaderStructs.AddRequiredFields(pass.RequiredFields, activeFields);
 
@@ -733,7 +743,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             namedFragments.Add("ZClip", zClipCode.ToString());
             namedFragments.Add("Stencil", stencilCode.ToString());
             namedFragments.Add("ColorMask", colorMaskCode.ToString());
-            namedFragments.Add("LOD", materialOptions.lod.ToString());
 
             // this is the format string for building the 'C# qualified assembly type names' for $buildType() commands
             string buildTypeAssemblyNameFormat = "UnityEditor.Experimental.Rendering.HDPipeline.HDRPShaderStructs+{0}, " + typeof(HDSubShaderUtilities).Assembly.FullName.ToString();
@@ -769,7 +778,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public static void BuildRenderStatesFromPassAndMaterialOptions(
             Pass pass,
-            SurfaceMaterialOptions materialOptions,
             ShaderStringBuilder blendCode,
             ShaderStringBuilder cullCode,
             ShaderStringBuilder zTestCode,
@@ -779,162 +787,31 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             ShaderStringBuilder colorMaskCode)
         {
             if (pass.BlendOverride != null)
-            {
                 blendCode.AppendLine(pass.BlendOverride);
-            }
-            else
-            {
-                materialOptions.GetBlend(blendCode);
-            }
 
             if (pass.BlendOpOverride != null)
-            {
                 blendCode.AppendLine(pass.BlendOpOverride);
-            }
 
             if (pass.CullOverride != null)
-            {
                 cullCode.AppendLine(pass.CullOverride);
-            }
-            else
-            {
-                materialOptions.GetCull(cullCode);
-            }
 
             if (pass.ZTestOverride != null)
-            {
                 zTestCode.AppendLine(pass.ZTestOverride);
-            }
-            else
-            {
-                materialOptions.GetDepthTest(zTestCode);
-            }
 
             if (pass.ZWriteOverride != null)
-            {
                 zWriteCode.AppendLine(pass.ZWriteOverride);
-            }
-            else
-            {
-                materialOptions.GetDepthWrite(zWriteCode);
-            }
-
-            // No point in an override for this.
-            materialOptions.GetDepthClip(zClipCode);
 
             if (pass.ColorMaskOverride != null)
-            {
                 colorMaskCode.AppendLine(pass.ColorMaskOverride);
-            }
-            else
-            {
-                // material option default is to not declare anything for color mask
-            }
+            
+            if (pass.ZClipOverride != null)
+                zClipCode.AppendLine(pass.ZClipOverride);
 
             if (pass.StencilOverride != null)
             {
                 foreach (var str in pass.StencilOverride)
-                {
                     stencilCode.AppendLine(str);
-                }
             }
-            else
-            {
-                stencilCode.AppendLine("// Default Stencil");
-            }
-        }
-
-        public static HDMaterialTags BuildMaterialTags(HDRenderQueue.RenderQueueType renderQueueType,
-                                                       int sortPriority,
-                                                       bool alphaTest,
-                                                       HDMaterialTags.RenderType renderType = HDMaterialTags.RenderType.HDLitShader)
-        {
-            return new HDMaterialTags
-            {
-                renderType = renderType,
-                renderQueueIndex = HDRenderQueue.ChangeType(renderQueueType, sortPriority, alphaTest)
-            };
-        }
-
-        public static HDMaterialTags BuildMaterialTags(SurfaceType surfaceType,
-                                                       int sortPriority,
-                                                       bool alphaTest,
-                                                       HDMaterialTags.RenderType renderType = HDMaterialTags.RenderType.HDLitShader)
-        {
-            HDRenderQueue.RenderQueueType renderQueueType = HDRenderQueue.RenderQueueType.Opaque;
-
-            if (surfaceType == SurfaceType.Transparent)
-                renderQueueType = HDRenderQueue.RenderQueueType.Transparent;
-
-            return BuildMaterialTags(renderQueueType, sortPriority, alphaTest, renderType);
-        }
-
-        public static SurfaceMaterialOptions BuildMaterialOptions(SurfaceType surfaceType,
-                                                                  AlphaMode alphaMode,
-                                                                  bool twoSided,
-                                                                  bool refraction,
-                                                                  bool offscreenTransparent)
-        {
-            SurfaceMaterialOptions materialOptions = new SurfaceMaterialOptions();
-            if (surfaceType == SurfaceType.Opaque)
-            {
-                materialOptions.srcBlend = SurfaceMaterialOptions.BlendMode.One;
-                materialOptions.dstBlend = SurfaceMaterialOptions.BlendMode.Zero;
-                materialOptions.zTest = SurfaceMaterialOptions.ZTest.LEqual;
-                materialOptions.zWrite = SurfaceMaterialOptions.ZWrite.On;
-            }
-            else
-            {
-                if (refraction)
-                {
-                    materialOptions.srcBlend = SurfaceMaterialOptions.BlendMode.One;
-                    materialOptions.dstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                    materialOptions.alphaSrcBlend = SurfaceMaterialOptions.BlendMode.One;
-                    materialOptions.alphaDstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                }
-                else
-                {
-                    switch (alphaMode)
-                    {
-                        case AlphaMode.Alpha:
-                            materialOptions.srcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.dstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                            materialOptions.alphaSrcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.alphaDstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                            break;
-                        case AlphaMode.Additive:
-                            materialOptions.srcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.dstBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.alphaSrcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.alphaDstBlend = SurfaceMaterialOptions.BlendMode.One;
-                            break;
-                        case AlphaMode.Premultiply:
-                            materialOptions.srcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.dstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                            materialOptions.alphaSrcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.alphaDstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                            break;
-                        // This isn't supported in HDRP.
-                        case AlphaMode.Multiply:
-                            materialOptions.srcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.dstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                            materialOptions.alphaSrcBlend = SurfaceMaterialOptions.BlendMode.One;
-                            materialOptions.alphaDstBlend = SurfaceMaterialOptions.BlendMode.OneMinusSrcAlpha;
-                            break;
-                    }
-                }
-
-                if(offscreenTransparent)
-                {
-                    materialOptions.alphaSrcBlend = SurfaceMaterialOptions.BlendMode.Zero;
-                }
-                materialOptions.zTest = SurfaceMaterialOptions.ZTest.LEqual;
-                materialOptions.zWrite = SurfaceMaterialOptions.ZWrite.Off;
-            }
-
-            materialOptions.cullMode = twoSided ? SurfaceMaterialOptions.CullMode.Off : SurfaceMaterialOptions.CullMode.Back;
-
-            return materialOptions;
         }
 
         // Comment set of define for Forward Opaque pass in HDRP
@@ -974,137 +851,233 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             "#pragma multi_compile _ WRITE_MSAA_DEPTH"
         };
 
-        public static string RenderQueueName(HDRenderQueue.RenderQueueType value)
-        {
-            switch (value)
-            {
-                case HDRenderQueue.RenderQueueType.Opaque:
-                    return "Default";
-                case HDRenderQueue.RenderQueueType.AfterPostProcessOpaque:
-                    return "After Post-process";
-                case HDRenderQueue.RenderQueueType.PreRefraction:
-                    return "Before Refraction";
-                case HDRenderQueue.RenderQueueType.Transparent:
-                    return "Default";
-                case HDRenderQueue.RenderQueueType.LowTransparent:
-                    return "Low Resolution";
-                case HDRenderQueue.RenderQueueType.AfterPostprocessTransparent:
-                    return "After Post-process";
-
-#if ENABLE_RAYTRACING
-                case HDRenderQueue.RenderQueueType.RaytracingOpaque: return "Raytracing";
-                case HDRenderQueue.RenderQueueType.RaytracingTransparent: return "Raytracing";
-#endif
-                default:
-                    return "None";
-            }
-        }
-
-        public static System.Collections.Generic.List<HDRenderQueue.RenderQueueType> GetRenderingPassList(bool opaque, bool needAfterPostProcess)
-        {
-            var result = new System.Collections.Generic.List<HDRenderQueue.RenderQueueType>();
-            if (opaque)
-            {
-                result.Add(HDRenderQueue.RenderQueueType.Opaque);
-                if (needAfterPostProcess)
-                    result.Add(HDRenderQueue.RenderQueueType.AfterPostProcessOpaque);
-#if ENABLE_RAYTRACING
-                result.Add(HDRenderQueue.RenderQueueType.RaytracingOpaque);
-#endif
-            }
-            else
-            {
-                result.Add(HDRenderQueue.RenderQueueType.PreRefraction);
-                result.Add(HDRenderQueue.RenderQueueType.Transparent);
-                result.Add(HDRenderQueue.RenderQueueType.LowTransparent);
-                if (needAfterPostProcess)
-                    result.Add(HDRenderQueue.RenderQueueType.AfterPostprocessTransparent);
-#if ENABLE_RAYTRACING
-                result.Add(HDRenderQueue.RenderQueueType.RaytracingTransparent);
-#endif
-            }
-
-            return result;
-        }
-
-        public static void GetStencilStateForDepthOrMV(bool receiveDecals, bool receiveSSR, bool useObjectMotionVector, ref Pass pass)
-        {
-            int stencilWriteMask = (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
-            int stencilRef = receiveDecals ? (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer : 0;
-
-            stencilWriteMask |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
-            stencilRef |= !receiveSSR ? (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR : 0;
-
-            stencilWriteMask |= useObjectMotionVector ? (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors : 0;
-            stencilRef |= useObjectMotionVector ? (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors : 0;
-
-            if (stencilWriteMask != 0)
-            {
-                pass.StencilOverride = new List<string>()
-                {
-                    "// Stencil setup",
-                    "Stencil",
-                    "{",
-                    string.Format("   WriteMask {0}", stencilWriteMask),
-                    string.Format("   Ref  {0}", stencilRef),
-                    "   Comp Always",
-                    "   Pass Replace",
-                    "}"
-                };
-            }
-        }
-
-        public static void GetStencilStateForForward(bool useSplitLighting, ref Pass pass)
+        public static void SetStencilStateForDepth(ref Pass pass)
         {
             pass.StencilOverride = new List<string>()
             {
                 "// Stencil setup",
                 "Stencil",
                 "{",
-                string.Format("   WriteMask {0}", (int) HDRenderPipeline.StencilBitMask.LightingMask),
-                string.Format("   Ref  {0}", useSplitLighting ? (int)StencilLightingUsage.SplitLighting : (int)StencilLightingUsage.RegularLighting),
+                "   WriteMask [_StencilWriteMaskMV]",
+                "   Ref [_StencilRefMV]",
                 "   Comp Always",
                 "   Pass Replace",
                 "}"
             };
         }
 
-        public static void GetStencilStateForForwardUnlit(ref Pass pass)
+        public static void SetStencilStateForMotionVector(ref Pass pass)
         {
             pass.StencilOverride = new List<string>()
             {
                 "// Stencil setup",
                 "Stencil",
                 "{",
-                string.Format("   WriteMask {0}", (int) HDRenderPipeline.StencilBitMask.LightingMask),
-                string.Format("   Ref  {0}", (int)StencilLightingUsage.NoLighting),
+                "   WriteMask [_StencilWriteMaskMV]",
+                "   Ref [_StencilRefMV]",
                 "   Comp Always",
                 "   Pass Replace",
                 "}"
             };
-        }        
+        }
 
-        public static void GetStencilStateForGBuffer(bool receiveSSR, bool useSplitLighting, ref Pass pass)
+        public static void SetStencilStateForDistortionVector(ref Pass pass)
         {
-            int stencilWriteMask = (int)HDRenderPipeline.StencilBitMask.LightingMask;
-            int stencilRef = useSplitLighting ? (int)StencilLightingUsage.SplitLighting : (int)StencilLightingUsage.RegularLighting;
-
-            stencilWriteMask |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
-            stencilRef |= !receiveSSR ? (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR : 0;
-
-            stencilWriteMask |= (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
-
             pass.StencilOverride = new List<string>()
             {
                 "// Stencil setup",
                 "Stencil",
                 "{",
-                string.Format("   WriteMask {0}", stencilWriteMask),
-                string.Format("   Ref  {0}", stencilRef),
+                "   WriteMask [_StencilRefDistortionVec]",
+                "   Ref [_StencilRefDistortionVec]",
                 "   Comp Always",
                 "   Pass Replace",
                 "}"
             };
+        }
+
+        public static void SetStencilStateForForward(ref Pass pass)
+        {
+            pass.StencilOverride = new List<string>()
+            {
+                "// Stencil setup",
+                "Stencil",
+                "{",
+                "   WriteMask [_StencilWriteMask]",
+                "   Ref [_StencilRef]",
+                "   Comp Always",
+                "   Pass Replace",
+                "}"
+            };
+        }
+
+        public static void SetStencilStateForGBuffer(ref Pass pass)
+        {
+            pass.StencilOverride = new List<string>()
+            {
+                "// Stencil setup",
+                "Stencil",
+                "{",
+                "   WriteMask [_StencilWriteMaskGBuffer]",
+                "   Ref [_StencilRefGBuffer]",
+                "   Comp Always",
+                "   Pass Replace",
+                "}"
+            };
+        }
+
+        public static void SetZClipForShadowCaster(ref Pass pass)
+        {
+            pass.ZClipOverride = "ZClip [_ZClip]";
+        }
+
+        public static void SetColorMaskOff(ref Pass pass)
+        {
+            pass.ColorMaskOverride = "ColorMask 0";
+        }
+
+        public static void SetColorMaskOffTarget0(ref Pass pass)
+        {
+            pass.ColorMaskOverride = "ColorMask 0 0";
+        }
+
+        public static void SetColorMaskOffTarget1(ref Pass pass)
+        {
+            pass.ColorMaskOverride = "ColorMask 0 1";
+        }
+
+        public static void SetColorMaskTransparentVelocity(ref Pass pass)
+        {
+            pass.ColorMaskOverride = "ColorMask [_ColorMaskTransparentVel] 1";
+        }
+
+        public static void SetCullMode(ref Pass pass)
+        {
+            pass.CullOverride = "Cull [_CullMode]";
+        }
+        
+        public static void SetCullModeOff(ref Pass pass)
+        {
+            pass.CullOverride = "Cull Off";
+        }
+
+        public static void SetBlendModeForDistortionVector(ref Pass pass)
+        {
+            pass.BlendOverride = "[_DistortionSrcBlend] [_DistortionDstBlend], [_DistortionBlurSrcBlend] [_DistortionBlurDstBlend]";
+            pass.BlendOpOverride = "Add, [_DistortionBlurBlendOp]";
+        }
+
+        public static string GetTags(string pipeline, HDRenderTypeTags renderType)
+        {
+            ShaderStringBuilder builder = new ShaderStringBuilder();
+            builder.AppendLine("Tags");
+            using (builder.BlockScope())
+            {
+                builder.AppendLine("\"RenderPipeline\"=\"{0}\"", pipeline);
+                builder.AppendLine("\"RenderType\"=\"{0}\"", renderType);
+            }
+
+            return builder.ToString();
+        }
+
+        // TODO: move this to an utils file for PropertyCollector + more util functions
+        static void AddIntProperty(this PropertyCollector collector, string referenceName, int defaultValue, bool hidden = true)
+        {
+            collector.AddShaderProperty(new Vector1ShaderProperty{
+                floatType = FloatType.Integer,
+                value = defaultValue,
+                hidden = hidden,
+                overrideReferenceName = referenceName,
+            });
+        }
+
+        static void AddFloatProperty(this PropertyCollector collector, string referenceName, float defaultValue, bool hidden = true)
+        {
+            collector.AddShaderProperty(new Vector1ShaderProperty{
+                floatType = FloatType.Default,
+                value = defaultValue,
+                hidden = hidden,
+                overrideReferenceName = referenceName,
+            });
+        }
+
+        static void AddFloatProperty(this PropertyCollector collector, string referenceName, string displayName, float defaultValue)
+        {
+            collector.AddShaderProperty(new Vector1ShaderProperty{
+                floatType = FloatType.Default,
+                value = defaultValue,
+                overrideReferenceName = referenceName,
+                displayName = displayName
+            });
+        }
+
+        static void AddToggleProperty(this PropertyCollector collector, string referenceName, string displayName, bool defaultValue, bool hidden = true)
+        {
+            collector.AddShaderProperty(new Vector1ShaderProperty{
+                floatType = FloatType.Enum,
+                value = defaultValue ? 1 : 0,
+                hidden = hidden,
+                overrideReferenceName = referenceName,
+                displayName = displayName,
+            });
+        }
+
+        public static void AddStencilShaderProperties(PropertyCollector collector)
+        {
+            collector.AddIntProperty("_StencilRef", 0); // StencilLightingUsage.NoLighting
+            collector.AddIntProperty("_StencilRef", 0); // StencilLightingUsage.NoLighting
+            collector.AddIntProperty("_StencilWriteMask", 3); // StencilMask.Lighting
+            // Depth prepass
+            collector.AddIntProperty("_StencilRefDepth", 0); // Nothing
+            collector.AddIntProperty("_StencilWriteMaskDepth", 32); // DoesntReceiveSSR
+            // Motion vector pass
+            collector.AddIntProperty("_StencilRefMV", 128); // StencilBitMask.ObjectMotionVectors
+            collector.AddIntProperty("_StencilWriteMaskMV", 128); // StencilBitMask.ObjectMotionVectors
+            // Distortion vector pass
+            collector.AddIntProperty("_StencilRefDistortionVec", 64); // StencilBitMask.DistortionVectors
+            collector.AddIntProperty("_StencilWriteMaskDistortionVec", 64); // StencilBitMask.DistortionVectors
+        }
+
+        public static void AddBlendingStatesShaderProperties(PropertyCollector collector)
+        {
+            collector.AddFloatProperty("_SurfaceType", 0.0f);
+            collector.AddFloatProperty("_BlendMode", 0.0f);
+            collector.AddFloatProperty("_SrcBlend", 1.0f);
+            collector.AddFloatProperty("_DstBlend", 0.0f);
+            collector.AddFloatProperty("_AlphaSrcBlend", 1.0f);
+            collector.AddFloatProperty("_AlphaDstBlend", 0.0f);
+            collector.AddFloatProperty("_ZWrite", 1.0f);
+            collector.AddFloatProperty("_CullMode", 2.0f);
+            collector.AddIntProperty("_ZTestModeDistortion", 8);
+        }
+
+        public static void AddDistortionShaderProperties(PropertyCollector collector)
+        {
+            collector.AddShaderProperty(new TextureShaderProperty{
+                overrideReferenceName = "DistortionVectorMap",
+                defaultType = TextureShaderProperty.DefaultType.Black
+            });
+
+            collector.AddToggleProperty("_DistortionEnable", "Enable Distortion", false);
+            collector.AddToggleProperty("_DistortionOnly", "Distortion Only", false);
+            collector.AddToggleProperty("_DistortionDepthTest", "Distortion Depth Test Enable", true);
+            collector.AddShaderProperty(new Vector1ShaderProperty{
+                overrideReferenceName = "_DistortionBlendMode",
+                displayName = "Distortion Blend Mode",
+                floatType = FloatType.Enum,
+                enumNames = {"Add", "Multiply", "Replace"}
+            });
+            collector.AddIntProperty("_DistortionSrcBlend", 0);
+            collector.AddIntProperty("_DistortionDstBlend", 0);
+            collector.AddIntProperty("_DistortionBlurSrcBlend", 0);
+            collector.AddIntProperty("_DistortionBlurDstBlend", 0);
+            collector.AddIntProperty("_DistortionBlurBlendMode", 0);
+            collector.AddFloatProperty("_DistortionScale", "Distortion Scale", 1);
+            collector.AddFloatProperty("_DistortionVectorScale", "Distortion Vector Scale", 2);
+            collector.AddFloatProperty("_DistortionVectorBias", "Distortion Vector Bias", -1);
+            collector.AddFloatProperty("_DistortionBlurScale", "Distortion Blur Scale", 1);
+            collector.AddFloatProperty("_DistortionBlurRemapMin", "DistortionBlurRemapMin", 0.0f);
+            collector.AddFloatProperty("_DistortionBlurRemapMax", "DistortionBlurRemapMax", 1.0f);
         }
     }
 }

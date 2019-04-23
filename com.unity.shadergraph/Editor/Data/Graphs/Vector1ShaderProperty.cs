@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using UnityEditor.Graphing;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace UnityEditor.ShaderGraph
 {
@@ -9,7 +10,9 @@ namespace UnityEditor.ShaderGraph
     {
         Default,
         Slider,
-        Integer
+        Integer,
+        ToggleUI,
+        Enum,
     }
 
     [Serializable]
@@ -68,6 +71,23 @@ namespace UnityEditor.ShaderGraph
                 m_RangeValues = value;
             }
         }
+
+        [SerializeField]
+        private List<string> m_enumNames = new List<string>();
+        [SerializeField]
+        private List<int> m_enumValues; // default to null, so we generate a sequence from 0 to enumNames.Length for the shader
+
+        public List<string> enumNames
+        {
+            get => m_enumNames;
+            set => m_enumNames = value;
+        }
+
+        public List<int> enumValues
+        {
+            get => m_enumValues;
+            set => m_enumValues = value;
+        }
         
         [SerializeField]
         bool    m_Hidden = false;
@@ -83,6 +103,8 @@ namespace UnityEditor.ShaderGraph
             var result = new StringBuilder();
             if (hidden)
                 result.Append("[HideInInspector] ");
+            if (floatType == FloatType.ToggleUI)
+                result.Append("[ToggleUI]");
             result.Append(referenceName);
             result.Append("(\"");
             result.Append(displayName);
@@ -94,6 +116,8 @@ namespace UnityEditor.ShaderGraph
                     result.Append(")) = ");
                     break;
                 case FloatType.Integer:
+                case FloatType.ToggleUI: // We assume that toggle UI and Enums properties must be saved as int
+                case FloatType.Enum:
                     result.Append("\", Int) = ");
                     break;
                 default:
@@ -126,6 +150,8 @@ namespace UnityEditor.ShaderGraph
                     return new SliderNode { value = new Vector3(value, m_RangeValues.x, m_RangeValues.y) };
                 case FloatType.Integer:
                     return new IntegerNode { value = (int)value };
+                // TODO: Toggle node creation
+                // TODO: Enum node creation
                 default:
                     var node = new Vector1Node();
                     node.FindInputSlot<Vector1MaterialSlot>(Vector1Node.InputSlotXId).value = value;

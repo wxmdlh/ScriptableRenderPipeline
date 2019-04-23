@@ -31,144 +31,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public const int DistortionBlurSlotId = 11;
         public const int EmissionSlotId = 12;
 
-        // Don't support Multiply
-        public enum AlphaModeLit
-        {
-            Alpha,
-            Premultiply,
-            Additive,
-        }
-
-        [SerializeField]
-        SurfaceType m_SurfaceType;
-
-        public SurfaceType surfaceType
-        {
-            get { return m_SurfaceType; }
-            set
-            {
-                if (m_SurfaceType == value)
-                    return;
-
-                m_SurfaceType = value;
-                UpdateNodeAfterDeserialization();
-                Dirty(ModificationScope.Topological);
-            }
-        }
-
-        [SerializeField]
-        AlphaMode m_AlphaMode;
-
-        public AlphaMode alphaMode
-        {
-            get { return m_AlphaMode; }
-            set
-            {
-                if (m_AlphaMode == value)
-                    return;
-
-                m_AlphaMode = value;
-                Dirty(ModificationScope.Graph);
-            }
-        }
-
-        [SerializeField]
-        HDRenderQueue.RenderQueueType m_RenderingPass = HDRenderQueue.RenderQueueType.Opaque;
-
-        public HDRenderQueue.RenderQueueType renderingPass
-        {
-            get { return m_RenderingPass; }
-            set
-            {
-                if (m_RenderingPass == value)
-                    return;
-
-                m_RenderingPass = value;
-                Dirty(ModificationScope.Graph);
-            }
-        }
-
-        [SerializeField]
-        bool m_TransparencyFog = true;
-
-        public ToggleData transparencyFog
-        {
-            get { return new ToggleData(m_TransparencyFog); }
-            set
-            {
-                if (m_TransparencyFog == value.isOn)
-                    return;
-                m_TransparencyFog = value.isOn;
-                Dirty(ModificationScope.Graph);
-            }
-        }
-
-        [SerializeField, Obsolete("Kept for data migration")]
-        internal bool m_DrawBeforeRefraction;
-
-        [SerializeField]
-        bool m_Distortion;
-
-        public ToggleData distortion
-        {
-            get { return new ToggleData(m_Distortion); }
-            set
-            {
-                if (m_Distortion == value.isOn)
-                    return;
-                m_Distortion = value.isOn;
-                UpdateNodeAfterDeserialization();
-                Dirty(ModificationScope.Topological);
-            }
-        }
-
-        [SerializeField]
-        DistortionMode m_DistortionMode;
-
-        public DistortionMode distortionMode
-        {
-            get { return m_DistortionMode; }
-            set
-            {
-                if (m_DistortionMode == value)
-                    return;
-
-                m_DistortionMode = value;
-                UpdateNodeAfterDeserialization();
-                Dirty(ModificationScope.Topological);
-            }
-        }
-
-        [SerializeField]
-        bool m_DistortionOnly = true;
-
-        public ToggleData distortionOnly
-        {
-            get { return new ToggleData(m_DistortionOnly); }
-            set
-            {
-                if (m_DistortionOnly == value.isOn)
-                    return;
-                m_DistortionOnly = value.isOn;
-                Dirty(ModificationScope.Graph);
-            }
-        }
-
-        [SerializeField]
-        bool m_DistortionDepthTest = true;
-
-        public ToggleData distortionDepthTest
-        {
-            get { return new ToggleData(m_DistortionDepthTest); }
-            set
-            {
-                if (m_DistortionDepthTest == value.isOn)
-                    return;
-                m_DistortionDepthTest = value.isOn;
-                Dirty(ModificationScope.Graph);
-            }
-        }
-
         [SerializeField]
         bool m_AlphaTest;
 
@@ -182,21 +44,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 m_AlphaTest = value.isOn;
                 UpdateNodeAfterDeserialization();
                 Dirty(ModificationScope.Topological);
-            }
-        }
-
-        [SerializeField]
-        int m_SortPriority;
-
-        public int sortPriority
-        {
-            get { return m_SortPriority; }
-            set
-            {
-                if (m_SortPriority == value)
-                    return;
-                m_SortPriority = value;
-                Dirty(ModificationScope.Graph);
             }
         }
 
@@ -225,11 +72,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             get { return null; }
         }
         
-        public bool HasDistortion()
-        {
-            return (surfaceType == SurfaceType.Transparent && distortion.isOn);
-        }
-
         public sealed override void UpdateNodeAfterDeserialization()
         {
             base.UpdateNodeAfterDeserialization();
@@ -247,14 +89,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             AddSlot(new ColorRGBMaterialSlot(EmissionSlotId, EmissionSlotName, EmissionSlotName, SlotType.Input, Color.black, ColorMode.HDR, ShaderStageCapability.Fragment));
             validSlots.Add(EmissionSlotId);
 
-            if (HasDistortion())
-            {
-                AddSlot(new Vector2MaterialSlot(DistortionSlotId, DistortionSlotName, DistortionSlotName, SlotType.Input, new Vector2(0.0f, 0.0f), ShaderStageCapability.Fragment));
-                validSlots.Add(DistortionSlotId);
+            AddSlot(new Vector2MaterialSlot(DistortionSlotId, DistortionSlotName, DistortionSlotName, SlotType.Input, new Vector2(0.0f, 0.0f), ShaderStageCapability.Fragment));
+            validSlots.Add(DistortionSlotId);
 
-                AddSlot(new Vector1MaterialSlot(DistortionBlurSlotId, DistortionBlurSlotName, DistortionBlurSlotName, SlotType.Input, 1.0f, ShaderStageCapability.Fragment));
-                validSlots.Add(DistortionBlurSlotId);
-            }
+            AddSlot(new Vector1MaterialSlot(DistortionBlurSlotId, DistortionBlurSlotName, DistortionBlurSlotName, SlotType.Input, 1.0f, ShaderStageCapability.Fragment));
+            validSlots.Add(DistortionBlurSlotId);
 
             RemoveSlotsNameNotMatching(validSlots, true);
         }
@@ -293,6 +132,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 hidden = true,
                 value = new Color(1.0f, 1.0f, 1.0f, 1.0f)
             });
+
+            // Add all shader properties required by the inspector
+            HDSubShaderUtilities.AddStencilShaderProperties(collector);
+            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector);
+            HDSubShaderUtilities.AddDistortionShaderProperties(collector);
 
             base.CollectShaderProperties(collector, generationMode);
         }
