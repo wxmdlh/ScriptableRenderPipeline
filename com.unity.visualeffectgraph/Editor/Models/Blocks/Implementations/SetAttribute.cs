@@ -99,7 +99,7 @@ namespace UnityEditor.VFX.Block
                 Invalidate(InvalidationCause.kSettingChanged);
 
             base.Sanitize(version);
-            if (version <= 1)
+            if (version <= 1 && inputSlots.Any(o => o.spaceable))
             {
                 //Space has been added with on a few specific attributes, automatically copying space from context
                 var contextSpace = GetParent().space;
@@ -107,6 +107,7 @@ namespace UnityEditor.VFX.Block
                 {
                     slot.space = contextSpace;
                 }
+                Debug.Log(string.Format("Sanitizing attribute {0} : settings space to {1} (retrieved from context)", attribute, contextSpace));
             }
         }
 
