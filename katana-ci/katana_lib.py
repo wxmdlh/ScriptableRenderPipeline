@@ -89,7 +89,7 @@ def start_katana_build(project, properties):
 
 def has_katana_finished(build_info, project):
     build_number = get_build_number(build_info)
-    #print("has_katana_finished %s" % build_number)
+    print("has_katana_finished %s" % build_number)
 
     if build_number == "null":
         return False
@@ -156,7 +156,7 @@ def get_build_number(build_info):
     if build_number_result.status_code != 200:
         print("Failed to get build number from build request number:\n%s" % build_number_result.content)
         raise Exception
-
+    print("content strripped build number %s" % build_number_result.content.strip())
     return build_number_result.content.strip()
 
 
