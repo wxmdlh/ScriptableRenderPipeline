@@ -91,7 +91,7 @@ def has_katana_finished(build_info, project):
     build_number = get_build_number(build_info)
     if not isinstance(build_number, str):
                     build_number = build_number.decode('ascii', 'replace')
-    #print("has_katana_finished %s" % build_number)
+    print("has_katana_finished %s" % build_number)
 
     if build_number == "null":
         return False
@@ -109,6 +109,8 @@ def get_build_status(build_number, project):
     #if build_number != "null":
     #    build_number = build_number[2:-1]
     #print(build_number)
+    if not isinstance(build_number, str):
+                    build_number = build_number.decode('ascii', 'replace')
     build_status_request = "%s?select=project&select=builders/%s/builds/%s&as_json=1&steps=0" % (katana_url, urllib.parse.quote(project), build_number)
     build_status = utils.get_url_json(build_status_request)['builders'][project]['builds'][build_number]
     return build_status
@@ -158,7 +160,7 @@ def get_build_number(build_info):
     if build_number_result.status_code != 200:
         print("Failed to get build number from build request number:\n%s" % build_number_result.content)
         raise Exception
-    print("content stripped build number %s" % build_number_result.content.strip())
+    #print("content stripped build number %s" % build_number_result.content.strip())
     return build_number_result.content.strip()
 
 
