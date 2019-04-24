@@ -11,7 +11,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     }
 
     [Serializable]
-    public struct VxShadowsLight
+    public struct VxShadowsData
     {
         public int InstanceId;
         public VxShadowsLightType Type;
@@ -23,7 +23,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
     public class VxShadowMapsResources : ScriptableObject
     {
-        [HideInInspector] public VxShadowsLight[] Table;
-        [HideInInspector] public uint[] Vxsms;
+        [HideInInspector] public VxShadowsData[] VxShadowsDataList;
+        [HideInInspector] public uint[]          VxShadowMapList;
     }
 }

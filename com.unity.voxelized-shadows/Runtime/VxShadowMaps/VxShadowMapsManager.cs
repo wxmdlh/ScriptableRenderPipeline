@@ -68,25 +68,31 @@ namespace UnityEngine.Experimental.VoxelizedShadows
             _vxShadowMapsNullBuffer.SetData(nullData);
         }
 
-        public void RegisterVxShadowMapsContainer(VxShadowMapsContainer container)
+        public bool RegisterVxShadowMapsContainer(VxShadowMapsContainer container)
         {
             if (_container != null)
             {
                 Debug.LogError("Failed to register container, VxShadowMapsContainer must be single one.");
-                return;
+                return false;
             }
 
+            //Debug.Log("Try to register VxShadowMapsContainer");
             _container = container;
+
+            return true;
         }
-        public void UnregisterVxShadowMapsContainer(VxShadowMapsContainer container)
+        public bool UnregisterVxShadowMapsContainer(VxShadowMapsContainer container)
         {
             if (_container != container)
             {
                 Debug.LogError("Failed to unregister container, Are there VxShadowMapsContainers more than one?");
-                return;
+                return false;
             }
 
+            //Debug.Log("Try to unregister VxShadowMapsContainer");
             _container = null;
+
+            return true;
         }
 
         public void RegisterVxShadowMapComponent(DirectionalVxShadowMap dirVxsm)
@@ -203,17 +209,17 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         public void LoadResources(VxShadowMapsResources resources)
         {
-            for (int i = 0; i < resources.Table.Length; i++)
-                AddVxShadowsLight(resources.Table[i]);
+            for (int i = 0; i < resources.VxShadowsDataList.Length; i++)
+                AddVxShadowsData(resources.VxShadowsDataList[i]);
 
-            int count = resources.Vxsms.Length;
+            int count = resources.VxShadowMapList.Length;
             int stride = 4;
 
             if (_vxShadowMapsBuffer != null)
                 _vxShadowMapsBuffer.Release();
 
             _vxShadowMapsBuffer = new ComputeBuffer(count, stride);
-            _vxShadowMapsBuffer.SetData(resources.Vxsms);
+            _vxShadowMapsBuffer.SetData(resources.VxShadowMapList);
 
             // todo : deallocate resources.Vxsms?
         }
@@ -255,7 +261,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
             return null;
         }
 
-        private void AddVxShadowsLight(VxShadowsLight light)
+        private void AddVxShadowsData(VxShadowsData light)
         {
             switch (light.Type)
             {
