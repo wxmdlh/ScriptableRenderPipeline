@@ -38,7 +38,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty emissiveColorLDR = null;
         protected const string kEmissiveColorLDR = "_EmissiveColorLDR";
         protected MaterialProperty emissiveExposureWeight = null;
-        protected const string kemissiveExposureWeight = "_EmissiveExposureWeight";
+        protected const string kEmissiveExposureWeight = "_EmissiveExposureWeight";
         protected MaterialProperty useEmissiveIntensity = null;
         protected const string kUseEmissiveIntensity = "_UseEmissiveIntensity";
         protected MaterialProperty emissiveIntensityUnit = null;
@@ -64,7 +64,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             emissiveColorMap = FindProperty(kEmissiveColorMap, props);
             emissiveIntensityUnit = FindProperty(kEmissiveIntensityUnit, props);
             emissiveIntensity = FindProperty(kEmissiveIntensity, props);
-            emissiveExposureWeight = FindProperty(kemissiveExposureWeight, props);
+            emissiveExposureWeight = FindProperty(kEmissiveExposureWeight, props);
             emissiveColorLDR = FindProperty(kEmissiveColorLDR, props);
             useEmissiveIntensity = FindProperty(kUseEmissiveIntensity, props);
         }
@@ -168,10 +168,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupMaterialKeywordsAndPass(Material material)
         {
-            SetupBaseUnlitKeywords(material);
-            SetupBaseUnlitMaterialPass(material);
+            material.SetupBaseUnlitKeywords();
+            material.SetupBaseUnlitPass();
 
-            CoreUtils.SetKeyword(material, "_EMISSIVE_COLOR_MAP", material.GetTexture(kEmissiveColorMap));
+            // TODO: hardcoded constant !
+            if (material.HasProperty("_EMISSIVE_COLOR_MAP"))
+                CoreUtils.SetKeyword(material, "_EMISSIVE_COLOR_MAP", material.GetTexture(kEmissiveColorMap));
 
             // Stencil usage rules:
             // DoesntReceiveSSR and DecalsForwardOutputNormalBuffer need to be tagged during depth prepass

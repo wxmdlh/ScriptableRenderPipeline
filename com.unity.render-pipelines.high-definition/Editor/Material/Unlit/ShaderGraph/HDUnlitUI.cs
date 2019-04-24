@@ -5,8 +5,25 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class HDUnlitGUI : ShaderGUI
     {
+        MaterialUIBlockList uiBlocks = new MaterialUIBlockList()
+        {
+            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base), // TODO: implement supported features in the constructor of the UIBlock
+        };
+
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
+            using (var changed = new EditorGUI.ChangeCheckScope())
+            {
+                uiBlocks.OnGUI(materialEditor, props);
+                if (changed.changed)
+                {
+                    foreach (var material in uiBlocks.materials)
+                    {
+                        Debug.Log("Setup material keywords");
+                        UnlitGUI.SetupMaterialKeywordsAndPass(material);
+                    }
+                }
+            }
             materialEditor.PropertiesDefaultGUI(props);
             if (materialEditor.EmissionEnabledProperty())
             {
@@ -25,6 +42,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     material.SetOverrideTag(materialTag, "User");
                 }
             }
+            // UnlitGUI.MaterialPropertiesGUI(materialEditor.target as Material);
 
             {
                 // If using multi-select, apply toggled material to all materials.

@@ -6,8 +6,6 @@ using UnityEngine;              // Vector3,4
 using UnityEditor.ShaderGraph;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 
-using Float
-
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     internal enum HDRenderTypeTags
@@ -963,11 +961,32 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public static void SetBlendModeForDistortionVector(ref Pass pass)
         {
-            pass.BlendOverride = "[_DistortionSrcBlend] [_DistortionDstBlend], [_DistortionBlurSrcBlend] [_DistortionBlurDstBlend]";
-            pass.BlendOpOverride = "Add, [_DistortionBlurBlendOp]";
+            pass.BlendOverride = "Blend [_DistortionSrcBlend] [_DistortionDstBlend], [_DistortionBlurSrcBlend] [_DistortionBlurDstBlend]";
+            pass.BlendOpOverride = "BlendOp Add, [_DistortionBlurBlendOp]";
         }
 
-        public static string GetTags(string pipeline, HDRenderTypeTags renderType)
+        public static void SetBlendModeForForward(ref Pass pass)
+        {
+            pass.BlendOverride = "Blend [_SrcBlend] [_DstBlend], [_AlphaSrcBlend] [_AlphaDstBlend]";
+            pass.BlendOpOverride = "BlendOp Add, [_DistortionBlurBlendOp]";
+        }
+
+        public static void SetZWrite(ref Pass pass)
+        {
+            pass.ZWriteOverride = "ZWrite [_ZWrite]";
+        }
+
+        public static void SetZWriteOff(ref Pass pass)
+        {
+            pass.ZWriteOverride = "ZWrite Off";
+        }
+
+        public static void SetZWriteOn(ref Pass pass)
+        {
+            pass.ZWriteOverride = "ZWrite On";
+        }
+
+        public static void AddTags(ShaderGenerator generator, string pipeline, HDRenderTypeTags renderType)
         {
             ShaderStringBuilder builder = new ShaderStringBuilder();
             builder.AppendLine("Tags");
@@ -977,7 +996,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 builder.AppendLine("\"RenderType\"=\"{0}\"", renderType);
             }
 
-            return builder.ToString();
+            generator.AddShaderChunk(builder.ToString());
         }
 
         // TODO: move this to an utils file for PropertyCollector + more util functions
@@ -1007,14 +1026,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 floatType = FloatType.Default,
                 value = defaultValue,
                 overrideReferenceName = referenceName,
-                displayName = displayName
+                displayName = displayName,
             });
         }
 
         static void AddToggleProperty(this PropertyCollector collector, string referenceName, string displayName, bool defaultValue, bool hidden = true)
         {
             collector.AddShaderProperty(new Vector1ShaderProperty{
-                floatType = FloatType.Enum,
+                floatType = FloatType.ToggleUI,
                 value = defaultValue ? 1 : 0,
                 hidden = hidden,
                 overrideReferenceName = referenceName,
@@ -1078,6 +1097,21 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddFloatProperty("_DistortionBlurScale", "Distortion Blur Scale", 1);
             collector.AddFloatProperty("_DistortionBlurRemapMin", "DistortionBlurRemapMin", 0.0f);
             collector.AddFloatProperty("_DistortionBlurRemapMax", "DistortionBlurRemapMax", 1.0f);
+        }
+
+        public static void AddAlphaCutoffShaderProperties(PropertyCollector collector)
+        {
+            collector.AddToggleProperty("_AlphaCutoffEnable", "Alpha Cutoff Enable", false);
+            collector.AddShaderProperty(new Vector1ShaderProperty{
+                overrideReferenceName = "_AlphaCutoff",
+                displayName = "Alpha Cutoff",
+                floatType = FloatType.Slider,
+                rangeValues = new Vector2(0, 1),
+                value = 0.5f
+            });
+            collector.AddFloatProperty("_TransparentSortPriority", "_TransparentSortPriority", 0);
+
+            // TODO: _AlphaCutoffShadow and others (for lit)
         }
     }
 }

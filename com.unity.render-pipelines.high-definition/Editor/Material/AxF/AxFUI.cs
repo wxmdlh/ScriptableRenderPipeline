@@ -503,8 +503,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupMaterialKeywordsAndPass(Material material)
         {
-            SetupBaseUnlitKeywords(material);
-            SetupBaseUnlitMaterialPass(material);
+            material.SetupBaseUnlitKeywords();
+            material.SetupBaseUnlitPass();
 
             AxfBrdfType   BRDFType = (AxfBrdfType)material.GetFloat(m_AxF_BRDFTypeText);
 

@@ -75,6 +75,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 HDSubShaderUtilities.SetColorMaskOff(ref pass);
                 HDSubShaderUtilities.SetCullMode(ref pass);
+                HDSubShaderUtilities.SetZWriteOn(ref pass);
             }
         };
 
@@ -113,6 +114,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 HDSubShaderUtilities.SetStencilStateForDepth(ref pass);
                 HDSubShaderUtilities.SetCullMode(ref pass);
+                HDSubShaderUtilities.SetZWriteOn(ref pass);
                 
                 // Caution: When using MSAA we have normal and depth buffer bind.
                 // Mean unlit object need to not write in it (or write 0) - Disable color mask for this RT
@@ -157,6 +159,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 HDSubShaderUtilities.SetStencilStateForMotionVector(ref pass);
                 HDSubShaderUtilities.SetCullMode(ref pass);
+                HDSubShaderUtilities.SetZWriteOn(ref pass);
 
                 // Caution: When using MSAA we have motion vector, normal and depth buffer bind.
                 // Mean unlit object need to not write in it (or write 0) - Disable color mask for this RT
@@ -172,7 +175,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             TemplateName = "HDUnlitPass.template",
             MaterialName = "Unlit",
             ShaderPassName = "SHADERPASS_DISTORTION",
-            ZWriteOverride = "ZWrite Off",
             Includes = new List<string>()
             {
                 "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDistortion.hlsl\"",
@@ -195,6 +197,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 HDSubShaderUtilities.SetStencilStateForDistortionVector(ref pass);
                 HDSubShaderUtilities.SetBlendModeForDistortionVector(ref pass);
                 HDSubShaderUtilities.SetCullMode(ref pass);
+                HDSubShaderUtilities.SetZWriteOff(ref pass);
             }
         };
 
@@ -229,6 +232,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             OnGeneratePassImpl = (IMasterNode node, ref Pass pass) =>
             {
                 HDSubShaderUtilities.SetStencilStateForForward(ref pass);
+                HDSubShaderUtilities.SetBlendModeForForward(ref pass);
+                HDSubShaderUtilities.SetZWrite(ref pass);
                 HDSubShaderUtilities.SetCullMode(ref pass);
             }
         };
@@ -285,19 +290,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             subShader.Indent();
             {
                 // Add tags at the SubShader level
-                {
-                    string tags = HDSubShaderUtilities.GetTags(HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDUnlitShader);
-                    subShader.AddShaderChunk(tags, false);
-                }
+                HDSubShaderUtilities.AddTags(subShader, HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDUnlitShader);
   
                 GenerateShaderPassUnlit(masterNode, m_PassMETA, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassUnlit(masterNode, m_SceneSelectionPass, mode, subShader, sourceAssetDependencyPaths);
-
                 GenerateShaderPassUnlit(masterNode, m_PassDepthForwardOnly, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassUnlit(masterNode, m_PassMotionVectors, mode, subShader, sourceAssetDependencyPaths);
-
                 GenerateShaderPassUnlit(masterNode, m_PassDistortion, mode, subShader, sourceAssetDependencyPaths);
-
                 GenerateShaderPassUnlit(masterNode, m_PassForwardOnly, mode, subShader, sourceAssetDependencyPaths);                                
             }
             subShader.Deindent();

@@ -235,7 +235,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // Keywords for transparent
             // #pragma shader_feature _SURFACE_TYPE_TRANSPARENT
-            if (masterNode.surfaceType != SurfaceType.Opaque)
+            if (masterNode.surfaceType != UnityEditor.ShaderGraph.SurfaceType.Opaque)
             {
                 // transparent-only defines
                 activeFields.Add("SurfaceType.Transparent");
@@ -286,24 +286,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             subShader.AddShaderChunk("{", true);
             subShader.Indent();
             {
-                {
-                    string tags = HDSubShaderUtilities.GetTags(HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDLitShader);
-                    subShader.AddShaderChunk(tags, false);
-                }
-
-                // generate the necessary shader passes
-                bool opaque = (masterNode.surfaceType == SurfaceType.Opaque);
+                HDSubShaderUtilities.AddTags(subShader, HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDLitShader);
 
                 GenerateShaderPassUnlit(masterNode, m_PassShadowCaster, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassUnlit(masterNode, m_PassMETA, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassUnlit(masterNode, m_SceneSelectionPass, mode, subShader, sourceAssetDependencyPaths);
-
-                if (opaque)
-                {
-                    GenerateShaderPassUnlit(masterNode, m_PassDepthForwardOnly, mode, subShader, sourceAssetDependencyPaths);
-                    GenerateShaderPassUnlit(masterNode, m_PassMotionVectors, mode, subShader, sourceAssetDependencyPaths);
-                }
-
+                GenerateShaderPassUnlit(masterNode, m_PassDepthForwardOnly, mode, subShader, sourceAssetDependencyPaths);
+                GenerateShaderPassUnlit(masterNode, m_PassMotionVectors, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassUnlit(masterNode, m_PassForwardOnly, mode, subShader, sourceAssetDependencyPaths);
             }
             subShader.Deindent();

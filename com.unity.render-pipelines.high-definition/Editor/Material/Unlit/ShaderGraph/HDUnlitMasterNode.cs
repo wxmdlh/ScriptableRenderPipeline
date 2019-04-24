@@ -137,6 +137,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             HDSubShaderUtilities.AddStencilShaderProperties(collector);
             HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector);
             HDSubShaderUtilities.AddDistortionShaderProperties(collector);
+            HDSubShaderUtilities.AddAlphaCutoffShaderProperties(collector);
 
             base.CollectShaderProperties(collector, generationMode);
         }

@@ -4,9 +4,10 @@ using UnityEngine;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    //should be base for al material in hdrp. It will add the collapsable mecanisme on them
+    //should be base for al material in hdrp. It will add the collapsable mechanism on them
     abstract class ExpandableAreaMaterial : ShaderGUI
     {
+        // TODO: remove
         private const string k_KeyPrefix = "HDRP:Material:UI_State:";
         private string m_StateKey;
         

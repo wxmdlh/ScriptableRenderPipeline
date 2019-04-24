@@ -1054,8 +1054,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
 
                 // Add tags at the SubShader level
-                string tags = HDSubShaderUtilities.GetTags(HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDLitShader);
-                subShader.AddShaderChunk(tags, false);
+                HDSubShaderUtilities.AddTags(subShader, HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDLitShader);
 
                 // generate the necessary shader passes
                 bool opaque = (masterNode.surfaceType == SurfaceType.Opaque);

@@ -472,7 +472,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupBaseLitKeywords(Material material)
         {
-            SetupBaseUnlitKeywords(material);
+            material.SetupBaseUnlitKeywords();
 
             bool doubleSidedEnable = material.HasProperty(kDoubleSidedEnable) ? material.GetFloat(kDoubleSidedEnable) > 0.0f : false;
             if (doubleSidedEnable)
@@ -578,7 +578,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 CoreUtils.SetKeyword(material, "_TESSELLATION_PHONG", tessMode == TessellationMode.Phong);
             }
 
-            SetupMainTexForAlphaTestGI("_BaseColorMap", "_BaseColor", material);
+            material.SetupMainTexForAlphaTestGI("_BaseColorMap", "_BaseColor");
 
             // Use negation so we don't create keyword by default
             CoreUtils.SetKeyword(material, "_DISABLE_DECALS", material.HasProperty(kSupportDecals) && material.GetFloat(kSupportDecals) == 0.0);
@@ -588,7 +588,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         static public void SetupBaseLitMaterialPass(Material material)
         {
-            SetupBaseUnlitMaterialPass(material);
+            material.SetupBaseUnlitPass();
         }
     }
 } // namespace UnityEditor

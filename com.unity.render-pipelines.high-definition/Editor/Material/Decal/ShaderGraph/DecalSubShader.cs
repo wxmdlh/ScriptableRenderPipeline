@@ -450,8 +450,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             subShader.Indent();
             {
                 // Add tags at the SubShader level
-                string tags = HDSubShaderUtilities.GetTags(HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.Opaque);
-                subShader.AddShaderChunk(tags, false);
+                HDSubShaderUtilities.AddTags(subShader, HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.Opaque);
 
                 GenerateShaderPass(masterNode, m_PassProjector3RT, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPass(masterNode, m_PassProjector4RT, mode, subShader, sourceAssetDependencyPaths);

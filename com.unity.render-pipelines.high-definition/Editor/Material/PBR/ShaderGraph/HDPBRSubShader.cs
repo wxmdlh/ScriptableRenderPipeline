@@ -67,7 +67,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 // This remove is required otherwise the code generate several time the define...
                 pass.ExtraDefines.Remove("#ifndef DEBUG_DISPLAY\n#define SHADERPASS_GBUFFER_BYPASS_ALPHA_TEST\n#endif");
 
-                if (masterNode.surfaceType == SurfaceType.Opaque &&
+                if (masterNode.surfaceType == UnityEditor.ShaderGraph.SurfaceType.Opaque &&
                     (masterNode.IsSlotConnected(PBRMasterNode.AlphaThresholdSlotId) ||
                      masterNode.GetInputSlots<Vector1MaterialSlot>().First(x => x.id == PBRMasterNode.AlphaThresholdSlotId).value > 0.0f))
                 {
@@ -310,7 +310,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 pass.ExtraDefines.Remove("#ifndef DEBUG_DISPLAY\n#define SHADERPASS_FORWARD_BYPASS_ALPHA_TEST\n#endif");
 
-                if (masterNode.surfaceType == SurfaceType.Opaque &&
+                if (masterNode.surfaceType == UnityEditor.ShaderGraph.SurfaceType.Opaque &&
                     (masterNode.IsSlotConnected(PBRMasterNode.AlphaThresholdSlotId) ||
                      masterNode.GetInputSlots<Vector1MaterialSlot>().First(x => x.id == PBRMasterNode.AlphaThresholdSlotId).value > 0.0f))
                 {
@@ -368,7 +368,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 activeFields.Add("AlphaTest");
             }
 
-            if (masterNode.surfaceType != SurfaceType.Opaque)
+            if (masterNode.surfaceType != UnityEditor.ShaderGraph.SurfaceType.Opaque)
             {
                 activeFields.Add("SurfaceType.Transparent");
 
@@ -428,11 +428,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             subShader.Indent();
             {
                 // Add tags at the SubShader level
-                string tags = HDSubShaderUtilities.GetTags(HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDLitShader);
-                subShader.AddShaderChunk(tags, false);
+                HDSubShaderUtilities.AddTags(subShader, HDRenderPipeline.k_ShaderTagName, HDRenderTypeTags.HDLitShader);
 
                 // generate the necessary shader passes
-                bool opaque = (masterNode.surfaceType == SurfaceType.Opaque);
+                bool opaque = (masterNode.surfaceType == UnityEditor.ShaderGraph.SurfaceType.Opaque);
 
                 GenerateShaderPassLit(masterNode, m_PassMETA, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassLit(masterNode, m_PassShadowCaster, mode, subShader, sourceAssetDependencyPaths);
