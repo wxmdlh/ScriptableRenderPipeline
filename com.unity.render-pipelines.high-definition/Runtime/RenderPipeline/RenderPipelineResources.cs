@@ -1,5 +1,7 @@
 using System;
 using UnityEngine.Rendering;
+using System.Reflection;
+using System.Collections.Generic;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -31,8 +33,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Lighting
             [Reload("Runtime/Lighting/Deferred.Shader")]
             public Shader deferredPS;
-            [Reload("Runtime/RenderPipeline/RenderPass/ColorPyramid.compute")]
-            public ComputeShader colorPyramidCS;
             [Reload("Runtime/RenderPipeline/RenderPass/ColorPyramidPS.Shader")]
             public Shader colorPyramidPS;
             [Reload("Runtime/RenderPipeline/RenderPass/DepthPyramid.compute")]
@@ -266,6 +266,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             [Reload("Runtime/RenderPipeline/Raytracing/Shaders/CountTracedRays.compute")]
             public ComputeShader countTracedRays;
 #endif
+
+            // Iterator to retrieve all compute shaders in reflection so we don't have to keep a list of
+            // used compute shaders up to date (prefer editor-only usage)
+            public IEnumerable<ComputeShader> GetAllComputeShaders()
+            {
+                var fields = typeof(ShaderResources).GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                foreach (var field in fields)
+                {
+                    if (field.GetValue(this) is ComputeShader computeShader)
+                        yield return computeShader;
+                }
+            }
         }
 
         [Serializable, ReloadGroup]
