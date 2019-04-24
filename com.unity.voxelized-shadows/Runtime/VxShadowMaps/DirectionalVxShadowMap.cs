@@ -12,7 +12,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         public override VoxelResolution subtreeResolution =>
             voxelResolutionInt < MaxSubtreeResolutionInt ? voxelResolution : MaxSubtreeResolution;
 
-        public List<VxShadowsLight> vxShadowsLightList = new List<VxShadowsLight>();
+        public List<VxShadowsData> vxShadowsLightList = new List<VxShadowsData>();
 
         private uint _beginOffset = 0;
 
