@@ -32,6 +32,14 @@ namespace UnityEditor.VFX
         [SerializeField]
         private bool m_IsOutput;
 
+        protected override IEnumerable<string> filteredOutSettings
+        {
+            get
+            {
+                return m_IsOutput?Enumerable.Repeat("m_Exposed", 1) : Enumerable.Empty<string>();
+            }
+        }
+
 
         public bool isOutput 
         { 
