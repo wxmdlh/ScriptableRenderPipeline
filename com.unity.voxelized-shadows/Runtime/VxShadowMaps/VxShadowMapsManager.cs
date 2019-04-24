@@ -40,7 +40,9 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         public VxShadowMapsManager()
         {
-            var renderPipelineTypeString = GraphicsSettings.renderPipelineAsset.GetType().ToString();
+            string renderPipelineTypeString = "";
+            if (GraphicsSettings.renderPipelineAsset != null)
+                renderPipelineTypeString = GraphicsSettings.renderPipelineAsset.GetType().ToString();
 
             if (renderPipelineTypeString.Contains("LightweightRenderPipelineAsset"))
                 _renderPipelineType = RenderPipelineType.Lightweight;
