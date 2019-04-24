@@ -68,7 +68,6 @@ namespace UnityEditor.VFX
         public const float playRateToValue = 100.0f;
         public const float valueToPlayRate = 1.0f / playRateToValue;
 
-
         public const float sliderPower = 10;
 
         public static readonly int[] setPlaybackValues = new int[] { 1, 10, 50, 100, 200, 500, 1000, 4000 };
@@ -374,10 +373,12 @@ namespace UnityEditor.VFX
             VisualEffectUtility.renderBounds = EditorGUILayout.Toggle(VisualEffectUtility.renderBounds, GUILayout.Width(18));
             GUILayout.EndHorizontal();
 
-            if (GUILayout.Button(new GUIContent("Call Play() *temp*")))
-            {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(new GUIContent("Play()")))
                 effect.Play();
-            }
+            if (GUILayout.Button(new GUIContent("Stop()")))
+                effect.Stop();
+            GUILayout.EndHorizontal();
         }
 
         void SetPlayRate(object value)
