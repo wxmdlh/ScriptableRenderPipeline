@@ -17,8 +17,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // 32 MiB
             InScatteredRadianceTableSizeX = 128, // <N, V>
             InScatteredRadianceTableSizeY = 32,  // height
-            InScatteredRadianceTableSizeZ = 64,  // <N, L>
-            InScatteredRadianceTableSizeW = 16,  // AzimuthAngle(L)
+            InScatteredRadianceTableSizeZ = 16,  // AzimuthAngle(L) w.r.t. the view vector
+            InScatteredRadianceTableSizeW = 64,  // <N, L>
         }
 
         // Store the hash of the parameters each time precomputation is done.

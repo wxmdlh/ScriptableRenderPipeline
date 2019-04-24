@@ -235,20 +235,19 @@ float3 SampleTransmittanceTexture(float cosChi, float height)
     return SampleTransmittanceTexture(cosChi, height, !lookAboveHorizon);
 }
 
-// Map: [-0.1975, 1] -> [0, 1].
+// Map: [cos(120 deg), 1] -> [0, 1].
 float MapCosineOfZenithAngle(float NdotL)
 {
-    // Clamp to around 101 degrees.
-    // Note: this only makes sense for Earth's atmosphere.
-    // It would not work for a tiny planet with a huge atmosphere, for instance.
-    float x = max(NdotL, -0.1975);
-    return 0.5 * (atan(x * 5.34962350) * rcp(1.1) + (1 - 0.26));
+    float x = max(NdotL, -0.5);
+    float s = CopySign(sqrt(abs(x)), x);     // [-0.70710678, 1]
+    return saturate(0.585786 * x + 0.414214);
 }
 
 // Map: [0, 1] -> [-0.1975, 1].
 float UnmapCosineOfZenithAngle(float u)
 {
-    return -0.186929 * tan(0.814 - 2.2 * u);
+    float s = 1.70711 * u - 0.707107;
+    return CopySign(s * s, s);
 }
 
 float3 SampleGroundIrradianceTexture(float NdotL)

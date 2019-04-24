@@ -58,13 +58,13 @@ float ChapmanFunction(float x, float cosChi)
 [numthreads(8, 8, 1)]
 void main(uint2 dispatchThreadId : SV_DispatchThreadID)
 {
+    // We don't care about the extremal points.
     const float2 scale = rcp(TABLE_SIZE);
     const float2 bias  = 0.5 * scale;
 
     // Let the hardware and the driver handle the ordering of the computation.
     uint2 tableCoord = dispatchThreadId;
 
-    // We don't care about the extremal points.
     float2 uv = tableCoord * scale + bias;
 
     // The table only contains data for directions pointing above the horizon.

@@ -99,8 +99,8 @@ Shader "Hidden/HDRP/Sky/PbrSky"
 
         float u = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).x;
         float v = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).y;
-        float w = MapCosineOfZenithAngle(NdotL);
-        float k = saturate(INV_PI * phiL) * (zTexCnt - 1);
+        float w = (0.5 + (INV_PI * phiL) * (zTexSize - 1)) * rcp(zTexSize); // [0.5 * zts, 1 - 0.5 * zts]
+        float k = MapCosineOfZenithAngle(NdotL) * (zTexCnt - 1);            // [0, ztc - 1]
 
         if (!lookAboveHorizon) // See the ground?
         {
@@ -113,11 +113,6 @@ Shader "Hidden/HDRP/Sky/PbrSky"
             float3 transm = SampleTransmittanceTexture(cosChi, h, true);
             radiance += transm * gBrdf * SampleGroundIrradianceTexture(dot(gN, L));
         }
-
-        // We have 'zTexCnt' textures along the Z dimension.
-        // We treat them as separate textures (slices) and must NOT leak between them.
-        w = clamp(w, 0 + 0.5 * rcp(zTexSize),
-                     1 - 0.5 * rcp(zTexSize));
 
         // Shrink by the 'zTexCount' and offset according to the above/below horizon direction and phiV.
         float w0 = (floor(k) + w) * rcp(zTexCnt);

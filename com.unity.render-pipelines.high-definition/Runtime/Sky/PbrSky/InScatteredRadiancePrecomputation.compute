@@ -39,26 +39,28 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     const uint zTexSize = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_Z;
     const uint zTexCnt  = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_W;
 
-    const float3 scale = rcp(TABLE_SIZE);
-    const float3 bias  = 0.5 * scale;
+    // We don't care about the extremal points for XY, but need the full range of Z values.
+    const float3 scale = rcp(float3(TABLE_SIZE.xy, 1));
+    const float3 bias  = float3(0.5 * scale.xy, 0);
 
     // Let the hardware and the driver handle the ordering of the computation.
     uint3 tableCoord = dispatchThreadId;
-    uint  texId      = dispatchThreadId.z / zTexSize; // [0, zTexCnt - 1]
+    uint  texId      = tableCoord.z / zTexSize;       // [0, zTexCnt  - 1]
+    uint  texCoord   = tableCoord.z & (zTexSize - 1); // [0, zTexSize - 1]
 
-    // We don't care about the extremal points.
-    float3 uvw = tableCoord * scale + bias;           // z: [0.5/zTexSize, zTexCnt - 0.5/zTexSize]
+    float3 uvw = tableCoord * scale + bias;
 
     // Convention:
     // V points towards the camera.
     // The normal vector N points upwards (local Z).
     // The view vector V spans the local XZ plane.
-    // The light vector is represented as {phiL, cosThataL}.
+    // The light vector is represented as {phiL, cosThataL} w.r.t. the XZ plane.
     float cosChi = UnmapAerialPerspective(uvw.xy).x;
     float height = UnmapAerialPerspective(uvw.xy).y;
     float cosHor = GetCosineOfHorizonZenithAngle(height);
-    float NdotL  = UnmapCosineOfZenithAngle(frac(uvw.z));
-    float phiL   = PI * saturate(texId * rcp(zTexCnt - 1));
+    float phiL   = PI * saturate(texCoord * rcp(zTexSize - 1));
+    float NdotL  = UnmapCosineOfZenithAngle(saturate(texId * rcp(zTexCnt - 1)));
+
     float NdotV  = -cosChi;
 
     bool lookAboveHorizon = (cosChi > cosHor);

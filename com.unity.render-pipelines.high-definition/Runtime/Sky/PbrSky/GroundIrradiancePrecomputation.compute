@@ -11,13 +11,13 @@ RW_TEXTURE2D(float4, _GroundIrradianceTable); // of TABLE_SIZE
 [numthreads(64, 1, 1)]
 void main(uint dispatchThreadId : SV_DispatchThreadID)
 {
+    // We don't care about the extremal points.
     const float scale = rcp(TABLE_SIZE);
     const float bias  = 0.5 * scale;
 
     // Let the hardware and the driver handle the ordering of the computation.
     uint2 tableCoord = uint2(dispatchThreadId, 0);
 
-    // We don't care about the extremal points.
     float uv = tableCoord.x * scale + bias;
 
     // As we look at the planet in the direction of the sun, the ground is rotationally invariant.
