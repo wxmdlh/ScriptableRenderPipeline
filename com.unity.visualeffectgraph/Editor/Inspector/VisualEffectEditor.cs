@@ -99,6 +99,7 @@ namespace UnityEditor.VFX
 
         protected SerializedProperty m_VisualEffectAsset;
         SerializedProperty m_ReseedOnPlay;
+        SerializedProperty m_InitialEventName;
         SerializedProperty m_RandomSeed;
         SerializedProperty m_VFXPropertySheet;
 
@@ -124,6 +125,7 @@ namespace UnityEditor.VFX
             s_AllEditors.Add(this);
             m_RandomSeed = serializedObject.FindProperty("m_StartSeed");
             m_ReseedOnPlay = serializedObject.FindProperty("m_ResetSeedOnPlay");
+            m_InitialEventName = serializedObject.FindProperty("m_InitialEventName");
             m_VisualEffectAsset = serializedObject.FindProperty("m_Asset");
             m_VFXPropertySheet = serializedObject.FindProperty("m_PropertySheet");
 
@@ -370,8 +372,12 @@ namespace UnityEditor.VFX
             GUILayout.Label("Show Bounds", GUILayout.Width(192));
 
             VisualEffectUtility.renderBounds = EditorGUILayout.Toggle(VisualEffectUtility.renderBounds, GUILayout.Width(18));
-
             GUILayout.EndHorizontal();
+
+            if (GUILayout.Button(new GUIContent("Call Play() *temp*")))
+            {
+                effect.Play();
+            }
         }
 
         void SetPlayRate(object value)
@@ -466,10 +472,8 @@ namespace UnityEditor.VFX
             EditorGUILayout.PropertyField(m_VisualEffectAsset, Contents.assetPath);
         }
 
-        protected virtual bool SeedField()
+        bool SeedField()
         {
-            var component = (VisualEffect)target;
-            //Seed
             EditorGUI.BeginChangeCheck();
             using (new GUILayout.HorizontalScope())
             {
@@ -478,7 +482,7 @@ namespace UnityEditor.VFX
                     EditorGUILayout.PropertyField(m_RandomSeed, Contents.randomSeed);
                     if (GUILayout.Button(Contents.setRandomSeed, EditorStyles.miniButton, Styles.MiniButtonWidth))
                     {
-                        foreach( VisualEffect ve in targets)
+                        foreach (VisualEffect ve in targets)
                         {
                             var singleSerializedObject = new SerializedObject(ve);
                             var singleProperty = singleSerializedObject.FindProperty("m_StartSeed");
@@ -491,6 +495,30 @@ namespace UnityEditor.VFX
                 }
             }
             EditorGUILayout.PropertyField(m_ReseedOnPlay, Contents.reseedOnPlay);
+            return EditorGUI.EndChangeCheck();
+        }
+
+        bool InitialEventField()
+        {
+            if (m_InitialEventName == null)
+                return false;
+
+            EditorGUI.BeginChangeCheck();
+            using (new GUILayout.HorizontalScope())
+            {
+                EditorGUILayout.PropertyField(m_InitialEventName);
+                if (GUILayout.Button(Contents.resetInitialEvent, EditorStyles.miniButton, Styles.MiniButtonWidth))
+                {
+                    foreach (VisualEffect ve in targets)
+                    {
+                        var singleSerializedObject = new SerializedObject(ve);
+                        var singleProperty = singleSerializedObject.FindProperty("m_InitialEventName");
+                        singleProperty.stringValue = "OnPlay";
+                        singleSerializedObject.ApplyModifiedProperties();
+                    }
+                    serializedObject.Update();
+                }
+            }
             return EditorGUI.EndChangeCheck();
         }
 
@@ -527,7 +555,8 @@ namespace UnityEditor.VFX
             if(showGeneralCategory)
             {
                 AssetField();
-                reinit = SeedField();
+                reinit = reinit || SeedField();
+                reinit = reinit || InitialEventField();
             }
 
             if (! m_VisualEffectAsset.hasMultipleDifferentValues)
@@ -846,6 +875,7 @@ namespace UnityEditor.VFX
             public static readonly GUIContent reseedOnPlay =        EditorGUIUtility.TrTextContent("Reseed on play");
             public static readonly GUIContent openEditor =          EditorGUIUtility.TrTextContent("Edit");
             public static readonly GUIContent setRandomSeed =       EditorGUIUtility.TrTextContent("Reseed");
+            public static readonly GUIContent resetInitialEvent =   EditorGUIUtility.TrTextContent("Default");
             public static readonly GUIContent setPlayRate =         EditorGUIUtility.TrTextContent("Set");
             public static readonly GUIContent playRate =            EditorGUIUtility.TrTextContent("Rate");
 
