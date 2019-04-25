@@ -34,8 +34,8 @@ Pass
 		#endif
 		
 		#if WRITE_MOTION_VECTOR_IN_FORWARD
-		float4 cPosPrevious : TEXCOORD3;
-		float4 cPosNonJiterred : TEXCOORD4;
+		float4 cPosPrevious : TEXCOORD4;
+		float4 cPosNonJiterred : TEXCOORD5;
 		#endif
 	};
 	

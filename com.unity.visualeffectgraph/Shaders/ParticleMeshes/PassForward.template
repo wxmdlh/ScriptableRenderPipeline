@@ -30,12 +30,12 @@ Pass
 		nointerpolation float2 builtInInterpolants2 : TEXCOORD2;
 		#endif
 		#if VFX_NEEDS_POSWS_INTERPOLATOR
-		float3 posWS : TEXCOORD3;
+		float3 posWS : TEXCOORD4;
 		#endif
 		
 		#if WRITE_MOTION_VECTOR_IN_FORWARD
-		float4 cPosPrevious : TEXCOORD3;
-		float4 cPosNonJiterred : TEXCOORD4;
+		float4 cPosPrevious : TEXCOORD5;
+		float4 cPosNonJiterred : TEXCOORD6;
 		#endif
 	};
 	

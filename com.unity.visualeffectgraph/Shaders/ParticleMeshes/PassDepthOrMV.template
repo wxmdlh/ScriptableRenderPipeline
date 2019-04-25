@@ -15,9 +15,15 @@ struct ps_input
 	nointerpolation float3 builtInInterpolants : TEXCOORD1;
 	#endif
 	
+	#if USE_FLIPBOOK_MOTIONVECTORS
+	// x: motion vectors scale X
+	// y: motion vectors scale Y
+	nointerpolation float2 builtInInterpolants2 : TEXCOORD2;
+	#endif
+	
 	#if IS_MOTION_VECTORS_PASS
-	float4 cPosPrevious : TEXCOORD2;
-	float4 cPosNonJiterred : TEXCOORD3;
+	float4 cPosPrevious : TEXCOORD3;
+	float4 cPosNonJiterred : TEXCOORD4;
 	#endif
 };
 
@@ -26,6 +32,7 @@ struct ps_input
 #define VFX_VARYING_ALPHA builtInInterpolants.z
 #define VFX_VARYING_ALPHATHRESHOLD builtInInterpolants.x
 #define VFX_VARYING_FRAMEBLEND builtInInterpolants.y
+#define VFX_VARYING_MOTIONVECTORSCALE builtInInterpolants2.xy
 #define VFX_VARYING_UV uv
 
 #if IS_MOTION_VECTORS_PASS

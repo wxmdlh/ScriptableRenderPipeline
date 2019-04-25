@@ -14,16 +14,21 @@ struct ps_input
 	// w: smoothness
 	nointerpolation float4 builtInInterpolants : TEXCOORD1;
 	#endif
+	#if USE_FLIPBOOK_MOTIONVECTORS
+	// x: motion vector scale u
+	// y: motion vector scale v
+	nointerpolation float2 builtInInterpolants2 : TEXCOORD3;
+	#endif
 	#ifdef WRITE_NORMAL_BUFFER
-	float4 normal : TEXCOORD2; // normal scale is stored in w
+	float4 normal : TEXCOORD4; // normal scale is stored in w
 	#if HDRP_USE_NORMAL_MAP
-	float4 tangent : TEXCOORD3;
+	float4 tangent : TEXCOORD5;
 	#endif
 	#endif
 	
 	#if IS_MOTION_VECTORS_PASS
-	float4 cPosPrevious : TEXCOORD4;
-	float4 cPosNonJiterred : TEXCOORD5;
+	float4 cPosPrevious : TEXCOORD6;
+	float4 cPosNonJiterred : TEXCOORD7;
 	#endif
 };
 
@@ -32,6 +37,7 @@ struct ps_input
 #define VFX_VARYING_ALPHA builtInInterpolants.z
 #define VFX_VARYING_ALPHATHRESHOLD builtInInterpolants.x
 #define VFX_VARYING_FRAMEBLEND builtInInterpolants.y
+#define VFX_VARYING_MOTIONVECTORSCALE builtInInterpolants2.xy
 #define VFX_VARYING_UV uv
 
 #if IS_MOTION_VECTORS_PASS
