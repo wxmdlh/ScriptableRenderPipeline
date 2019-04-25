@@ -226,7 +226,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
                     vxsm.index = 0;
 
                     // todo : remove this later
-                    Debug.Log(vxsData.SizeInBytes + "bytes of vxsData added");
+                    //Debug.Log(vxsData.SizeInBytes + "bytes of vxsData added");
                 }
             }
 
