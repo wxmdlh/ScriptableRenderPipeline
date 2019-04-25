@@ -36,7 +36,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
                     gameObject.transform.rotation = vxsData.Rotation;
 
                     // todo : remove this later
-                    Debug.Log("BeginOffset: " + DataList[_index].BeginOffset);
+                    //Debug.Log("BeginOffset: " + DataList[_index].BeginOffset);
                 }
             }
         }
