@@ -173,7 +173,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/062_xr_Lighting_Scene_Directional.unity
     guid: 2332b44eb1f8c874c88a82d72c4accef
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/063_xr_Lighting_Scene_DirectionalBaked.unity
     guid: 77e221f332239f943a43c61ecfe67a23
   - enabled: 0
