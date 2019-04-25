@@ -35,6 +35,7 @@ TEXTURE2D_FLOAT(_CameraDepthTexture);
 SAMPLER(sampler_CameraDepthTexture);
 
 CBUFFER_START(_DirectionalVxShadowMap)
+int _BeginOffset;
 int _VoxelZBias;
 float _VoxelUpBias;
 CBUFFER_END
@@ -83,26 +84,25 @@ void CSMain(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
         return;
     }
 #endif
-    uint begin = 0;
 
-    float volumeScale = asfloat(_VxShadowMapsBuffer[begin + 1]);
-    uint dagScale = _VxShadowMapsBuffer[begin + 2];
+    float volumeScale = asfloat(_VxShadowMapsBuffer[_BeginOffset + 1]);
+    uint dagScale = _VxShadowMapsBuffer[_BeginOffset + 2];
     float4x4 worldToShadowMatrix =
     {
-        asfloat(_VxShadowMapsBuffer[begin +  3]),
-        asfloat(_VxShadowMapsBuffer[begin +  4]),
-        asfloat(_VxShadowMapsBuffer[begin +  5]),
-        asfloat(_VxShadowMapsBuffer[begin +  6]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset +  3]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset +  4]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset +  5]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset +  6]),
 
-        asfloat(_VxShadowMapsBuffer[begin +  7]),
-        asfloat(_VxShadowMapsBuffer[begin +  8]),
-        asfloat(_VxShadowMapsBuffer[begin +  9]),
-        asfloat(_VxShadowMapsBuffer[begin + 10]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset +  7]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset +  8]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset +  9]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset + 10]),
 
-        asfloat(_VxShadowMapsBuffer[begin + 11]),
-        asfloat(_VxShadowMapsBuffer[begin + 12]),
-        asfloat(_VxShadowMapsBuffer[begin + 13]),
-        asfloat(_VxShadowMapsBuffer[begin + 14]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset + 11]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset + 12]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset + 13]),
+        asfloat(_VxShadowMapsBuffer[_BeginOffset + 14]),
 
         0.0, 0.0, 0.0, 1.0,
     };
@@ -129,7 +129,7 @@ void CSMain(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
 
 #if NEAREST_SAMPLE
     uint4 result;
-    TraverseVxShadowMapPosQ(begin, OFFSET_DIR, posQ, result);
+    TraverseVxShadowMapPosQ(_BeginOffset, OFFSET_DIR, posQ, result);
 
     if (result.w == 0)
     {
@@ -139,11 +139,11 @@ void CSMain(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
         return;
     }
 
-    float attenuationVxsm = TraverseNearestSampleVxShadowMap(begin, OFFSET_DIR, posQ, result);
+    float attenuationVxsm = TraverseNearestSampleVxShadowMap(_BeginOffset, OFFSET_DIR, posQ, result);
     attenuation = min(attenuation, attenuationVxsm);
 #elif BILINEAR_SAMPLE
     uint4 results[4];
-    TraverseVxShadowMapPosQ2x2(begin, OFFSET_DIR, posQ, results);
+    TraverseVxShadowMapPosQ2x2(_BeginOffset, OFFSET_DIR, posQ, results);
 
     if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0)
     {
@@ -160,11 +160,11 @@ void CSMain(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
         return;
     }
 
-    float attenuationVxsm = TraverseBilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight.xy);
+    float attenuationVxsm = TraverseBilinearSampleVxShadowMap(_BeginOffset, OFFSET_DIR, posQ, results, lerpWeight.xy);
     attenuation = min(attenuation, attenuationVxsm);
 #elif TRILINEAR_SAMPLE
     uint4 results[8];
-    TraverseVxShadowMapPosQ2x2x2(begin, OFFSET_DIR, posQ, results);
+    TraverseVxShadowMapPosQ2x2x2(_BeginOffset, OFFSET_DIR, posQ, results);
 
     if (results[0].w == 0 && results[1].w == 0 && results[2].w == 0 && results[3].w == 0 &&
         results[4].w == 0 && results[5].w == 0 && results[6].w == 0 && results[7].w == 0)
@@ -189,7 +189,7 @@ void CSMain(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
         return;
     }
 
-    float attenuationVxsm = TravereTrilinearSampleVxShadowMap(begin, OFFSET_DIR, posQ, results, lerpWeight);
+    float attenuationVxsm = TravereTrilinearSampleVxShadowMap(_BeginOffset, OFFSET_DIR, posQ, results, lerpWeight);
     attenuation = min(attenuation, attenuationVxsm);
 #endif
 

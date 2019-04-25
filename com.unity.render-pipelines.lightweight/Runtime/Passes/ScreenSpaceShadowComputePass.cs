@@ -12,6 +12,7 @@ namespace UnityEngine.Rendering.LWRP
 
             public static int _InvViewProjMatrix;
             public static int _ScreenSize;
+            public static int _BeginOffset;
             public static int _VoxelZBias;
             public static int _VoxelUpBias;
 
@@ -35,6 +36,7 @@ namespace UnityEngine.Rendering.LWRP
 
             VxShadowMapConstantBuffer._InvViewProjMatrix = Shader.PropertyToID("_InvViewProjMatrix");
             VxShadowMapConstantBuffer._ScreenSize = Shader.PropertyToID("_ScreenSize");
+            VxShadowMapConstantBuffer._BeginOffset = Shader.PropertyToID("_BeginOffset");
             VxShadowMapConstantBuffer._VoxelZBias = Shader.PropertyToID("_VoxelZBias");
             VxShadowMapConstantBuffer._VoxelUpBias = Shader.PropertyToID("_VoxelUpBias");
 
@@ -173,6 +175,7 @@ namespace UnityEngine.Rendering.LWRP
         void SetupVxShadowReceiverConstants(CommandBuffer cmd, int kernel, ref ComputeShader computeShader, ref Camera camera, ref VisibleLight shadowLight)
         {
             var light = shadowLight.light;
+            var vxsm = light.GetComponent<DirectionalVxShadowMap>();
 
             float screenSizeX = (float)camera.pixelWidth;
             float screenSizeY = (float)camera.pixelHeight;
@@ -188,6 +191,8 @@ namespace UnityEngine.Rendering.LWRP
 
             var vxShadowMapsBuffer = VxShadowMapsManager.Instance.VxShadowMapsBuffer;
 
+            int beginOffset = (int)(vxsm.bitset & 0x3FFFFFFF);
+
             int voxelZBias = 2;
             float voxelUpBias = 1 * (dirVxShadowMap.volumeScale / dirVxShadowMap.VoxelResolutionInt);
 
@@ -195,6 +200,7 @@ namespace UnityEngine.Rendering.LWRP
 
             cmd.SetComputeMatrixParam(computeShader, VxShadowMapConstantBuffer._InvViewProjMatrix, viewProjMatrix.inverse);
             cmd.SetComputeVectorParam(computeShader, VxShadowMapConstantBuffer._ScreenSize, new Vector4(screenSizeX, screenSizeY, invScreenSizeX, invScreenSizeY));
+            cmd.SetComputeIntParam(computeShader, VxShadowMapConstantBuffer._BeginOffset, beginOffset);
             cmd.SetComputeIntParam(computeShader, VxShadowMapConstantBuffer._VoxelZBias, voxelZBias);
             cmd.SetComputeFloatParam(computeShader, VxShadowMapConstantBuffer._VoxelUpBias, voxelUpBias);
 

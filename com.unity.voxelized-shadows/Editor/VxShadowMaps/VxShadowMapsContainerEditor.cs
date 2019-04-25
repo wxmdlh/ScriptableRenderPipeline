@@ -9,6 +9,9 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         {
             var container = target as VxShadowMapsContainer;
 
+            if (container.Resources == null)
+                return;
+
             float sizeInBytes = container.Resources.VxShadowMapList.Length * sizeof(uint);
             float sizeInMBytes = sizeInBytes / (1024.0f * 1024.0f);
             EditorGUILayout.LabelField("Total Size(MB): " + sizeInMBytes);
