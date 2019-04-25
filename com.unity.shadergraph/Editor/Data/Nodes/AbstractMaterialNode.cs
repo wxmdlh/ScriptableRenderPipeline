@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.Experimental.UIElements.GraphView;
 using UnityEngine;
 using UnityEditor.Graphing;
+using UnityEditor.ShaderGraph.Drawing.Colors;
 
 namespace UnityEditor.ShaderGraph
 {
@@ -180,25 +180,13 @@ namespace UnityEditor.ShaderGraph
         public int version { get; set; }
 
         #region Custom Colors
-        [NonSerialized]
-        Dictionary<string, Color?> m_CustomColors = new Dictionary<string, Color?>();
+
         [SerializeField]
-        List<SerializationHelper.JSONSerializedElement> m_SerializableColors = new List<SerializationHelper.JSONSerializedElement>();
-
-        [Serializable]
-        class SerializableUserColor
-        {
-            public string Key = String.Empty;
-            public Color Value = Color.black;
-
-            public SerializableUserColor() {  }
-            public SerializableUserColor(KeyValuePair<string, Color?> pair) { Key = pair.Key; Value = pair.Value ?? Color.black; }
-        }
+        CustomColorData m_CustomColors = new CustomColorData();
 
         public Color? GetColor(string provider)
         {
-            m_CustomColors.TryGetValue(provider, out var color);
-            return color;
+            return m_CustomColors.Get(provider);
         }
 
         public void ResetColor(string provider)
@@ -208,7 +196,7 @@ namespace UnityEditor.ShaderGraph
 
         public void SetColor(string provider, Color? color)
         {
-            m_CustomColors[provider] = color;
+            m_CustomColors.Set(provider, color);
         }
         #endregion
 
@@ -629,14 +617,6 @@ namespace UnityEditor.ShaderGraph
             m_GuidSerialized = m_Guid.ToString();
             m_GroupGuidSerialized = m_GroupGuid.ToString();
             m_SerializableSlots = SerializationHelper.Serialize<ISlot>(m_Slots);
-            m_SerializableColors.Clear();
-            foreach (var customColorKvp in m_CustomColors)
-            {
-                if (customColorKvp.Value.HasValue)
-                {
-                    m_SerializableColors.Add(SerializationHelper.Serialize(new SerializableUserColor(customColorKvp)));
-                }
-            }
         }
 
         public virtual void OnAfterDeserialize()
@@ -656,12 +636,6 @@ namespace UnityEditor.ShaderGraph
             foreach (var s in m_Slots)
                 s.owner = this;
 
-            List<SerializableUserColor> colors = SerializationHelper.Deserialize<SerializableUserColor>(m_SerializableColors, null);
-            foreach (var colorPair in colors)
-            {
-                m_CustomColors.Add(colorPair.Key, colorPair.Value);
-            }
-            
             UpdateNodeAfterDeserialization();
         }
 
