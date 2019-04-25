@@ -37,6 +37,8 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         GraphEditorView m_GraphEditorView;
 
+        string m_PrevPath;
+
         MessageManager m_MessageManager;
         MessageManager messageManager
         {
@@ -226,7 +228,10 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         public void ToSubGraph()
         {
-            var path = EditorUtility.SaveFilePanelInProject("Save Sub Graph", "New Shader Sub Graph", ShaderSubGraphImporter.Extension, "");
+            if (m_PrevPath == null || m_PrevPath.Length == 0) m_PrevPath = Application.dataPath; 
+
+            var path = EditorUtility.SaveFilePanelInProject("Save Sub Graph", "SubGraph", ShaderSubGraphImporter.Extension, "", m_PrevPath);
+
             path = path.Replace(Application.dataPath, "Assets");
             if (path.Length == 0)
                 return;
@@ -431,6 +436,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
             File.WriteAllText(path, EditorJsonUtility.ToJson(subGraph));
             AssetDatabase.ImportAsset(path);
+            m_PrevPath = path;
 
             var loadedSubGraph = AssetDatabase.LoadAssetAtPath(path, typeof(SubGraphAsset)) as SubGraphAsset;
             if (loadedSubGraph == null)
