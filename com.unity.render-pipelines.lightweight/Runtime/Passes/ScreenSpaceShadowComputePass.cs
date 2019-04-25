@@ -186,10 +186,10 @@ namespace UnityEngine.Rendering.LWRP
             var projMatrix = gpuProj;
             var viewProjMatrix = projMatrix * viewMatrix;
 
-            var vxShadowMapsBuffer = VxShadowMapsManager.instance.VxShadowMapsBuffer;
+            var vxShadowMapsBuffer = VxShadowMapsManager.Instance.VxShadowMapsBuffer;
 
             int voxelZBias = 2;
-            float voxelUpBias = 1 * (dirVxShadowMap.volumeScale / dirVxShadowMap.voxelResolutionInt);
+            float voxelUpBias = 1 * (dirVxShadowMap.volumeScale / dirVxShadowMap.VoxelResolutionInt);
 
             cmd.SetComputeVectorParam(computeShader, VxShadowMapConstantBuffer._ShadowData, new Vector4(light.shadowStrength, 0.0f, 0.0f, 0.0f));
 
