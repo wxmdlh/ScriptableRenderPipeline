@@ -46,7 +46,7 @@ namespace UnityEditor.ShaderGraph
             RemoveSlotsNameNotMatching(new[] { TextureInputId, UVInputId, SamplerInputId, OffsetInputId, StrengthInputId, OutputSlotId });
         }
 
-        public void GenerateNodeCode(ShaderStringBuilder sb1, GraphContext graphContext, GenerationMode generationMode)
+        public void GenerateNodeCode(ShaderStringBuilder sb, GraphContext graphContext, GenerationMode generationMode)
         {
             var textureValue = GetSlotValue(TextureInputId, generationMode);
             var uvValue = GetSlotValue(UVInputId, generationMode);
@@ -62,11 +62,8 @@ namespace UnityEditor.ShaderGraph
             else
                 samplerValue = string.Format("sampler{0}", GetSlotValue(TextureInputId, generationMode));
 
-            var sb = new ShaderStringBuilder();
             sb.AppendLine("{0} {1};", FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToString(precision), GetVariableNameForSlot(OutputSlotId));
             sb.AppendLine("{0}({1}, {2}, {3}, {4}, {5}, {6});", GetFunctionName(), textureValue, samplerValue, uvValue, offsetValue, strengthValue, outputValue);
-
-            sb1.AppendLine(sb.ToString());
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)

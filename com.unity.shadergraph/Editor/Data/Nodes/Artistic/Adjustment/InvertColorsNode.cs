@@ -102,10 +102,8 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
-        public void GenerateNodeCode(ShaderStringBuilder sb1, GraphContext graphContext, GenerationMode generationMode)
+        public void GenerateNodeCode(ShaderStringBuilder sb, GraphContext graphContext, GenerationMode generationMode)
         {
-            var sb = new ShaderStringBuilder();
-
             var inputValue = GetSlotValue(InputSlotId, generationMode);
             var outputValue = GetSlotValue(OutputSlotId, generationMode);
             sb.AppendLine("{0} {1};", FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToString(precision), GetVariableNameForSlot(OutputSlotId));
@@ -126,8 +124,6 @@ namespace UnityEditor.ShaderGraph
             }
 
             sb.AppendLine("{0}({1}, _{2}_InvertColors, {3});", GetFunctionName(), inputValue, GetVariableNameForNode(), outputValue);
-
-            sb1.AppendLine(sb.ToString());
         }
 
         public override void CollectPreviewMaterialProperties(List<PreviewProperty> properties)
