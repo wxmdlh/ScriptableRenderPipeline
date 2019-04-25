@@ -12,6 +12,12 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         public override int index { get { return -1; } set { } }
         public override uint bitset => 0;
 
+        public override void ResetData()
+        {
+            // todo : reset index
+            DataList.Clear();
+        }
+
         private void OnEnable()
         {
             VxShadowMapsManager.Instance.RegisterVxShadowMapComponent(this);

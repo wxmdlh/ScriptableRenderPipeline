@@ -21,10 +21,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         private void OnValidate()
         {
-            if (Resources != null)
-                ValidateResources();
-            else
-                InvalidateResources();
+            VerifyResources();
         }
 
         private void ValidateResources()
@@ -34,8 +31,16 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         }
         private void InvalidateResources()
         {
-            VxShadowMapsManager.Instance.Unloadresources();
+            VxShadowMapsManager.Instance.UnloadResources();
             Size = 0.0f;
+        }
+
+        public void VerifyResources()
+        {
+            if (Resources != null)
+                ValidateResources();
+            else
+                InvalidateResources();
         }
     }
 }

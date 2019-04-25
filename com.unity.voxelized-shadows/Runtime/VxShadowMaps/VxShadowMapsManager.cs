@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine.Rendering;
 
@@ -209,13 +208,26 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         public void LoadResources(VxShadowMapsResources resources)
         {
+            foreach (var vxsm in _dirVxShadowMapList)
+                vxsm.ResetData();
+            foreach (var vxsm in _pointVxShadowMapList)
+                vxsm.ResetData();
+            foreach (var vxsm in _spotVxShadowMapList)
+                vxsm.ResetData();
+
             for (int i = 0; i < resources.VxShadowsDataList.Length; i++)
             {
                 var vxsData = resources.VxShadowsDataList[i];
                 var vxsm = FindVxShadowMap(vxsData.Type, vxsData.InstanceId);
 
                 if (vxsm != null)
-                    vxsm.VxShadowsDataList.Add(vxsData);
+                {
+                    vxsm.DataList.Add(vxsData);
+                    vxsm.index = 0;
+
+                    // todo : remove this later
+                    Debug.Log(vxsData.SizeInBytes + "bytes of vxsData added");
+                }
             }
 
             int count = resources.VxShadowMapList.Length;
@@ -227,16 +239,16 @@ namespace UnityEngine.Experimental.VoxelizedShadows
             _vxShadowMapsBuffer = new ComputeBuffer(count, stride);
             _vxShadowMapsBuffer.SetData(resources.VxShadowMapList);
 
-            // todo : deallocate resources.Vxsms?
+            // todo : deallocate resources.VxShadowMapList?
         }
-        public void Unloadresources()
+        public void UnloadResources()
         {
             foreach (var vxsm in _dirVxShadowMapList)
-                vxsm.VxShadowsDataList.Clear();
+                vxsm.ResetData();
             foreach (var vxsm in _pointVxShadowMapList)
-                vxsm.VxShadowsDataList.Clear();
+                vxsm.ResetData();
             foreach (var vxsm in _spotVxShadowMapList)
-                vxsm.VxShadowsDataList.Clear();
+                vxsm.ResetData();
 
             if (_vxShadowMapsBuffer != null)
             {
@@ -293,7 +305,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
                 {
                     var vxsm = FindDirVxShadowMap(light.InstanceId);
                     if (vxsm != null)
-                        vxsm.VxShadowsDataList.Add(light);
+                        vxsm.DataList.Add(light);
 
                     break;
                 }

@@ -38,10 +38,12 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         public abstract int VoxelResolutionInt { get; }
         public ShadowsBlendMode ShadowsBlend = ShadowsBlendMode.OnlyVxShadows;
 
-        public List<VxShadowsData> VxShadowsDataList = new List<VxShadowsData>();
+        public List<VxShadowsData> DataList = new List<VxShadowsData>();
 
         public abstract int index { get; set; }
         public abstract uint bitset { get; }
+
+        public abstract void ResetData();
 
         public abstract bool IsValid();
     }
