@@ -295,7 +295,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_GbufferManager = new GBufferManager(asset, m_DeferredMaterial);
             m_DbufferManager = new DBufferManager();
 
-            VxShadowMapsManager.instance.Build(); //seongdae;vxsm
+            VxShadowMapsManager.Instance.Build(); //seongdae;vxsm
 
             m_SSSBufferManager.Build(asset);
             m_SharedRTManager.Build(asset);
@@ -717,7 +717,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.Destroy(m_DownsampleDepthMaterial);
             CoreUtils.Destroy(m_UpsampleTransparency);
 
-            VxShadowMapsManager.instance.Cleanup(); //seongdae;vxsm
+            VxShadowMapsManager.Instance.Cleanup(); //seongdae;vxsm
             m_SSSBufferManager.Cleanup();
             m_SharedRTManager.Cleanup();
             m_SkyManager.Cleanup();

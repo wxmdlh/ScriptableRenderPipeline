@@ -7,48 +7,57 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     public sealed class DirectionalVxShadowMap : VxShadowMap
     {
         public float volumeScale = 10.0f;
-        public VoxelResolution voxelResolution = VoxelResolution._4096;
-        public override int voxelResolutionInt => (int)voxelResolution;
-        public override VoxelResolution subtreeResolution =>
-            voxelResolutionInt < MaxSubtreeResolutionInt ? voxelResolution : MaxSubtreeResolution;
+        public VoxelResolution VoxelResolution = VoxelResolution._4096;
+        public override int VoxelResolutionInt => (int)VoxelResolution;
 
-        public List<VxShadowsData> vxShadowsLightList = new List<VxShadowsData>();
+        private int _index = 0;
+        private uint _beginOffset =>
+            VxShadowsDataList.Count > _index ?
+            VxShadowsDataList[_index].BeginOffset : 0;
 
-        private uint _beginOffset = 0;
+        public override int index
+        {
+            get
+            {
+                return _index;
+            }
+            set
+            {
+                _index = value;
+
+                var vxsData = VxShadowsDataList[_index];
+                gameObject.transform.position = vxsData.Position;
+                gameObject.transform.rotation = vxsData.Rotation;
+            }
+        }
+        public override uint bitset
+        {
+            get
+            {
+                bool isOnlyVxsm = ShadowsBlend == ShadowsBlendMode.OnlyVxShadows;
+
+                uint bitBlendMode = isOnlyVxsm ? (uint)0x80000000 : (uint)0x40000000;
+                uint bitBeginOffset = _beginOffset & 0x3FFFFFFF;
+
+                return IsValid() ? (bitBlendMode | bitBeginOffset) : bitBeginOffset;
+            }
+        }
 
         private void OnEnable()
         {
-            VxShadowMapsManager.instance.RegisterVxShadowMapComponent(this);
+            VxShadowMapsManager.Instance.RegisterVxShadowMapComponent(this);
         }
         private void OnDisable()
         {
-            VxShadowMapsManager.instance.UnregisterVxShadowMapComponent(this);
+            VxShadowMapsManager.Instance.UnregisterVxShadowMapComponent(this);
         }
 
         public override bool IsValid()
         {
             return
-                VxShadowMapsManager.instance.ValidVxShadowMapsBuffer &&
-                VxShadowMapsManager.instance.Container != null &&
+                VxShadowMapsManager.Instance.ValidVxShadowMapsBuffer &&
+                VxShadowMapsManager.Instance.Container != null &&
                 enabled;
-        }
-
-        public override void SetIndex(int index)
-        {
-            var vxs = vxShadowsLightList[index];
-            gameObject.transform.position = vxs.Position;
-            gameObject.transform.rotation = vxs.Rotation;
-            _beginOffset = vxs.BeginOffset;
-        }
-
-        public override uint GetBitset()
-        {
-            bool isOnlyVxsm = shadowsBlendMode == ShadowsBlendMode.OnlyVxShadowMaps;
-
-            uint bitBlendMode = isOnlyVxsm ? (uint)0x80000000 : (uint)0x40000000;
-            uint bitBeginOffset = _beginOffset & 0x3FFFFFFF;
-
-            return IsValid() ? (bitBlendMode | bitBeginOffset) : bitBeginOffset;
         }
 
 #if UNITY_EDITOR

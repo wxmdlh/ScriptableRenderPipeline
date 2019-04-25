@@ -109,7 +109,7 @@ namespace UnityEngine.Rendering.LWRP
                 var dirVxsm = light.GetComponent<DirectionalVxShadowMap>();
 
                 bool enabledVxsm = dirVxsm != null && dirVxsm.IsValid();
-                bool canNotCastDynamicShadows = enabledVxsm && dirVxsm.shadowsBlendMode == ShadowsBlendMode.OnlyVxShadowMaps;
+                bool canNotCastDynamicShadows = enabledVxsm && dirVxsm.ShadowsBlend == ShadowsBlendMode.OnlyVxShadows;
 
                 if (canNotCastDynamicShadows)
                     return false;

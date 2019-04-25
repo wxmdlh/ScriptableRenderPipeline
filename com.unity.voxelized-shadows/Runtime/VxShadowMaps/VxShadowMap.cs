@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 
 namespace UnityEngine.Experimental.VoxelizedShadows
 {
@@ -23,7 +24,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
     public enum ShadowsBlendMode
     {
-        OnlyVxShadowMaps,
+        OnlyVxShadows,
         BlendDynamicShadows,
     }
 
@@ -31,15 +32,17 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     {
         public static VoxelResolution MaxSubtreeResolution => VoxelResolution._4096;
         public static int MaxSubtreeResolutionInt => (int)MaxSubtreeResolution;
+        public static VoxelResolution SubtreeResolution(VoxelResolution res) { return (int)res > MaxSubtreeResolutionInt ? MaxSubtreeResolution : res; }
+        public static int SubtreeResolutionInt(int res) { return Mathf.Min(res, MaxSubtreeResolutionInt); }
 
-        public abstract int voxelResolutionInt { get; }
-        public abstract VoxelResolution subtreeResolution { get; }
-        public int subtreeResolutionInt { get { return (int)subtreeResolution; } }
-        public int index = -1;
-        public ShadowsBlendMode shadowsBlendMode = ShadowsBlendMode.OnlyVxShadowMaps;
+        public abstract int VoxelResolutionInt { get; }
+        public ShadowsBlendMode ShadowsBlend = ShadowsBlendMode.OnlyVxShadows;
+
+        public List<VxShadowsData> VxShadowsDataList = new List<VxShadowsData>();
+
+        public abstract int index { get; set; }
+        public abstract uint bitset { get; }
 
         public abstract bool IsValid();
-        public abstract void SetIndex(int index);
-        public abstract uint GetBitset();
     }
 }

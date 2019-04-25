@@ -725,8 +725,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 //seongdae;vxsm
                 var vxShadowMapsBuffer = enableVxShadows ?
-                    VxShadowMapsManager.instance.VxShadowMapsBuffer :
-                    VxShadowMapsManager.instance.VxShadowMapsNullBuffer;
+                    VxShadowMapsManager.Instance.VxShadowMapsBuffer :
+                    VxShadowMapsManager.Instance.VxShadowMapsNullBuffer;
                 cmd.SetComputeBufferParam(m_VolumetricLightingCS, kernel, HDShaderIDs._VxShadowMapsBuffer, vxShadowMapsBuffer);
                 //seongdae;vxsm
 

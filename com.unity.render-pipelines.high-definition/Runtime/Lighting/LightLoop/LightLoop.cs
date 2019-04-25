@@ -775,7 +775,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_ContactShadows = VolumeManager.instance.stack.GetComponent<ContactShadows>();
             m_EnableContactShadow = m_FrameSettings.IsEnabled(FrameSettingsField.ContactShadows) && m_ContactShadows.enable.value && m_ContactShadows.length.value > 0;
-            m_EnableVxShadows = m_FrameSettings.IsEnabled(FrameSettingsField.Shadow) && m_FrameSettings.IsEnabled(FrameSettingsField.VxShadows) && VxShadowMapsManager.instance.Container != null; //seongdae;vxsm
+            m_EnableVxShadows = m_FrameSettings.IsEnabled(FrameSettingsField.Shadow) && m_FrameSettings.IsEnabled(FrameSettingsField.VxShadows) && VxShadowMapsManager.Instance.Container != null; //seongdae;vxsm
             m_indirectLightingController = VolumeManager.instance.stack.GetComponent<IndirectLightingController>();
 
             // Cluster
@@ -1055,7 +1055,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
             if (canRenderVxShadows)
             {
-                lightData.vxShadowsBitset = vxsm.GetBitset();
+                lightData.vxShadowsBitset = vxsm.bitset;
             }
             else
             {
@@ -2932,7 +2932,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 m_ShadowManager.BindResources(cmd);
 
-                cmd.SetComputeBufferParam(screenSpaceShadowComputeShader, kernel, HDShaderIDs._VxShadowMapsBuffer, VxShadowMapsManager.instance.VxShadowMapsBuffer);
+                cmd.SetComputeBufferParam(screenSpaceShadowComputeShader, kernel, HDShaderIDs._VxShadowMapsBuffer, VxShadowMapsManager.Instance.VxShadowMapsBuffer);
 
                 // Inject the texture in the adequate slot
                 cmd.SetComputeTextureParam(screenSpaceShadowComputeShader, kernel, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? HDShaderIDs._CameraDepthValuesTexture : HDShaderIDs._CameraDepthTexture, depthTexture);
