@@ -8,5 +8,7 @@ Pass
 	HLSLPROGRAM
 	#define IS_MOTION_VECTORS_PASS 0
 	${VFXInclude("Shaders/RenderPipeline/HDRP/Templates/Mesh/PassDepthOrMV.template")}
+
+
 	ENDHLSL
 }
