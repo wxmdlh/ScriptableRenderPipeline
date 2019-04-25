@@ -273,7 +273,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 var vxsm = GetComponent<VxShadowMap>();
                 bool vxsmIsValid = vxsm != null && vxsm.IsValid();
-                if (vxsmIsValid && vxsm.shadowsBlendMode == ShadowsBlendMode.OnlyVxShadowMaps)
+                if (vxsmIsValid && vxsm.ShadowsBlend == ShadowsBlendMode.OnlyVxShadows)
                     return 0;
             }
             //seongdae;vxsm

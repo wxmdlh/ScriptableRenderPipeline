@@ -25,7 +25,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         private ComputeBuffer _vxShadowMapsBuffer = null;
 
         private static VxShadowMapsManager _instance = null;
-        public static VxShadowMapsManager instance
+        public static VxShadowMapsManager Instance
         {
             get
             {
@@ -105,7 +105,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 #endif
             if (_dirVxShadowMapList.Contains(dirVxsm))
             {
-                Debug.LogError("'" + dirVxsm.gameObject.name + "' is alrady registered. try to register duplicate vxsm!!");
+                Debug.LogError("'" + dirVxsm.gameObject.name + "' is already registered. try to register duplicate vxsm!!");
             }
             else
             {
@@ -127,7 +127,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 #endif
             if (_pointVxShadowMapList.Contains(pointVxsm))
             {
-                Debug.LogError("'" + pointVxsm.gameObject.name + "' is alrady registered. try to register duplicate vxsm!!");
+                Debug.LogError("'" + pointVxsm.gameObject.name + "' is already registered. try to register duplicate vxsm!!");
             }
             else
             {
@@ -149,7 +149,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 #endif
             if (_spotVxShadowMapList.Contains(spotVxsm))
             {
-                Debug.LogError("'" + spotVxsm.gameObject.name + "' is alrady registered. try to register duplicate vxsm!!");
+                Debug.LogError("'" + spotVxsm.gameObject.name + "' is already registered. try to register duplicate vxsm!!");
             }
             else
             {
@@ -210,7 +210,13 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         public void LoadResources(VxShadowMapsResources resources)
         {
             for (int i = 0; i < resources.VxShadowsDataList.Length; i++)
-                AddVxShadowsData(resources.VxShadowsDataList[i]);
+            {
+                var vxsData = resources.VxShadowsDataList[i];
+                var vxsm = FindVxShadowMap(vxsData.Type, vxsData.InstanceId);
+
+                if (vxsm != null)
+                    vxsm.VxShadowsDataList.Add(vxsData);
+            }
 
             int count = resources.VxShadowMapList.Length;
             int stride = 4;
@@ -225,6 +231,13 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         }
         public void Unloadresources()
         {
+            foreach (var vxsm in _dirVxShadowMapList)
+                vxsm.VxShadowsDataList.Clear();
+            foreach (var vxsm in _pointVxShadowMapList)
+                vxsm.VxShadowsDataList.Clear();
+            foreach (var vxsm in _spotVxShadowMapList)
+                vxsm.VxShadowsDataList.Clear();
+
             if (_vxShadowMapsBuffer != null)
             {
                 _vxShadowMapsBuffer.Release();
@@ -260,20 +273,31 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
             return null;
         }
+        private VxShadowMap FindVxShadowMap(VxShadowsType type, int instanceId)
+        {
+            switch (type)
+            {
+                case VxShadowsType.Directional: return FindDirVxShadowMap(instanceId);
+                case VxShadowsType.Point:       return FindPointVxShadowMap(instanceId);
+                case VxShadowsType.Spot:        return FindSpotVxShadowMap(instanceId);
+            }
+
+            return null;
+        }
 
         private void AddVxShadowsData(VxShadowsData light)
         {
             switch (light.Type)
             {
-                case VxShadowsLightType.Directional:
+                case VxShadowsType.Directional:
                 {
                     var vxsm = FindDirVxShadowMap(light.InstanceId);
                     if (vxsm != null)
-                        vxsm.vxShadowsLightList.Add(light);
+                        vxsm.VxShadowsDataList.Add(light);
 
                     break;
                 }
-                case VxShadowsLightType.Point:
+                case VxShadowsType.Point:
                 {
                     var vxsm = FindPointVxShadowMap(light.InstanceId);
                     // todo : implement this
@@ -282,7 +306,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
                     break;
                 }
-                case VxShadowsLightType.Spot:
+                case VxShadowsType.Spot:
                 {
                     var vxsm = FindSpotVxShadowMap(light.InstanceId);
                     // todo : implement this

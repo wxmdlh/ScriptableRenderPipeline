@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 
 namespace UnityEngine.Experimental.VoxelizedShadows
 {
@@ -6,32 +7,23 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     public sealed class PointVxShadowMap : VxShadowMap
     {
         // TODO :
-        public override int voxelResolutionInt => (int)VoxelResolution._4096;
-        public override VoxelResolution subtreeResolution => VoxelResolution._4096;
+        public override int VoxelResolutionInt => (int)VoxelResolution._4096;
+
+        public override int index { get { return -1; } set { } }
+        public override uint bitset => 0;
 
         private void OnEnable()
         {
-            VxShadowMapsManager.instance.RegisterVxShadowMapComponent(this);
+            VxShadowMapsManager.Instance.RegisterVxShadowMapComponent(this);
         }
         private void OnDisable()
         {
-            VxShadowMapsManager.instance.UnregisterVxShadowMapComponent(this);
+            VxShadowMapsManager.Instance.UnregisterVxShadowMapComponent(this);
         }
 
         public override bool IsValid()
         {
             return false;
-        }
-
-        public override void SetIndex(int index)
-        {
-            // TODO : 
-        }
-
-        public override uint GetBitset()
-        {
-            // TODO :
-            return 0;
         }
     }
 }

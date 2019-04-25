@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace UnityEngine.Experimental.VoxelizedShadows
 {
-    public enum VxShadowsLightType
+    public enum VxShadowsType
     {
         Directional = 0,
         Spot,
@@ -13,7 +13,8 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     [Serializable]
     public struct VxShadowsData
     {
-        public VxShadowsLightType Type;
+        public int InstanceId;
+        public VxShadowsType Type;
         public Vector3 Position;
         public Quaternion Rotation;
         public uint SizeInBytes;

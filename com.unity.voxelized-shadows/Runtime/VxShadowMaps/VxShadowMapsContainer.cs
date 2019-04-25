@@ -11,12 +11,12 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         private void OnEnable()
         {
-            VxShadowMapsManager.instance.RegisterVxShadowMapsContainer(this);
+            VxShadowMapsManager.Instance.RegisterVxShadowMapsContainer(this);
         }
 
         private void OnDisable()
         {
-            VxShadowMapsManager.instance.UnregisterVxShadowMapsContainer(this);
+            VxShadowMapsManager.Instance.UnregisterVxShadowMapsContainer(this);
         }
 
         private void OnValidate()
@@ -29,12 +29,12 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         private void ValidateResources()
         {
-            VxShadowMapsManager.instance.LoadResources(Resources);
-            Size = (float)VxShadowMapsManager.instance.GetSizeInBytes() / (1024.0f * 1024.0f);
+            VxShadowMapsManager.Instance.LoadResources(Resources);
+            Size = (float)VxShadowMapsManager.Instance.GetSizeInBytes() / (1024.0f * 1024.0f);
         }
         private void InvalidateResources()
         {
-            VxShadowMapsManager.instance.Unloadresources();
+            VxShadowMapsManager.Instance.Unloadresources();
             Size = 0.0f;
         }
     }
