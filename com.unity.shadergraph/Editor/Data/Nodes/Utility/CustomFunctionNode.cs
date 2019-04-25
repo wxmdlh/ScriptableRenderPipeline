@@ -69,7 +69,7 @@ namespace UnityEditor.ShaderGraph
 
         public static string defaultFunctionBody => m_DefaultFunctionBody;
 
-        public void GenerateNodeCode(ShaderGenerator visitor, GraphContext graphContext, GenerationMode generationMode)
+        public void GenerateNodeCode(ShaderStringBuilder sb, GraphContext graphContext, GenerationMode generationMode)
         {
             List<MaterialSlot> slots = new List<MaterialSlot>();
             GetOutputSlots<MaterialSlot>(slots);
@@ -79,17 +79,19 @@ namespace UnityEditor.ShaderGraph
                 if(generationMode == GenerationMode.Preview && slots.Count != 0)
                 {
                     slots.OrderBy(s => s.id);
-                    visitor.AddShaderChunk(string.Format("{0} _{1}_{2};",
+                    sb.AppendLine("{0} _{1}_{2};",
                         NodeUtils.ConvertConcreteSlotValueTypeToString(precision, slots[0].concreteValueType),
-                        GetVariableNameForNode(), NodeUtils.GetHLSLSafeName(slots[0].shaderOutputName)));
+                        GetVariableNameForNode(),
+                        NodeUtils.GetHLSLSafeName(slots[0].shaderOutputName));
                 }
                 return;
             }
             
             foreach (var argument in slots)
-                visitor.AddShaderChunk(string.Format("{0} _{1}_{2};",
+                sb.AppendLine("{0} _{1}_{2};",
                     NodeUtils.ConvertConcreteSlotValueTypeToString(precision, argument.concreteValueType),
-                    GetVariableNameForNode(), NodeUtils.GetHLSLSafeName(argument.shaderOutputName)));
+                    GetVariableNameForNode(),
+                    NodeUtils.GetHLSLSafeName(argument.shaderOutputName));
 
             string call = string.Format("{0}_{1}(", functionName, precision);
             bool first = true;
@@ -114,7 +116,7 @@ namespace UnityEditor.ShaderGraph
                 call += string.Format("_{0}_{1}", GetVariableNameForNode(), NodeUtils.GetHLSLSafeName(argument.shaderOutputName));
             }
             call += ");";
-            visitor.AddShaderChunk(call, true);
+            sb.AppendLine(call);
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)

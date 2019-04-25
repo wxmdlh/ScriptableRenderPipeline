@@ -68,7 +68,7 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
-        public void GenerateNodeCode(ShaderGenerator visitor, GraphContext graphContext, GenerationMode generationMode)
+        public void GenerateNodeCode(ShaderStringBuilder sb1, GraphContext graphContext, GenerationMode generationMode)
         {
             var sb = new ShaderStringBuilder();
             var inputValue = GetSlotValue(InputSlotId, generationMode);
@@ -83,7 +83,7 @@ namespace UnityEditor.ShaderGraph
             }
             sb.AppendLine("{0}({1}, _{2}_Red, _{2}_Green, _{2}_Blue, {3});", GetFunctionName(), inputValue, GetVariableNameForNode(), outputValue);
 
-            visitor.AddShaderChunk(sb.ToString(), false);
+            sb1.AppendLine(sb.ToString());
         }
 
         public override void CollectPreviewMaterialProperties(List<PreviewProperty> properties)

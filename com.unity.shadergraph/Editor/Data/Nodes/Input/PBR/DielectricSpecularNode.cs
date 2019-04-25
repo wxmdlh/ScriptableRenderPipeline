@@ -86,7 +86,7 @@ namespace UnityEditor.ShaderGraph
             RemoveSlotsNameNotMatching(new[] { kOutputSlotId });
         }
 
-        public void GenerateNodeCode(ShaderGenerator visitor, GraphContext graphContext, GenerationMode generationMode)
+        public void GenerateNodeCode(ShaderStringBuilder sb1, GraphContext graphContext, GenerationMode generationMode)
         {
             var sb = new ShaderStringBuilder();
             if (!generationMode.IsPreview())
@@ -115,7 +115,7 @@ namespace UnityEditor.ShaderGraph
                     sb.AppendLine("{0} {1} = {2};", precision, GetVariableNameForSlot(kOutputSlotId), m_MaterialList[material.type].ToString(CultureInfo.InvariantCulture));
                     break;
             }
-            visitor.AddShaderChunk(sb.ToString(), false);
+            sb1.AppendLine(sb.ToString());
         }
 
         public override void CollectPreviewMaterialProperties(List<PreviewProperty> properties)

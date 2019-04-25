@@ -72,7 +72,7 @@ namespace UnityEditor.ShaderGraph
             });
         }
 
-        public void GenerateNodeCode(ShaderGenerator visitor, GraphContext graphContext, GenerationMode generationMode)
+        public void GenerateNodeCode(ShaderStringBuilder sb1, GraphContext graphContext, GenerationMode generationMode)
         {
             var sb = new ShaderStringBuilder();
             if (!generationMode.IsPreview())
@@ -86,7 +86,7 @@ namespace UnityEditor.ShaderGraph
             }
             sb.AppendLine("{0}2x2 {1} = {0}2x2 (_{1}_m0.x, _{1}_m0.y, _{1}_m1.x, _{1}_m1.y);",
                 precision, GetVariableNameForNode());
-            visitor.AddShaderChunk(sb.ToString(), false);
+            sb1.AppendLine(sb.ToString());
         }
 
         public override void CollectPreviewMaterialProperties(List<PreviewProperty> properties)

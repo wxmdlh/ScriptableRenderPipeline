@@ -61,7 +61,7 @@ namespace UnityEditor.ShaderGraph
             RemoveSlotsNameNotMatching(new[] { InputSlotId, OutputSlotId });
         }
 
-        public void GenerateNodeCode(ShaderGenerator visitor, GraphContext graphContext, GenerationMode generationMode)
+        public void GenerateNodeCode(ShaderStringBuilder sb1, GraphContext graphContext, GenerationMode generationMode)
         {
             var sb = new ShaderStringBuilder();
 
@@ -72,7 +72,7 @@ namespace UnityEditor.ShaderGraph
             sb.AppendLine("{0}3 _{1}_Position = IN.{2}SpacePosition;", precision, GetVariableNameForNode(), NeededCoordinateSpace.World.ToString());
             sb.AppendLine("{0}({1},_{2}_Position,_{2}_TangentMatrix, {3});", GetFunctionName(), inputValue, GetVariableNameForNode(), outputValue);
 
-            visitor.AddShaderChunk(sb.ToString(), false);
+            sb1.AppendLine(sb.ToString());
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)
