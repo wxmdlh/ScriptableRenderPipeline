@@ -10,13 +10,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [Flags]
         public enum Features
         {
-            Surface,
-            BlendMode,
-            DoubleSided,
-            AlphaCutoff,
-            AlphaCutoffThreshold,
-            AlphaCutoffShadow,
-            All = ~0
+            Surface                     = 1 << 0,
+            BlendMode                   = 1 << 1,
+            DoubleSided                 = 1 << 2,
+            AlphaCutoff                 = 1 << 3,
+            AlphaCutoffThreshold        = 1 << 4,
+            AlphaCutoffShadowThreshold  = 1 << 5,
+            All = ~0,
         }
 
         protected static class StylesBaseUnlit
@@ -133,10 +133,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         List<int> m_RenderingPassValues = new List<int>();
 
         Expandable  m_ExpandableBit;
+        Features    m_EnabledFeatures;
 
-        public SurfaceOptionUIBlock(Expandable expandableBit)
+        public SurfaceOptionUIBlock(Expandable expandableBit, Features enabledFeatures = Features.All)
         {
             m_ExpandableBit = expandableBit;
+            m_EnabledFeatures = enabledFeatures;
         }
 
         public override void LoadMaterialKeywords()
@@ -175,6 +177,65 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         }
 
         void DrawSurfaceOptionGUI()
+        {
+            if ((m_EnabledFeatures & Features.Surface) != 0)
+                DrawSurfaceGUI();
+
+            if ((m_EnabledFeatures & Features.DoubleSided) != 0)
+                DrawDoubleSidedGUI();
+
+            if ((m_EnabledFeatures & Features.AlphaCutoff) != 0)
+                DrawAlphaCutoffGUI();
+        }
+
+        void DrawAlphaCutoffGUI()
+        {
+            if (alphaCutoffEnable != null)
+                materialEditor.ShaderProperty(alphaCutoffEnable, StylesBaseUnlit.alphaCutoffEnableText);
+
+            if (alphaCutoffEnable != null && alphaCutoffEnable.floatValue == 1.0f)
+            {
+                EditorGUI.indentLevel++;
+                if ((m_EnabledFeatures & Features.AlphaCutoffThreshold) != 0)
+                    materialEditor.ShaderProperty(alphaCutoff, StylesBaseUnlit.alphaCutoffText);
+
+                if (useShadowThreshold != null)
+                    materialEditor.ShaderProperty(useShadowThreshold, StylesBaseUnlit.useShadowThresholdText);
+
+                if (alphaCutoffShadow != null && useShadowThreshold != null && useShadowThreshold.floatValue == 1.0f && (m_EnabledFeatures & Features.AlphaCutoffShadowThreshold) != 0)
+                {
+                    EditorGUI.indentLevel++;
+                    materialEditor.ShaderProperty(alphaCutoffShadow, StylesBaseUnlit.alphaCutoffShadowText);
+                    EditorGUI.indentLevel--;
+                }
+
+                // With transparent object and few specific materials like Hair, we need more control on the cutoff to apply
+                // This allow to get a better sorting (with prepass), better shadow (better silhouettes fidelity) etc...
+                if (surfaceTypeValue == SurfaceType.Transparent)
+                {
+                    if (transparentDepthPrepassEnable != null && transparentDepthPrepassEnable.floatValue == 1.0f)
+                    {
+                        materialEditor.ShaderProperty(alphaCutoffPrepass, StylesBaseUnlit.alphaCutoffPrepassText);
+                    }
+
+                    if (transparentDepthPostpassEnable != null && transparentDepthPostpassEnable.floatValue == 1.0f)
+                    {
+                        materialEditor.ShaderProperty(alphaCutoffPostpass, StylesBaseUnlit.alphaCutoffPostpassText);
+                    }
+                }
+                EditorGUI.indentLevel--;
+            }
+
+        }
+
+        void DrawDoubleSidedGUI()
+        {
+            // This function must finish with double sided option (see LitUI.cs)
+            if (doubleSidedEnable != null)
+                materialEditor.ShaderProperty(doubleSidedEnable, StylesBaseUnlit.doubleSidedEnableText);
+        }
+
+        void DrawSurfaceGUI()
         {
             SurfaceTypePopup();
             if (surfaceTypeValue == SurfaceType.Transparent)
@@ -223,47 +284,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (transparentWritingMotionVec != null)
                     materialEditor.ShaderProperty(transparentWritingMotionVec, StylesBaseUnlit.transparentWritingMotionVecText);
 
-                EditorGUI.indentLevel--;
-            }
-
-            // This function must finish with double sided option (see LitUI.cs)
-            if (doubleSidedEnable != null)
-            {
-                materialEditor.ShaderProperty(doubleSidedEnable, StylesBaseUnlit.doubleSidedEnableText);
-            }
-
-            if (alphaCutoffEnable != null)
-                materialEditor.ShaderProperty(alphaCutoffEnable, StylesBaseUnlit.alphaCutoffEnableText);
-
-            if (alphaCutoffEnable != null && alphaCutoffEnable.floatValue == 1.0f)
-            {
-                EditorGUI.indentLevel++;
-                materialEditor.ShaderProperty(alphaCutoff, StylesBaseUnlit.alphaCutoffText);
-
-                if (useShadowThreshold != null)
-                    materialEditor.ShaderProperty(useShadowThreshold, StylesBaseUnlit.useShadowThresholdText);
-
-                if (alphaCutoffShadow != null && useShadowThreshold != null && useShadowThreshold.floatValue == 1.0f)
-                {
-                    EditorGUI.indentLevel++;
-                    materialEditor.ShaderProperty(alphaCutoffShadow, StylesBaseUnlit.alphaCutoffShadowText);
-                    EditorGUI.indentLevel--;
-                }
-
-                // With transparent object and few specific materials like Hair, we need more control on the cutoff to apply
-                // This allow to get a better sorting (with prepass), better shadow (better silhouettes fidelity) etc...
-                if (surfaceTypeValue == SurfaceType.Transparent)
-                {
-                    if (transparentDepthPrepassEnable != null && transparentDepthPrepassEnable.floatValue == 1.0f)
-                    {
-                        materialEditor.ShaderProperty(alphaCutoffPrepass, StylesBaseUnlit.alphaCutoffPrepassText);
-                    }
-
-                    if (transparentDepthPostpassEnable != null && transparentDepthPostpassEnable.floatValue == 1.0f)
-                    {
-                        materialEditor.ShaderProperty(alphaCutoffPostpass, StylesBaseUnlit.alphaCutoffPostpassText);
-                    }
-                }
                 EditorGUI.indentLevel--;
             }
         }

@@ -3,6 +3,7 @@ using System.Text;
 using UnityEditor.Graphing;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace UnityEditor.ShaderGraph
 {
@@ -104,7 +105,14 @@ namespace UnityEditor.ShaderGraph
             if (hidden)
                 result.Append("[HideInInspector] ");
             if (floatType == FloatType.ToggleUI)
-                result.Append("[ToggleUI]");
+                result.Append("[ToggleUI] ");
+            if (floatType == FloatType.Enum && enumNames?.Count > 0)
+            {
+                // TODO: values
+                result.Append("[Enum(");
+                result.Append(enumNames.Aggregate((s, e) => s + ", " + e));
+                result.Append(")] ");
+            }
             result.Append(referenceName);
             result.Append("(\"");
             result.Append(displayName);
@@ -116,10 +124,10 @@ namespace UnityEditor.ShaderGraph
                     result.Append(")) = ");
                     break;
                 case FloatType.Integer:
-                case FloatType.ToggleUI: // We assume that toggle UI and Enums properties must be saved as int
-                case FloatType.Enum:
+                case FloatType.ToggleUI: // We assume that toggle UI properties must be saved as int
                     result.Append("\", Int) = ");
                     break;
+                case FloatType.Enum:
                 default:
                     result.Append("\", Float) = ");
                     break;

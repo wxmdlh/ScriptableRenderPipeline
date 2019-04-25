@@ -1005,17 +1005,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddShaderProperty(new Vector1ShaderProperty{
                 floatType = FloatType.Integer,
                 value = defaultValue,
-                hidden = hidden,
+                hidden = true,
                 overrideReferenceName = referenceName,
             });
         }
 
-        static void AddFloatProperty(this PropertyCollector collector, string referenceName, float defaultValue, bool hidden = true)
+        static void AddFloatProperty(this PropertyCollector collector, string referenceName, float defaultValue)
         {
             collector.AddShaderProperty(new Vector1ShaderProperty{
                 floatType = FloatType.Default,
+                hidden = true,
                 value = defaultValue,
-                hidden = hidden,
                 overrideReferenceName = referenceName,
             });
         }
@@ -1026,16 +1026,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 floatType = FloatType.Default,
                 value = defaultValue,
                 overrideReferenceName = referenceName,
+                hidden = true,
                 displayName = displayName,
             });
         }
 
-        static void AddToggleProperty(this PropertyCollector collector, string referenceName, string displayName, bool defaultValue, bool hidden = true)
+        static void AddToggleProperty(this PropertyCollector collector, string referenceName, string displayName, bool defaultValue)
         {
             collector.AddShaderProperty(new Vector1ShaderProperty{
                 floatType = FloatType.ToggleUI,
                 value = defaultValue ? 1 : 0,
-                hidden = hidden,
+                hidden = true,
                 overrideReferenceName = referenceName,
                 displayName = displayName,
             });
@@ -1084,6 +1085,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 overrideReferenceName = "_DistortionBlendMode",
                 displayName = "Distortion Blend Mode",
                 floatType = FloatType.Enum,
+                hidden = true,
                 enumNames = {"Add", "Multiply", "Replace"}
             });
             collector.AddIntProperty("_DistortionSrcBlend", 0);
@@ -1107,11 +1109,65 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 displayName = "Alpha Cutoff",
                 floatType = FloatType.Slider,
                 rangeValues = new Vector2(0, 1),
+                hidden = true,
                 value = 0.5f
             });
             collector.AddFloatProperty("_TransparentSortPriority", "_TransparentSortPriority", 0);
 
             // TODO: _AlphaCutoffShadow and others (for lit)
+        }
+
+        public static string RenderQueueName(HDRenderQueue.RenderQueueType value)
+        {
+            switch (value)
+            {
+                case HDRenderQueue.RenderQueueType.Opaque:
+                    return "Default";
+                case HDRenderQueue.RenderQueueType.AfterPostProcessOpaque:
+                    return "After Post-process";
+                case HDRenderQueue.RenderQueueType.PreRefraction:
+                    return "Before Refraction";
+                case HDRenderQueue.RenderQueueType.Transparent:
+                    return "Default";
+                case HDRenderQueue.RenderQueueType.LowTransparent:
+                    return "Low Resolution";
+                case HDRenderQueue.RenderQueueType.AfterPostprocessTransparent:
+                    return "After Post-process";
+
+#if ENABLE_RAYTRACING
+                case HDRenderQueue.RenderQueueType.RaytracingOpaque: return "Raytracing";
+                case HDRenderQueue.RenderQueueType.RaytracingTransparent: return "Raytracing";
+#endif
+                default:
+                    return "None";
+            }
+        }
+
+        public static System.Collections.Generic.List<HDRenderQueue.RenderQueueType> GetRenderingPassList(bool opaque, bool needAfterPostProcess)
+        {
+            var result = new System.Collections.Generic.List<HDRenderQueue.RenderQueueType>();
+            if (opaque)
+            {
+                result.Add(HDRenderQueue.RenderQueueType.Opaque);
+                if (needAfterPostProcess)
+                    result.Add(HDRenderQueue.RenderQueueType.AfterPostProcessOpaque);
+#if ENABLE_RAYTRACING
+                result.Add(HDRenderQueue.RenderQueueType.RaytracingOpaque);
+#endif
+            }
+            else
+            {
+                result.Add(HDRenderQueue.RenderQueueType.PreRefraction);
+                result.Add(HDRenderQueue.RenderQueueType.Transparent);
+                result.Add(HDRenderQueue.RenderQueueType.LowTransparent);
+                if (needAfterPostProcess)
+                    result.Add(HDRenderQueue.RenderQueueType.AfterPostprocessTransparent);
+#if ENABLE_RAYTRACING
+                result.Add(HDRenderQueue.RenderQueueType.RaytracingTransparent);
+#endif
+            }
+
+            return result;
         }
     }
 }
