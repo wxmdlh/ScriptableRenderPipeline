@@ -2926,6 +2926,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_ShadowManager.BindResources(cmd);
 
                 cmd.SetComputeBufferParam(screenSpaceShadowComputeShader, kernel, HDShaderIDs._VxShadowMapsBuffer, VxShadowMapsManager.Instance.VxShadowMapsBuffer);
+                cmd.SetComputeBufferParam(screenSpaceShadowComputeShader, kernel, HDShaderIDs._DirectionalLightDatas, m_DirectionalLightDatas);
 
                 // Inject the texture in the adequate slot
                 cmd.SetComputeTextureParam(screenSpaceShadowComputeShader, kernel, hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? HDShaderIDs._CameraDepthValuesTexture : HDShaderIDs._CameraDepthTexture, depthTexture);
