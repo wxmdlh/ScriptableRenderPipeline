@@ -6,7 +6,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     [AddComponentMenu("Rendering/VxShadowMaps/DirectionalVxShadowMap", 100)]
     public sealed class DirectionalVxShadowMap : VxShadowMap
     {
-        public float volumeScale = 10.0f;
+        public float VolumeScale = 10.0f;
         public VoxelResolution VoxelResolution = VoxelResolution._4096;
         public override int VoxelResolutionInt => (int)VoxelResolution;
 
