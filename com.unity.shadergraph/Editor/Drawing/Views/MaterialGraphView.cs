@@ -30,10 +30,8 @@ namespace UnityEditor.ShaderGraph.Drawing
         protected override bool canCopySelection
         {
             get 
-            { 
-                SubGraphOutputNode subGraphOutput = (SubGraphOutputNode)Activator.CreateInstance(typeof(SubGraphOutputNode));
-
-                return selection.OfType<Node>().Where(v => (v.title != subGraphOutput.name)).Any() || selection.OfType<Group>().Any() || selection.OfType<BlackboardField>().Any(); 
+            {
+                return selection.OfType<Node>().Where(v => (v.title != SubGraphOutputNode.kNodeName)).Any() || selection.OfType<Group>().Any() || selection.OfType<BlackboardField>().Any(); 
             }
         }
 
@@ -41,9 +39,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         {
             get
             {
-                SubGraphOutputNode subGraphOutput = (SubGraphOutputNode)Activator.CreateInstance(typeof(SubGraphOutputNode));
-
-                return selection.OfType<Node>().Where(v => (v.title != subGraphOutput.name)).Any() || selection.OfType<Group>().Any() || selection.OfType<BlackboardField>().Any();
+                return selection.OfType<Node>().Where(v => (v.title != SubGraphOutputNode.kNodeName)).Any() || selection.OfType<Group>().Any() || selection.OfType<BlackboardField>().Any();
             }
         }
 

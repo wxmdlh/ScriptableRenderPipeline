@@ -13,10 +13,12 @@ namespace UnityEditor.ShaderGraph
     class SubGraphOutputNode : AbstractMaterialNode, IHasSettings
     {
         static string s_MissingOutputSlot = "A Sub Graph must have at least one output slot";
+        
+        public const string kNodeName = "Output";
 
         public SubGraphOutputNode()
         {
-            name = "Output";
+            name = kNodeName;
         }
 
         void ValidateShaderStage()
