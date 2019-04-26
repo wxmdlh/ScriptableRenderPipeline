@@ -21,6 +21,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         PreRefractionColorPyramid,
         DepthPyramid,
         FinalColorPyramid,
+        Matcap,
         // Raytracing
         LightCluster,
         RaytracedAreaShadow,

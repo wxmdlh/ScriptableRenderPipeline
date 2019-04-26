@@ -3343,6 +3343,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     m_FullScreenDebugPushed = false;
                     m_DebugFullScreenPropertyBlock.SetTexture(HDShaderIDs._DebugFullScreenTexture, m_DebugFullScreenTempBuffer);
                     m_DebugFullScreenPropertyBlock.SetFloat(HDShaderIDs._FullScreenDebugMode, (float)m_CurrentDebugDisplaySettings.data.fullScreenDebugMode);
+                    m_DebugFullScreenPropertyBlock.SetTexture(HDShaderIDs._DebugMatCapTexture, m_Asset.renderPipelineResources.textures.matcapTex);
                     HDUtils.PackedMipChainInfo info = m_SharedRTManager.GetDepthBufferMipChainInfo();
                     m_DebugFullScreenPropertyBlock.SetInt(HDShaderIDs._DebugDepthPyramidMip, (int)(m_CurrentDebugDisplaySettings.data.fullscreenDebugMip * info.mipLevelCount));
                     m_DebugFullScreenPropertyBlock.SetBuffer(HDShaderIDs._DebugDepthPyramidOffsets, info.GetOffsetBufferData(m_DepthPyramidMipLevelOffsetsBuffer));

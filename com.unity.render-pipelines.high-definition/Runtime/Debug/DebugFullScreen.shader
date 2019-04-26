@@ -31,6 +31,7 @@ Shader "Hidden/HDRP/DebugFullScreen"
             CBUFFER_END
 
             TEXTURE2D_X(_DebugFullScreenTexture);
+            TEXTURE2D(_DebugMatCapTexture);
 
             struct Attributes
             {
