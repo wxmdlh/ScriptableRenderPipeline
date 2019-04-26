@@ -297,39 +297,6 @@ namespace UnityEngine.Experimental.VoxelizedShadows
             return null;
         }
 
-        private void AddVxShadowsData(VxShadowsData light)
-        {
-            switch (light.Type)
-            {
-                case VxShadowsType.Directional:
-                {
-                    var vxsm = FindDirVxShadowMap(light.InstanceId);
-                    if (vxsm != null)
-                        vxsm.DataList.Add(light);
-
-                    break;
-                }
-                case VxShadowsType.Point:
-                {
-                    var vxsm = FindPointVxShadowMap(light.InstanceId);
-                    // todo : implement this
-                    //if (vxsm != null)
-                        //vxsm.vxShadowsLightList.Add(light);
-
-                    break;
-                }
-                case VxShadowsType.Spot:
-                {
-                    var vxsm = FindSpotVxShadowMap(light.InstanceId);
-                    // todo : implement this
-                    //if (vxsm != null)
-                        //vxsm.vxShadowsLightList.Add(light);
-
-                    break;
-                }
-            }
-        }
-
         public VxShadowMapsContainer Container { get { return _container; } }
 
         public List<DirectionalVxShadowMap> DirVxShadowMaps { get { return _dirVxShadowMapList; } }
