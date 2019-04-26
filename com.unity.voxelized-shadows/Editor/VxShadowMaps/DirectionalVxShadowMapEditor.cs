@@ -24,7 +24,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
             var result0 = EditorGUILayout.Popup("Shadows Blend", (int)vxsm.ShadowsBlend, shadowsBlendOptions);
             vxsm.ShadowsBlend = (ShadowsBlendMode)result0;
 
-            EditorGUILayout.FloatField("Volume Scale", vxsm.volumeScale);
+            vxsm.VolumeScale = EditorGUILayout.FloatField("Volume Scale", vxsm.VolumeScale);
 
             bool validVxsm = vxsm.index >= 0 && vxsm.index < vxsm.DataList.Count;
             if (validVxsm)
@@ -45,7 +45,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
         static void DrawGizmosSelected(DirectionalVxShadowMap vxsm, GizmoType gizmoType)
         {
             var light = vxsm.GetComponent<Light>();
-            var volumeScale = vxsm.volumeScale;
+            var volumeScale = vxsm.VolumeScale;
 
             if (light != null)
             {
