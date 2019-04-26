@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: HairTest
-  m_Shader: {fileID: -6465566751694194690, guid: 101a796373a94404faec2ab2055d5d4b,
+  m_Name: HairTest No Shadow Threshold
+  m_Shader: {fileID: -6465566751694194690, guid: 8aa0a6311d70a437cb9c6a3e561b8dc7,
     type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
@@ -203,7 +203,7 @@ Material:
     - _RimTransmissionIntensity: 0
     - _SSRefractionProjectionModel: 0
     - _SecondarySpecularMultiplier: 1
-    - _SecondarySpecularShift: 0.5
+    - _SecondarySpecularShift: 0
     - _ShiverDirectionality: 0.5
     - _ShiverDrag: 0.2
     - _Smoothness: 0.5
@@ -211,8 +211,8 @@ Material:
     - _SmoothnessRemapMin: 0.547
     - _SpecularAAScreenSpaceVariance: 0.1
     - _SpecularAAThreshold: 0.2
-    - _SpecularMultiplier: 1
-    - _SpecularShift: 0.108
+    - _SpecularMultiplier: 0.348
+    - _SpecularShift: 0.125
     - _SrcBlend: 1
     - _StencilRef: 2
     - _StencilRefMV: 128
@@ -250,7 +250,7 @@ Material:
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _InvPrimScale: {r: 1, g: 1, b: 0, a: 0}
     - _IridescenceThicknessRemap: {r: 0, g: 1, b: 0, a: 0}
-    - _SpecularColor: {r: 1, g: 0.6971353, b: 0.36320752, a: 1}
+    - _SpecularColor: {r: 0.8679245, g: 0.559068, b: 0.2251691, a: 1}
     - _ThicknessRemap: {r: 0, g: 1, b: 0, a: 0}
     - _TransmittanceColor: {r: 1, g: 1, b: 1, a: 1}
     - _UVDetailsMappingMask: {r: 1, g: 0, b: 0, a: 0}
