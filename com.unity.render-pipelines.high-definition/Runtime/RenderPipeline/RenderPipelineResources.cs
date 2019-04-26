@@ -27,6 +27,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Shader debugColorPickerPS;
             [Reload("Runtime/Debug/DebugLightVolumes.Shader")]
             public Shader debugLightVolumePS;
+            [Reload("Runtime/Debug/DebugMatcapView.shader")]
+            public Shader debugMatcapPS;
             [Reload("Runtime/Debug/DebugLightVolumes.compute")]
             public ComputeShader debugLightVolumeCS;
 

@@ -25,14 +25,13 @@ Shader "Hidden/HDRP/DebugFullScreen"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.cs.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Builtin/BuiltinData.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/NormalBuffer.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/MatcapView.hlsl"
 
             CBUFFER_START (UnityDebug)
             float _FullScreenDebugMode;
             CBUFFER_END
 
             TEXTURE2D_X(_DebugFullScreenTexture);
-            TEXTURE2D(_DebugMatCapTexture);
 
             struct Attributes
             {
@@ -272,17 +271,7 @@ Shader "Hidden/HDRP/DebugFullScreen"
                 }
                 if (_FullScreenDebugMode == FULLSCREENDEBUGMODE_MATCAP)
                 {
-                    float depth = LoadCameraDepth(input.positionCS.xy);
-
-                    if (depth == UNITY_RAW_FAR_CLIP_VALUE)
-                        return 0.33f;
-
-                    NormalData normalData;
-                    DecodeFromNormalBuffer(input.positionCS.xy, normalData);
-                    float3 normalVS = mul((float3x3)UNITY_MATRIX_V, normalData.normalWS).xyz;
-                    float2 UV = clamp(normalVS.xy * 0.5f + 0.5f, 0.001f, 0.9995f);
-                  //  return float4(UV, 0, 0);
-                    return SAMPLE_TEXTURE2D(_DebugMatCapTexture, s_point_clamp_sampler, UV);
+                    return GetMatcapValue(input.positionCS.xy);
                 }
                 return float4(0.0, 0.0, 0.0, 0.0);
             }

@@ -93,6 +93,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         MaterialPropertyBlock m_DebugFullScreenPropertyBlock = new MaterialPropertyBlock();
         Material m_DebugColorPicker;
         Material m_ErrorMaterial;
+        Material m_MatcapView;
 
         Material m_Blit;
         Material m_BlitTexArray;
@@ -647,6 +648,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_DebugColorPicker = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.debugColorPickerPS);
             m_Blit = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.blitPS);
             m_ErrorMaterial = CoreUtils.CreateEngineMaterial("Hidden/InternalErrorShader");
+            m_MatcapView = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.debugMatcapPS);
 
             // With texture array enabled, we still need the normal blit version for other systems like atlas
             if (TextureXR.useTexArray)
@@ -724,6 +726,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.Destroy(m_BlitTexArray);
             CoreUtils.Destroy(m_CopyDepth);
             CoreUtils.Destroy(m_ErrorMaterial);
+            CoreUtils.Destroy(m_MatcapView);
             CoreUtils.Destroy(m_DownsampleDepthMaterial);
             CoreUtils.Destroy(m_UpsampleTransparency);
 
@@ -1924,12 +1927,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // At this point, m_CameraColorBuffer has been filled by either debug views are regular rendering so we can push it here.
             PushColorPickerDebugTexture(cmd, hdCamera, m_CameraColorBuffer);
 
-                aovRequest.PushCameraTexture(cmd, AOVBuffers.Color, hdCamera, m_CameraColorBuffer, aovBuffers);
+            aovRequest.PushCameraTexture(cmd, AOVBuffers.Color, hdCamera, m_CameraColorBuffer, aovBuffers);
+
+            if(CoreUtils.IsSceneLightingDisabled(hdCamera.camera))
+            {
+                RenderMatcapView(cmd); 
+            }
+
             RenderPostProcess(cullingResults, hdCamera, target.id, renderContext, cmd);
 
             // In developer build, we always render post process in m_AfterPostProcessBuffer at (0,0) in which we will then render debug.
             // Because of this, we need another blit here to the final render target at the right viewport.
-                if (Debug.isDebugBuild || aovRequest.isValid)
+            if (Debug.isDebugBuild || aovRequest.isValid)
             {
                 hdCamera.ExecuteCaptureActions(m_IntermediateAfterPostProcessBuffer, cmd);
 
@@ -3406,6 +3415,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     HDUtils.DrawFullScreen(cmd, m_DebugColorPicker, m_IntermediateAfterPostProcessBuffer, m_DebugFullScreenPropertyBlock, 0);
                 }
             }
+        }
+
+        void RenderMatcapView(CommandBuffer cmd)
+        {
+            m_MatcapView.SetTexture(HDShaderIDs._DebugMatCapTexture, m_Asset.renderPipelineResources.textures.matcapTex);
+            HDUtils.DrawFullScreen(cmd, m_MatcapView, m_CameraColorBuffer);
         }
 
         void ClearBuffers(HDCamera hdCamera, CommandBuffer cmd)
