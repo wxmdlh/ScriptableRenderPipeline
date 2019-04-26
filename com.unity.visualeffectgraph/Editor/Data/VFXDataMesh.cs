@@ -37,6 +37,7 @@ namespace UnityEditor.VFX
         }
 
         public override void FillDescs(
+            VFXCompilationStatus status,
             List<VFXGPUBufferDesc> outBufferDescs,
             List<VFXEditorSystemDesc> outSystemDescs,
             VFXExpressionGraph expressionGraph,

@@ -12,6 +12,18 @@ using Object = UnityEngine.Object;
 
 namespace UnityEditor.VFX
 {
+
+    struct VFXCompilationLog
+    {
+        public VFXModel model;
+        public string error;
+    }
+
+    class VFXCompilationStatus
+    {
+        public List<VFXCompilationLog> errors = new List<VFXCompilationLog>();
+    }
+
     public class VFXCacheManager : EditorWindow
     {
         [MenuItem("Edit/Visual Effects//Rebuild All Visual Effect Graphs", priority = 320)]
@@ -413,6 +425,28 @@ namespace UnityEditor.VFX
             m_ExpressionValuesDirty = true;
         }
 
+        struct Error
+        {
+            VFXModel model;
+            string error;
+        }
+
+        class CompilationStatus
+        {
+            List<Error> errors = new List<Error>();
+        }
+
+        VFXCompilationStatus m_CompilationStatus;
+
+        public VFXCompilationStatus compilationStatus
+        {
+            get
+            {
+                return m_CompilationStatus;
+            }
+        }
+
+
         public void RecompileIfNeeded(bool preventRecompilation = false)
         {
             SanitizeGraph();
@@ -420,7 +454,8 @@ namespace UnityEditor.VFX
             bool considerGraphDirty = m_ExpressionGraphDirty && !preventRecompilation;
             if (considerGraphDirty)
             {
-                compiledData.Compile(m_CompilationMode, m_ForceShaderValidation);
+                m_CompilationStatus = new VFXCompilationStatus();
+                compiledData.Compile(m_CompilationStatus, m_CompilationMode, m_ForceShaderValidation);
             }
             else if (m_ExpressionValuesDirty && !m_ExpressionGraphDirty)
             {
