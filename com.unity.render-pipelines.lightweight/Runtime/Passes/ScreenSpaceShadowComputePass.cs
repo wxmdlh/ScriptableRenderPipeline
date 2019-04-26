@@ -194,7 +194,7 @@ namespace UnityEngine.Rendering.LWRP
             int beginOffset = (int)(vxsm.bitset & 0x3FFFFFFF);
 
             int voxelZBias = 2;
-            float voxelUpBias = 1 * (dirVxShadowMap.volumeScale / dirVxShadowMap.VoxelResolutionInt);
+            float voxelUpBias = 1 * (dirVxShadowMap.VolumeScale / dirVxShadowMap.VoxelResolutionInt);
 
             cmd.SetComputeVectorParam(computeShader, VxShadowMapConstantBuffer._ShadowData, new Vector4(light.shadowStrength, 0.0f, 0.0f, 0.0f));
 
