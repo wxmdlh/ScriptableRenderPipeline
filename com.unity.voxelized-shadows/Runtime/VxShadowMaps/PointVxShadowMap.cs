@@ -7,7 +7,7 @@ namespace UnityEngine.Experimental.VoxelizedShadows
     public sealed class PointVxShadowMap : VxShadowMap
     {
         // TODO :
-        public override int VoxelResolutionInt => (int)VoxelResolution._4096;
+        public override int VoxelResolutionInt => (int)VoxelResolution._512;
 
         public override int index { get { return -1; } set { } }
         public override uint bitset => 0;
