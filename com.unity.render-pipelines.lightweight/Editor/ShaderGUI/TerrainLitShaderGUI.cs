@@ -15,7 +15,7 @@ namespace UnityEditor.Rendering.LWRP
 
             public readonly GUIContent diffuseTexture = new GUIContent("Diffuse");
             public readonly GUIContent colorTint = new GUIContent("Color Tint");
-            public readonly GUIContent opacityAsDensity = new GUIContent("Opacity as Density", "Enable Density Blend");
+            public readonly GUIContent opacityAsDensity = new GUIContent("Opacity as Density", "Enable Density Blend (if unchecked, opacity is used as Smoothness)");
             public readonly GUIContent normalMapTexture = new GUIContent("Normal Map");
             public readonly GUIContent normalScale = new GUIContent("Normal Scale");
             public readonly GUIContent maskMapTexture = new GUIContent("Mask", "R: Metallic\nG: AO\nB: Height\nA: Smoothness");
@@ -282,12 +282,13 @@ namespace UnityEditor.Rendering.LWRP
                     maskMapRemapMax.x = EditorGUILayout.Slider(s_Styles.metallic, maskMapRemapMax.x, 0, 1);
                     maskMapRemapMax.y = EditorGUILayout.Slider(s_Styles.ao, maskMapRemapMax.y, 0, 1);
                     if (heightBlend)
-                        maskMapRemapMin.z = maskMapRemapMax.z = EditorGUILayout.FloatField(s_Styles.heightCm, maskMapRemapMin.z * 100) / 100;
+                        maskMapRemapMax.z = EditorGUILayout.FloatField(s_Styles.heightCm, maskMapRemapMin.z * 100) / 100;
                     maskMapRemapMax.w = EditorGUILayout.Slider(s_Styles.smoothness, maskMapRemapMax.w, 0, 1);
                     // Setting the min to zero and the max to the slider value has the same effect as
                     // just multiplying by max.  In the case and x & y, this is just multiplied by one
                     // when we have no mask map, and in the case of w, it's the alpha value of diffuse.
-                    maskMapRemapMin.x = maskMapRemapMin.y = maskMapRemapMin.w = 0;
+                    maskMapRemapMin = Vector4.zero;
+                    smoothness = maskMapRemapMax.w;
                 }
             }
 

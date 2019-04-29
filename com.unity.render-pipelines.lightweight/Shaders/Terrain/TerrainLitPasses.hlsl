@@ -290,10 +290,10 @@ half4 SplatmapFragment(Varyings IN) : SV_TARGET
     #endif  
 
 #else
-    masks[0] = half4(1.0h, 1.0h, 0.0h, 1.0h);
-    masks[1] = half4(1.0h, 1.0h, 0.0h, 1.0h);
-    masks[2] = half4(1.0h, 1.0h, 0.0h, 1.0h);
-    masks[3] = half4(1.0h, 1.0h, 0.0h, 1.0h);
+    masks[0] = half4(1.0h, 1.0h, 1.0h, 1.0h);
+    masks[1] = half4(1.0h, 1.0h, 1.0h, 1.0h);
+    masks[2] = half4(1.0h, 1.0h, 1.0h, 1.0h);
+    masks[3] = half4(1.0h, 1.0h, 1.0h, 1.0h);
 #endif
 
     SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, normalTS);
