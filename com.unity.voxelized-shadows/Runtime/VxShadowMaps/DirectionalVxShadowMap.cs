@@ -12,13 +12,13 @@ namespace UnityEngine.Experimental.VoxelizedShadows
 
         private int _index = 0;
         private uint _beginOffset =>
-            DataList.Count > _index ?
+            DataList.Count > _index && _index >= 0 ?
             DataList[_index].BeginOffset : 0;
 
         public override int index
         {
             get
-            {
+            {       
                 return _index;
             }
             set
