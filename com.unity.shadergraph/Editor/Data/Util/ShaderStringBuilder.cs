@@ -230,5 +230,53 @@ namespace UnityEditor.ShaderGraph
             get { return m_StringBuilder.Length; }
             set { m_StringBuilder.Length = value; }
         }
+
+        internal void DoReplacement(Action<AbstractMaterialNode, List<string>> replacementProcessor)
+        {
+            // Get source map
+            var source = m_StringBuilder.ToString();
+            var sourceMap = new ShaderSourceMap(source, m_Mappings);
+
+            // Get a list of lines from the StringBuilder
+            var splitLines = source.Split('\n');
+            var lineCount = splitLines.Length;
+            var lastLine = splitLines[lineCount - 1];
+            if (string.IsNullOrEmpty(lastLine) || lastLine == "\r")
+                lineCount--;
+            List<string> lines = new List<string>();
+            for (var j = 0; j < lineCount; j++)
+                lines.Add(splitLines[j].Trim('\r'));
+
+            // Reset StringBuilder so we can add lines back to it
+            m_CurrentMapping = new ShaderStringMapping();
+            m_Mappings.Clear();
+            Clear();
+
+            for (int i = 0; i < sourceMap.nodes.Count; i++)
+            {
+                AbstractMaterialNode node = sourceMap.nodes[i];
+                List<string> snippets = new List<string>();
+
+                // If this is the last node we cant get the line count from the next index
+                // Use the total line count
+                int lastLineIndex = lines.Count;
+                if (i < sourceMap.nodes.Count - 1)
+                    lastLineIndex = sourceMap.lineStarts[i + 1] - 1;
+
+                // Copy lines that belong to this node
+                for (int j = sourceMap.lineStarts[i] - 1; j < lastLineIndex; j++)
+                {
+                    snippets.Add(lines[j]);
+                }
+
+                // Run replacement for this node
+                replacementProcessor(node, snippets);
+
+                // Append lines back to StringBuilder
+                currentNode = node;
+                foreach (string snippet in snippets)
+                    AppendLine(snippet);
+            }
+        }
     }
 }

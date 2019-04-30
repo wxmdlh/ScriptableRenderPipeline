@@ -7,9 +7,12 @@ namespace UnityEditor.ShaderGraph
     class ShaderSourceMap
     {
         // Indicates where a new node begins
-        List<int> m_LineStarts;
-        List<AbstractMaterialNode> m_Nodes;
-        int m_LineCount;
+        private List<int> m_LineStarts;
+        private List<AbstractMaterialNode> m_Nodes;
+        private int m_LineCount;
+
+        public List<int> lineStarts => m_LineStarts;
+        public List<AbstractMaterialNode> nodes => m_Nodes;
 
         internal ShaderSourceMap(string source, List<ShaderStringMapping> mappings)
         {
