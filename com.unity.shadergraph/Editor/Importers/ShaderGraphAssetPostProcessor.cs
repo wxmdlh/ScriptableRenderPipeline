@@ -57,6 +57,14 @@ namespace UnityEditor.ShaderGraph
             anyShaders |= movedAssets.Any(val => val.EndsWith(ShaderSubGraphImporter.Extension, StringComparison.InvariantCultureIgnoreCase));
             if (anyShaders)
                 UpdateAfterAssetChange(movedAssets);
+
+            if (importedAssets.Contains(SubGraphDatabaseImporter.path))
+            {
+                foreach (var window in windows)
+                {
+                    window.Rebuild();
+                }
+            }
         }
     }
 }

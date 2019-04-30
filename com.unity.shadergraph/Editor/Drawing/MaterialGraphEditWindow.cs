@@ -216,11 +216,6 @@ namespace UnityEditor.ShaderGraph.Drawing
                     UpdateShaderGraphOnDisk(path);
 
                 graphObject.isDirty = false;
-                var windows = Resources.FindObjectsOfTypeAll<MaterialGraphEditWindow>();
-                foreach (var materialGraphEditWindow in windows)
-                {
-                    materialGraphEditWindow.Rebuild();
-                }
             }
         }
 
@@ -466,13 +461,12 @@ namespace UnityEditor.ShaderGraph.Drawing
             AssetDatabase.ImportAsset(path);
         }
 
-        private void Rebuild()
+        public void Rebuild()
         {
             if (graphObject != null && graphObject.graph != null)
             {
-                var subNodes = graphObject.graph.GetNodes<SubGraphNode>();
-                foreach (var node in subNodes)
-                    node.UpdateSlots();
+                graphObject.graph.OnEnable();
+                graphObject.graph.ValidateGraph();
             }
         }
 

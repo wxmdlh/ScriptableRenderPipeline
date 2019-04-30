@@ -215,6 +215,7 @@ namespace UnityEditor.ShaderGraph
 
         public void OnEnable()
         {
+            m_SubGraph = null;
             UpdateSlots();
         }
 
@@ -433,7 +434,8 @@ namespace UnityEditor.ShaderGraph
             {
                 registry.ProvideFunction(functionName, s =>
                 {
-                    var functionSource = database.functionSources[database.functionNames.BinarySearch(functionName)];
+                    var index = database.functionNames.BinarySearch(functionName);
+                    var functionSource = database.functionSources[index];
                     s.AppendLines(functionSource);
                 });
             }
