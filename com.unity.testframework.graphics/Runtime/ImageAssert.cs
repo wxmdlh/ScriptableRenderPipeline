@@ -6,7 +6,7 @@ using Unity.Collections;
 using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEditor;
-using UnityEngine.SceneManagement;
+using UnityEngine.Networking.PlayerConnection;
 
 namespace UnityEngine.TestTools.Graphics
 {
@@ -100,13 +100,14 @@ namespace UnityEngine.TestTools.Graphics
         public static void AreEqual(Texture2D expected, Texture2D actual, ImageComparisonSettings settings = null)
         {
             if (actual == null)
-                throw new ArgumentNullException("actual");
+                throw new ArgumentNullException(nameof(actual));
 
-#if UNITY_EDITOR
-            var imagesWritten = new HashSet<string>();
             var dirName = Path.Combine("Assets/ActualImages", string.Format("{0}/{1}/{2}", UseGraphicsTestCasesAttribute.ColorSpace, UseGraphicsTestCasesAttribute.Platform, UseGraphicsTestCasesAttribute.GraphicsDevice));
-            Directory.CreateDirectory(dirName);
-#endif
+            var failedImageMessage = new FailedImageMessage
+            {
+                PathName = dirName,
+                ImageName = TestContext.CurrentContext.Test.Name,
+            };
 
             try
             {
@@ -154,40 +155,19 @@ namespace UnityEngine.TestTools.Graphics
                         diffImage.SetPixels32(diffPixelsArray, 0);
                         diffImage.Apply(false);
 
-#if UNITY_EDITOR
-                        if (sDontWriteToLog)
-                        {
-                            var bytes = diffImage.EncodeToPNG();
-                            var path = Path.Combine(dirName, TestContext.CurrentContext.Test.Name + ".diff.png");
-                            File.WriteAllBytes(path, bytes);
-                            imagesWritten.Add(path);
-                        }
-                        else
-#endif
-                        TestContext.CurrentContext.Test.Properties.Set("DiffImage", Convert.ToBase64String(diffImage.EncodeToPNG()) );
-
+                        failedImageMessage.DiffImage = diffImage.EncodeToPNG();
                         throw;
                     }
                 }
             }
             catch (AssertionException)
             {
+                failedImageMessage.ActualImage = actual.EncodeToPNG();
 #if UNITY_EDITOR
-                if (sDontWriteToLog)
-                {
-                    var bytes = actual.EncodeToPNG();
-                    var path = Path.Combine(dirName, TestContext.CurrentContext.Test.Name + ".png");
-                    File.WriteAllBytes(path, bytes);
-                    imagesWritten.Add(path);
-
-                    AssetDatabase.Refresh();
-
-                    UnityEditor.TestTools.Graphics.Utils.SetupReferenceImageImportSettings(imagesWritten);
-                }
-                else
+                ImageHandler.instance.SaveImage(failedImageMessage);
+#else
+                PlayerConnection.instance.Send(s_MessageId, failedImageMessage.Serialize());
 #endif
-                    TestContext.CurrentContext.Test.Properties.Set("Image", Convert.ToBase64String(actual.EncodeToPNG()));
-
                 throw;
             }
         }
@@ -288,31 +268,36 @@ namespace UnityEngine.TestTools.Graphics
             return deltaE;
         }
 
-#if UNITY_EDITOR
-        // Hack do disable writing to the XML Log of TestRunner (to avoid editor hanging when tests are run locally)
-        static string s_DontWriteToLogPath = "Library/DontWriteToLog";
-
-        static bool sDontWriteToLog
-        {
-            get
-            {
-                return File.Exists( s_DontWriteToLogPath ) ;
-            }
-        }
-
-        [MenuItem("Tests/XML Logging/Disable")]
-        public static void DisableXMLLogging()
-        {
-            File.WriteAllText( s_DontWriteToLogPath, "" );
-        }
-
-        [MenuItem("Tests/XML Logging/Enable")]
-        public static void EnableXMLLogging()
-        {
-            File.Delete(s_DontWriteToLogPath);
-        }
-
-#endif
-
+        private static readonly Guid s_MessageId = new Guid("40c7a8e2-ad5d-475f-8119-af022a13b84c");
     }
 }
+
+#if UNITY_EDITOR
+public class ImageHandler : ScriptableSingleton<ImageHandler>
+{
+    public void HandleFailedImageEvent(MessageEventArgs messageEventArgs)
+    {
+        var failedImageMessage = FailedImageMessage.Deserialize(messageEventArgs.data);
+        SaveImage(failedImageMessage);
+    }
+
+    public void SaveImage(FailedImageMessage failedImageMessage)
+    {
+        if (!Directory.Exists(failedImageMessage.PathName))
+        {
+            Directory.CreateDirectory(failedImageMessage.PathName);
+        }
+
+        var actualImagePath = Path.Combine(failedImageMessage.PathName, $"{failedImageMessage.ImageName}.png");
+        File.WriteAllBytes(actualImagePath, failedImageMessage.ActualImage);
+        // Report UTP message with reported artifact
+
+        if (failedImageMessage.DiffImage != null)
+        {
+            var diffImagePath = Path.Combine(failedImageMessage.PathName, $"{failedImageMessage.ImageName}.diff.png");
+            File.WriteAllBytes(diffImagePath, failedImageMessage.DiffImage);
+            // Report UTP message with reported artifact
+        }
+    }
+}
+#endif
