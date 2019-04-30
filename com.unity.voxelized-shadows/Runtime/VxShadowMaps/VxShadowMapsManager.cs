@@ -200,6 +200,11 @@ namespace UnityEngine.Experimental.VoxelizedShadows
                 _vxShadowMapsNullBuffer.Release();
                 _vxShadowMapsNullBuffer = null;
             }
+            if (_vxShadowMapsBuffer != null)
+            {
+                _vxShadowMapsBuffer.Release();
+                _vxShadowMapsBuffer = null;
+            }
 
             _dirVxShadowMapList.Clear();
             _pointVxShadowMapList.Clear();
