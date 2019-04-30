@@ -80,7 +80,7 @@ namespace UnityEditor.ShaderGraph
 
         public override AbstractMaterialNode ToConcreteNode()
         {
-            return new Texture2DAssetNode { texture = value.textureArray };
+            return new Texture2DArrayAssetNode { texture = value.textureArray };
         }
 
         public override AbstractShaderProperty Copy()
