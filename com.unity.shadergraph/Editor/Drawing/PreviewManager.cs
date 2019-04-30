@@ -18,7 +18,8 @@ namespace UnityEditor.ShaderGraph.Drawing
     // HACK to access the preview material for HDRP, does not support more than one shader graph window at the same time
     public static class HackedPreview
     {
-        public static event Action<Material> OnCompiled;
+        public delegate void CompiledDelegate(Material m);
+        public static CompiledDelegate OnCompiled;
 
         public static void OnCompiledCall(Material previewMaterial) => OnCompiled?.Invoke(previewMaterial);
     }
@@ -391,7 +392,8 @@ namespace UnityEditor.ShaderGraph.Drawing
                 if (renderData != null && renderData.shaderData.isCompiling &&
                     ShaderUtil.IsPassCompiled(renderData.shaderData.mat, 0))
                 {
-                    HackedPreview.OnCompiledCall(renderData.shaderData.mat);
+                    if (renderData.shaderData.node is IMasterNode)
+                        HackedPreview.OnCompiledCall(renderData.shaderData.mat);
                     renderData.shaderData.isCompiling = false;
                     CheckForErrors(renderData.shaderData);
                     m_NodesToDraw.Add(renderData.shaderData.node);

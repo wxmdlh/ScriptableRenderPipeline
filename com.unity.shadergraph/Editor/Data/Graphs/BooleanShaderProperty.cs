@@ -34,9 +34,20 @@ namespace UnityEditor.ShaderGraph
             get { return true; }
         }
 
+        [SerializeField]
+        bool    m_Hidden = false;
+
+        public bool hidden
+        {
+            get { return m_Hidden; }
+            set { m_Hidden = value; }
+        }
+
         public override string GetPropertyBlockString()
         {
             var result = new StringBuilder();
+            if (hidden)
+                result.Append("[HideInInspector] ");
             result.Append("[ToggleUI] ");
             result.Append(referenceName);
             result.Append("(\"");
