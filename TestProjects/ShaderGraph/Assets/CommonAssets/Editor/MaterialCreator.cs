@@ -24,6 +24,16 @@ public class MaterialCreator : MonoBehaviour
         AssetDatabase.SaveAssets();
     }
 
+    [MenuItem("Tools/SG Tests/Get Rid of Underscores")]
+    static void KillUnderscores()
+    {
+        GameObject[] allObjects = UnityEngine.Object.FindObjectsOfType<GameObject>() ;
+        foreach (GameObject go in allObjects)
+        {
+            go.name = go.name.Replace("_", "");
+        }
+    }
+
     [MenuItem("Tools/SG Tests/Add Mats to Scene")]
     static void PlaceMaterialsInScene()
     {
