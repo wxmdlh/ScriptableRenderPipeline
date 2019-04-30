@@ -171,7 +171,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             bool fogEnabled = material.HasProperty(kEnableFogOnTransparent) && material.GetFloat(kEnableFogOnTransparent) > 0.0f && surfaceType == SurfaceType.Transparent;
             CoreUtils.SetKeyword(material, "_ENABLE_FOG_ON_TRANSPARENT", fogEnabled);
 
-            if (material.HasProperty(kDistortionEnable))
+            if (material.HasProperty(kDistortionEnable) && material.HasProperty(kDistortionBlendMode))
             {
                 bool distortionDepthTest = material.GetFloat(kDistortionDepthTest) > 0.0f;
                 if (material.HasProperty(kZTestModeDistortion))

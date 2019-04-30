@@ -2698,6 +2698,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return m_EnableContactShadow && m_ContactShadowIndex != 0;
         }
 
+
         public void SetScreenSpaceShadowsTexture(HDCamera hdCamera, RTHandleSystem.RTHandle deferredShadowRT, CommandBuffer cmd)
         {
             if (!WillRenderContactShadow())

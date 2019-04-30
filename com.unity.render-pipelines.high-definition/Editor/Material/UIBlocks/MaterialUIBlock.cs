@@ -24,7 +24,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             Detail = 1<<5,
             Emissive = 1<<6,
             Advance = 1<<7,
-            Other = 1 << 8
+            Other = 1 << 8,
+            ShaderGraph = 1 << 9,
         }
 
         public void         Initialize(MaterialEditor materialEditor, MaterialProperty[] properties)

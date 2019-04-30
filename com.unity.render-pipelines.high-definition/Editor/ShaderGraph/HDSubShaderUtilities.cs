@@ -1033,9 +1033,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         static void AddToggleProperty(this PropertyCollector collector, string referenceName, string displayName, bool defaultValue)
         {
-            collector.AddShaderProperty(new Vector1ShaderProperty{
-                floatType = FloatType.ToggleUI,
-                value = defaultValue ? 1 : 0,
+            collector.AddShaderProperty(new BooleanShaderProperty{
+                value = defaultValue,
                 hidden = true,
                 overrideReferenceName = referenceName,
                 displayName = displayName,
@@ -1044,6 +1043,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public static void AddStencilShaderProperties(PropertyCollector collector)
         {
+            // All these properties values will be patched with the material keyword update
             collector.AddIntProperty("_StencilRef", 0); // StencilLightingUsage.NoLighting
             collector.AddIntProperty("_StencilRef", 0); // StencilLightingUsage.NoLighting
             collector.AddIntProperty("_StencilWriteMask", 3); // StencilMask.Lighting
@@ -1058,10 +1058,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddIntProperty("_StencilWriteMaskDistortionVec", 64); // StencilBitMask.DistortionVectors
         }
 
-        public static void AddBlendingStatesShaderProperties(PropertyCollector collector)
+        public static void AddBlendingStatesShaderProperties(PropertyCollector collector, SurfaceType surface, BlendMode blend)
         {
-            collector.AddFloatProperty("_SurfaceType", 0.0f);
-            collector.AddFloatProperty("_BlendMode", 0.0f);
+            collector.AddFloatProperty("_SurfaceType", (int)surface);
+            collector.AddFloatProperty("_BlendMode", (int)blend);
+
+            // All these properties values will be patched with the material keyword update
             collector.AddFloatProperty("_SrcBlend", 1.0f);
             collector.AddFloatProperty("_DstBlend", 0.0f);
             collector.AddFloatProperty("_AlphaSrcBlend", 1.0f);
@@ -1081,12 +1083,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddToggleProperty("_DistortionEnable", "Enable Distortion", false);
             collector.AddToggleProperty("_DistortionOnly", "Distortion Only", false);
             collector.AddToggleProperty("_DistortionDepthTest", "Distortion Depth Test Enable", true);
-            collector.AddShaderProperty(new Vector1ShaderProperty{
+            collector.AddShaderProperty(new EnumShaderProperty{
                 overrideReferenceName = "_DistortionBlendMode",
                 displayName = "Distortion Blend Mode",
-                floatType = FloatType.Enum,
                 hidden = true,
-                enumNames = {"Add", "Multiply", "Replace"}
+                enumNames = {"Add", "Multiply", "Replace"},
             });
             collector.AddIntProperty("_DistortionSrcBlend", 0);
             collector.AddIntProperty("_DistortionDstBlend", 0);

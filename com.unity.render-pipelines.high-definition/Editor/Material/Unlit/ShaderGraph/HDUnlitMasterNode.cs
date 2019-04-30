@@ -296,28 +296,32 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             });
 
             // Hack to apply HDRP material keywords on preview material
-            HackedPreview.OnCompiled += () => {
+            HackedPreview.OnCompiled = (Material previewMaterial) => {
                 // Fixup the material settings:
-                
+
+                Debug.Log("Patch material keywords: " + previewMaterial.shader.name);
+
                 // TODO: hardcoded value:
-                HackedPreview.material.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
-                HackedPreview.material.SetFloat("_DoubleSidedEnable", doubleSided.isOn ? 1.0f : 0.0f);
-                HackedPreview.material.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
+                previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
+                previewMaterial.SetFloat("_DoubleSidedEnable", doubleSided.isOn ? 1.0f : 0.0f);
+                previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
                 // TODO: alphaMode is a AlphaModeLit and does not match the BlendMode enum
-                HackedPreview.material.SetFloat("_BlendMode", (int)alphaMode);
-                HackedPreview.material.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
-                HackedPreview.material.SetFloat("_DistortionDepthTest", distortionDepthTest.isOn ? 1.0f : 0.0f);
-                HackedPreview.material.SetFloat("_DistortionEnable", distortion.isOn ? 1.0f : 0.0f);
+                previewMaterial.SetFloat("_BlendMode", (int)alphaMode);
+                previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
+                previewMaterial.SetFloat("_DistortionDepthTest", distortionDepthTest.isOn ? 1.0f : 0.0f);
+                previewMaterial.SetFloat("_DistortionEnable", distortion.isOn ? 1.0f : 0.0f);
                 // No sorting priority for shader graph preview
-                HackedPreview.material.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
+                previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
                 
-                UnlitGUI.SetupMaterialKeywordsAndPass(HackedPreview.material);
+                UnlitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
             };
 
             // Add all shader properties required by the inspector
             HDSubShaderUtilities.AddStencilShaderProperties(collector);
-            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector);
-            HDSubShaderUtilities.AddDistortionShaderProperties(collector);
+            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, (BlendMode)alphaMode); // TODO: AlphaMode != BlendMode
+
+            // Currently we don't want distotions to be changed on a per-material basis
+            // HDSubShaderUtilities.AddDistortionShaderProperties(collector);
             HDSubShaderUtilities.AddAlphaCutoffShaderProperties(collector);
 
             base.CollectShaderProperties(collector, generationMode);

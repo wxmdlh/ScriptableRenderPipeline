@@ -19,7 +19,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             All = ~0,
         }
 
-        protected static class StylesBaseUnlit
+        protected static class Styles
         {
             public const string TransparencyInputsText = "Transparency Inputs";
             public const string optionText = "Surface Options";
@@ -33,13 +33,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static readonly int[] blendModeValues = Enum.GetValues(typeof(BlendMode)) as int[];
 
             public static GUIContent transparentPrepassText = new GUIContent("Appear in Refraction", "When enabled, HDRP handles objects with this Material before the refraction pass.");
-            
+
             public static GUIContent doubleSidedEnableText = new GUIContent("Double-Sided", "When enabled, HDRP renders both faces of the polygons that make up meshes using this Material. Disables backface culling.");
 
             public static GUIContent useShadowThresholdText = new GUIContent("Use Shadow Threshold", "Enable separate threshold for shadow pass");
             public static GUIContent alphaCutoffEnableText = new GUIContent("Alpha Clipping", "When enabled, HDRP processes Alpha Clipping for this Material.");
             public static GUIContent alphaCutoffText = new GUIContent("Threshold", "Controls the threshold for the Alpha Clipping effect.");
-            public static GUIContent alphaCutoffShadowText = new GUIContent("Shadow Threshold", "Contols the threshold for shadow pass alpha clipping.");
+            public static GUIContent alphaCutoffShadowText = new GUIContent("Shadow Threshold", "Controls the threshold for shadow pass alpha clipping.");
             public static GUIContent alphaCutoffPrepassText = new GUIContent("Prepass Threshold", "Controls the threshold for transparent depth prepass alpha clipping.");
             public static GUIContent alphaCutoffPostpassText = new GUIContent("Postpass Threshold", "Controls the threshold for transparent depth postpass alpha clipping.");
             public static GUIContent transparentDepthPostpassEnableText = new GUIContent("Transparent Depth Postpass", "When enabled, HDRP renders a depth postpass for transparent objects. This improves post-processing effects like depth of field.");
@@ -145,8 +145,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             surfaceType = FindProperty(kSurfaceType);
             useShadowThreshold = FindProperty(kUseShadowThreshold, false);
-            alphaCutoffEnable = FindProperty(kAlphaCutoffEnabled);
-            alphaCutoff = FindProperty(kAlphaCutoff);
+            alphaCutoffEnable = FindProperty(kAlphaCutoffEnabled, false);
+            alphaCutoff = FindProperty(kAlphaCutoff, false);
 
             // TODO: implement features flags so we do not load unused fields
             alphaCutoffShadow = FindProperty(kAlphaCutoffShadow, false);
@@ -169,7 +169,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(StylesBaseUnlit.optionText, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new HeaderScope(Styles.optionText, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                     DrawSurfaceOptionGUI();
@@ -191,21 +191,21 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         void DrawAlphaCutoffGUI()
         {
             if (alphaCutoffEnable != null)
-                materialEditor.ShaderProperty(alphaCutoffEnable, StylesBaseUnlit.alphaCutoffEnableText);
+                materialEditor.ShaderProperty(alphaCutoffEnable, Styles.alphaCutoffEnableText);
 
             if (alphaCutoffEnable != null && alphaCutoffEnable.floatValue == 1.0f)
             {
                 EditorGUI.indentLevel++;
                 if ((m_EnabledFeatures & Features.AlphaCutoffThreshold) != 0)
-                    materialEditor.ShaderProperty(alphaCutoff, StylesBaseUnlit.alphaCutoffText);
+                    materialEditor.ShaderProperty(alphaCutoff, Styles.alphaCutoffText);
 
                 if (useShadowThreshold != null)
-                    materialEditor.ShaderProperty(useShadowThreshold, StylesBaseUnlit.useShadowThresholdText);
+                    materialEditor.ShaderProperty(useShadowThreshold, Styles.useShadowThresholdText);
 
                 if (alphaCutoffShadow != null && useShadowThreshold != null && useShadowThreshold.floatValue == 1.0f && (m_EnabledFeatures & Features.AlphaCutoffShadowThreshold) != 0)
                 {
                     EditorGUI.indentLevel++;
-                    materialEditor.ShaderProperty(alphaCutoffShadow, StylesBaseUnlit.alphaCutoffShadowText);
+                    materialEditor.ShaderProperty(alphaCutoffShadow, Styles.alphaCutoffShadowText);
                     EditorGUI.indentLevel--;
                 }
 
@@ -215,12 +215,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 {
                     if (transparentDepthPrepassEnable != null && transparentDepthPrepassEnable.floatValue == 1.0f)
                     {
-                        materialEditor.ShaderProperty(alphaCutoffPrepass, StylesBaseUnlit.alphaCutoffPrepassText);
+                        materialEditor.ShaderProperty(alphaCutoffPrepass, Styles.alphaCutoffPrepassText);
                     }
 
                     if (transparentDepthPostpassEnable != null && transparentDepthPostpassEnable.floatValue == 1.0f)
                     {
-                        materialEditor.ShaderProperty(alphaCutoffPostpass, StylesBaseUnlit.alphaCutoffPostpassText);
+                        materialEditor.ShaderProperty(alphaCutoffPostpass, Styles.alphaCutoffPostpassText);
                     }
                 }
                 EditorGUI.indentLevel--;
@@ -232,7 +232,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             // This function must finish with double sided option (see LitUI.cs)
             if (doubleSidedEnable != null)
-                materialEditor.ShaderProperty(doubleSidedEnable, StylesBaseUnlit.doubleSidedEnableText);
+                materialEditor.ShaderProperty(doubleSidedEnable, Styles.doubleSidedEnableText);
         }
 
         void DrawSurfaceGUI()
@@ -245,7 +245,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (renderQueueHasMultipleDifferentValue)
                 {
                     using (new EditorGUI.DisabledScope(true))
-                        EditorGUILayout.LabelField(StylesBaseUnlit.blendModeText, StylesBaseUnlit.notSupportedInMultiEdition);
+                        EditorGUILayout.LabelField(Styles.blendModeText, Styles.notSupportedInMultiEdition);
                 }
                 else if (blendMode != null && showBlendModePopup)
                     BlendModePopup();
@@ -253,16 +253,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 EditorGUI.indentLevel++; if (renderQueueHasMultipleDifferentValue)
                 {
                     using (new EditorGUI.DisabledScope(true))
-                        EditorGUILayout.LabelField(StylesBaseUnlit.enableBlendModePreserveSpecularLightingText, StylesBaseUnlit.notSupportedInMultiEdition);
+                        EditorGUILayout.LabelField(Styles.enableBlendModePreserveSpecularLightingText, Styles.notSupportedInMultiEdition);
                 }
                 else if (enableBlendModePreserveSpecularLighting != null && blendMode != null && showBlendModePopup)
-                    materialEditor.ShaderProperty(enableBlendModePreserveSpecularLighting, StylesBaseUnlit.enableBlendModePreserveSpecularLightingText);
+                    materialEditor.ShaderProperty(enableBlendModePreserveSpecularLighting, Styles.enableBlendModePreserveSpecularLightingText);
                 EditorGUI.indentLevel--;
 
                 if (transparentSortPriority != null)
                 {
                     EditorGUI.BeginChangeCheck();
-                    materialEditor.ShaderProperty(transparentSortPriority, StylesBaseUnlit.transparentSortPriorityText);
+                    materialEditor.ShaderProperty(transparentSortPriority, Styles.transparentSortPriorityText);
                     if (EditorGUI.EndChangeCheck())
                     {
                         transparentSortPriority.floatValue = HDRenderQueue.ClampsTransparentRangePriority((int)transparentSortPriority.floatValue);
@@ -270,19 +270,19 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
 
                 if (enableFogOnTransparent != null)
-                    materialEditor.ShaderProperty(enableFogOnTransparent, StylesBaseUnlit.enableTransparentFogText);
+                    materialEditor.ShaderProperty(enableFogOnTransparent, Styles.enableTransparentFogText);
 
                 if (transparentBackfaceEnable != null)
-                    materialEditor.ShaderProperty(transparentBackfaceEnable, StylesBaseUnlit.transparentBackfaceEnableText);
+                    materialEditor.ShaderProperty(transparentBackfaceEnable, Styles.transparentBackfaceEnableText);
 
                 if (transparentDepthPrepassEnable != null)
-                    materialEditor.ShaderProperty(transparentDepthPrepassEnable, StylesBaseUnlit.transparentDepthPrepassEnableText);
+                    materialEditor.ShaderProperty(transparentDepthPrepassEnable, Styles.transparentDepthPrepassEnableText);
 
                 if (transparentDepthPostpassEnable != null)
-                    materialEditor.ShaderProperty(transparentDepthPostpassEnable, StylesBaseUnlit.transparentDepthPostpassEnableText);
+                    materialEditor.ShaderProperty(transparentDepthPostpassEnable, Styles.transparentDepthPostpassEnableText);
 
                 if (transparentWritingMotionVec != null)
-                    materialEditor.ShaderProperty(transparentWritingMotionVec, StylesBaseUnlit.transparentWritingMotionVecText);
+                    materialEditor.ShaderProperty(transparentWritingMotionVec, Styles.transparentWritingMotionVecText);
 
                 EditorGUI.indentLevel--;
             }
@@ -299,7 +299,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             bool alphaTest = material.HasProperty(kAlphaCutoffEnabled) && material.GetFloat(kAlphaCutoffEnabled) > 0.0f;
 
             EditorGUI.showMixedValue = surfaceType.hasMixedValue;
-            var newMode = (SurfaceType)EditorGUILayout.Popup(StylesBaseUnlit.surfaceTypeText, (int)mode, StylesBaseUnlit.surfaceTypeNames);
+            var newMode = (SurfaceType)EditorGUILayout.Popup(Styles.surfaceTypeText, (int)mode, Styles.surfaceTypeNames);
             if (newMode != mode) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
             {
                 materialEditor.RegisterPropertyChangeUndo("Surface Type");
@@ -328,7 +328,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 case SurfaceType.Opaque:
                     //GetOpaqueEquivalent: prevent issue when switching surface type
                     HDRenderQueue.OpaqueRenderQueue renderQueueOpaqueType = HDRenderQueue.ConvertToOpaqueRenderQueue(HDRenderQueue.GetOpaqueEquivalent(renderQueueType));
-                    var newRenderQueueOpaqueType = (HDRenderQueue.OpaqueRenderQueue)DoOpaqueRenderingPassPopup(StylesBaseUnlit.renderingPassText, (int)renderQueueOpaqueType, showAfterPostProcessPass);
+                    var newRenderQueueOpaqueType = (HDRenderQueue.OpaqueRenderQueue)DoOpaqueRenderingPassPopup(Styles.renderingPassText, (int)renderQueueOpaqueType, showAfterPostProcessPass);
                     if (newRenderQueueOpaqueType != renderQueueOpaqueType) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
                     {
                         materialEditor.RegisterPropertyChangeUndo("Rendering Pass");
@@ -339,7 +339,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 case SurfaceType.Transparent:
                     //GetTransparentEquivalent: prevent issue when switching surface type
                     HDRenderQueue.TransparentRenderQueue renderQueueTransparentType = HDRenderQueue.ConvertToTransparentRenderQueue(HDRenderQueue.GetTransparentEquivalent(renderQueueType));
-                    var newRenderQueueTransparentType = (HDRenderQueue.TransparentRenderQueue)DoTransparentRenderingPassPopup(StylesBaseUnlit.renderingPassText, (int)renderQueueTransparentType, showPreRefractionPass, showLowResolutionPass, showAfterPostProcessPass);
+                    var newRenderQueueTransparentType = (HDRenderQueue.TransparentRenderQueue)DoTransparentRenderingPassPopup(Styles.renderingPassText, (int)renderQueueTransparentType, showPreRefractionPass, showLowResolutionPass, showAfterPostProcessPass);
                     if (newRenderQueueTransparentType != renderQueueTransparentType) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
                     {
                         materialEditor.RegisterPropertyChangeUndo("Rendering Pass");
@@ -360,7 +360,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             var mode = (BlendMode)blendMode.floatValue;
 
             EditorGUI.BeginChangeCheck();
-            mode = (BlendMode)EditorGUILayout.IntPopup(StylesBaseUnlit.blendModeText, (int)mode, StylesBaseUnlit.blendModeNames, StylesBaseUnlit.blendModeValues);
+            mode = (BlendMode)EditorGUILayout.IntPopup(Styles.blendModeText, (int)mode, Styles.blendModeNames, Styles.blendModeValues);
             if (EditorGUI.EndChangeCheck())
             {
                 materialEditor.RegisterPropertyChangeUndo("Blend Mode");
