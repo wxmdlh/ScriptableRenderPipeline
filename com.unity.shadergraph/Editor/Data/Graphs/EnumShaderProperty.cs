@@ -58,7 +58,7 @@ namespace UnityEditor.ShaderGraph
         [SerializeField]
         private List<string> m_EnumNames = new List<string>();
         [SerializeField]
-        private List<int> m_EnumValues; // default to null, so we generate a sequence from 0 to enumNames.Length for the shader
+        private List<int> m_EnumValues = new List<int>();
 
         public List<string> enumNames
         {
@@ -88,27 +88,19 @@ namespace UnityEditor.ShaderGraph
                 result.Append("[HideInInspector] ");
 
             string enumValuesString = ""; // TODO
-            if (enumType == EnumType.KeywordEnum || enumValues == null || enumValues.Count != enumNames.Count)
+            if (enumType == EnumType.KeywordEnum)
                 enumValuesString = enumNames.Aggregate((s, e) => s + ", " + e);
             else
             {
                 for (int i = 0; i < enumNames.Count; i++)
-                    enumValuesString += (enumNames[i] + " = " + enumValues[i] + ((i != enumNames.Count - 1) ? ", " : ""));
+                {
+                    int value = (i < enumValues.Count) ? enumValues[i] : i;
+                    enumValuesString += (enumNames[i] + ", " + value + ((i != enumNames.Count - 1) ? ", " : ""));
+                }
             }
             
             result.Append($"[{enumType}({enumValuesString})] {referenceName}(\"{displayName}\", Float) = {NodeUtils.FloatToShaderValue(value)}");
-            // if (enumType == EnumType.Enum && enumNames?.Count > 0)
-            // {
-            //     // TODO: values
-            //     result.Append("[" + enumType + "(");
-            //     result.Append(enumNames.Aggregate((s, e) => s + ", " + e));
-            //     result.Append(")] ");
-            // }
-            // result.Append(referenceName);
-            // result.Append("(\"");
-            // result.Append(displayName);
-            // result.Append("\", Float) = ");
-            // result.Append();
+
             return result.ToString();
         }
 
