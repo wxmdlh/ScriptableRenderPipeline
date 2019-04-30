@@ -17,7 +17,7 @@ public class MaterialCreator : MonoBehaviour
             string path = AssetDatabase.GetAssetPath(s);
             path = path.Substring(0, path.LastIndexOf("/"));
             int start = s.name.LastIndexOf("/") + 1;
-            path += "/MAT_" + s.name.Substring(start, s.name.Length - start) + ".mat";
+            path += "/" + s.name.Substring(start, s.name.Length - start) + ".mat";
             AssetDatabase.CreateAsset(m, path);
         }
 
