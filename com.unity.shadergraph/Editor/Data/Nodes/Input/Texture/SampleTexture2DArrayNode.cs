@@ -62,7 +62,7 @@ namespace UnityEditor.ShaderGraph
             var edgesSampler = owner.GetEdges(samplerSlot.slotReference);
 
             var id = GetSlotValue(TextureInputId, generationMode);
-            var result = string.Format("{0}4 {1} = SAMPLE_TEXTURE2D_ARRAY({2}, {3}, {4}, floor({5}));"
+            var result = string.Format("{0}4 {1} = SAMPLE_TEXTURE2D_ARRAY({2}, {3}, {4}, {5});"
                     , precision
                     , GetVariableNameForSlot(OutputSlotRGBAId)
                     , id
