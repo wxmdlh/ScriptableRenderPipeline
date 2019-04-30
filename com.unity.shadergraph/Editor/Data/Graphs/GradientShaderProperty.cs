@@ -10,22 +10,21 @@ namespace UnityEditor.ShaderGraph
 {
     static class GradientUtils
     {
-        public static string GetGradientValue(Gradient gradient, AbstractMaterialNode.OutputPrecision precision, bool inline, string delimiter = ";")
+        public static string GetGradientValue(Gradient gradient, bool inline, string delimiter = ";")
         {
             string colorKeys = "";
             for(int i = 0; i < 8; i++)
             {
                 if(i < gradient.colorKeys.Length)
                 {
-                    colorKeys += string.Format("{0}4({1}, {2}, {3}, {4})"
-                        , precision
+                    colorKeys += string.Format("$precision4({0}, {1}, {2}, {3})"
                         , gradient.colorKeys[i].color.r
                         , gradient.colorKeys[i].color.g
                         , gradient.colorKeys[i].color.b
                         , gradient.colorKeys[i].time);
                 }
                 else
-                    colorKeys += string.Format("{0}4(0, 0, 0, 0)", precision);
+                    colorKeys += "$precision4(0, 0, 0, 0)";
                 if(i < 7)
                     colorKeys += ",";
             }
@@ -35,13 +34,12 @@ namespace UnityEditor.ShaderGraph
             {
                 if(i < gradient.alphaKeys.Length)
                 {
-                    alphaKeys += string.Format("{0}2({1}, {2})"
-                        , precision
+                    alphaKeys += string.Format("$precision2({0}, {1})"
                         , gradient.alphaKeys[i].alpha
                         , gradient.alphaKeys[i].time);
                 }
                 else
-                    alphaKeys += string.Format("{0}2(0, 0)", precision);
+                    alphaKeys += "$precision2(0, 0)";
                 if(i < 7)
                     alphaKeys += ",";
             }

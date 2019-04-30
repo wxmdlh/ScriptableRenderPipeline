@@ -298,7 +298,7 @@ namespace UnityEditor.ShaderGraph
 
                 // Now generate outputs
                 foreach (var output in subGraphData.outputs)
-                    arguments.Add($"out {output.concreteValueType.ToString(outputNode.precision)} {output.shaderOutputName}");
+                    arguments.Add($"out {output.concreteValueType.ToShaderString()} {output.shaderOutputName}");
 
                 // Create the function prototype from the arguments
                 sb.AppendLine("void {0}({1})"

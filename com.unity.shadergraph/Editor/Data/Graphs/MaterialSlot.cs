@@ -326,10 +326,10 @@ namespace UnityEditor.ShaderGraph
             if (generationMode.IsPreview())
                 return matOwner.GetVariableNameForSlot(id);
 
-            return ConcreteSlotValueAsVariable(matOwner.precision);
+            return ConcreteSlotValueAsVariable();
         }
 
-        protected virtual string ConcreteSlotValueAsVariable(AbstractMaterialNode.OutputPrecision precision)
+        protected virtual string ConcreteSlotValueAsVariable()
         {
             return "error";
         }

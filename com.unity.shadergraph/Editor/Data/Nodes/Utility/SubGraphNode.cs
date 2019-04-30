@@ -168,7 +168,7 @@ namespace UnityEditor.ShaderGraph
                 GetOutputSlots(outputSlots);
                 foreach (var slot in outputSlots)
                 {
-                    sb.AppendLine($"{NodeUtils.ConvertConcreteSlotValueTypeToString(precision, slot.concreteValueType)} {GetVariableNameForSlot(slot.id)} = {slot.GetDefaultValue(GenerationMode.ForReals)};");
+                    sb.AppendLine($"{slot.concreteValueType.ToShaderString()} {GetVariableNameForSlot(slot.id)} = {slot.GetDefaultValue(GenerationMode.ForReals)};");
                 }
                 
                 return;
@@ -179,7 +179,7 @@ namespace UnityEditor.ShaderGraph
             GraphUtil.GenerateSurfaceInputTransferCode(sb, subGraphData.requirements, subGraphData.inputStructName, inputVariableName);
 
             foreach (var outSlot in subGraphData.outputs)
-                sb.AppendLine("{0} {1};", NodeUtils.ConvertConcreteSlotValueTypeToString(precision, outSlot.concreteValueType), GetVariableNameForSlot(outSlot.id));
+                sb.AppendLine("{0} {1};", outSlot.concreteValueType.ToShaderString(), GetVariableNameForSlot(outSlot.id));
 
             var arguments = new List<string>();
             foreach (var prop in subGraphData.inputs)

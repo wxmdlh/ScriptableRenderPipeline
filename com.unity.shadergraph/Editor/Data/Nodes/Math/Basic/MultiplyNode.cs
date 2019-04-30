@@ -40,7 +40,7 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionHeader()
         {
-            return string.Format("Unity_Multiply_{0}", precision);
+            return "Unity_Multiply_$precision";
         }
 
         public sealed override void UpdateNodeAfterDeserialization()
@@ -57,7 +57,7 @@ namespace UnityEditor.ShaderGraph
             var input2Value = GetSlotValue(Input2SlotId, generationMode);
             var outputValue = GetSlotValue(OutputSlotId, generationMode);
 
-            sb.AppendLine("{0} {1};", NodeUtils.ConvertConcreteSlotValueTypeToString(precision, FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType), GetVariableNameForSlot(OutputSlotId));
+            sb.AppendLine("{0} {1};", FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToShaderString(), GetVariableNameForSlot(OutputSlotId));
             sb.AppendLine("{0}({1}, {2}, {3});", GetFunctionHeader(), input1Value, input2Value, outputValue);
         }
 
@@ -65,8 +65,8 @@ namespace UnityEditor.ShaderGraph
         {
             return string.Format("{0}_{1}_{2}",
                 GetFunctionHeader(),
-                FindInputSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToString(precision),
-                FindInputSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToString(precision));
+                FindInputSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToShaderString(),
+                FindInputSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToShaderString());
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)
@@ -75,9 +75,9 @@ namespace UnityEditor.ShaderGraph
                 {
                     s.AppendLine("void {0} ({1} A, {2} B, out {3} Out)",
                         GetFunctionHeader(),
-                        FindInputSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToString(precision),
-                        FindInputSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToString(precision),
-                        FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToString(precision));
+                        FindInputSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToShaderString(),
+                        FindInputSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToShaderString(),
+                        FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToShaderString());
                     using (s.BlockScope())
                     {
                         switch (m_MultiplyType)

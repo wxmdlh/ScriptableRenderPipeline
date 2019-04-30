@@ -113,9 +113,41 @@ namespace UnityEditor.ShaderGraph
             return k_ConcreteSlotValueTypeClassNames[(int)type];
         }
 
-        public static string ToString(this ConcreteSlotValueType type, AbstractMaterialNode.OutputPrecision precision)
+        public static string ToShaderString(this ConcreteSlotValueType type)
         {
-            return NodeUtils.ConvertConcreteSlotValueTypeToString(precision, type);
+            switch (type)
+            {
+                case ConcreteSlotValueType.Boolean:
+                    return "$precision";
+                case ConcreteSlotValueType.Vector1:
+                    return "$precision";
+                case ConcreteSlotValueType.Vector2:
+                    return "$precision2";
+                case ConcreteSlotValueType.Vector3:
+                    return "$precision3";
+                case ConcreteSlotValueType.Vector4:
+                    return "$precision4";
+                case ConcreteSlotValueType.Texture2D:
+                    return "Texture2D";
+                case ConcreteSlotValueType.Texture2DArray:
+                    return "Texture2DArray";
+                case ConcreteSlotValueType.Texture3D:
+                    return "Texture3D";
+                case ConcreteSlotValueType.Cubemap:
+                    return "TextureCube";
+                case ConcreteSlotValueType.Gradient:
+                    return "Gradient";
+                case ConcreteSlotValueType.Matrix2:
+                    return "$precision2x2";
+                case ConcreteSlotValueType.Matrix3:
+                    return "$precision3x3";
+                case ConcreteSlotValueType.Matrix4:
+                    return "$precision4x4";
+                case ConcreteSlotValueType.SamplerState:
+                    return "SamplerState";
+                default:
+                    return "Error";
+            }
         }
     }
 }
