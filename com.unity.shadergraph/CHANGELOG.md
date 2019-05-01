@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [6.7.0] - 2019-XX-XX
 ### Changed
 - Anti-aliasing (4x) is now enabled on Shader Graph windows.
+- New Shader Graph windows are now docked to either existing Shader Graph windows, or to the Scene View.
 
 ### Fixed
 - When you perform an undo or redo to an inactive Shader Graph window, the window no longer breaks.
