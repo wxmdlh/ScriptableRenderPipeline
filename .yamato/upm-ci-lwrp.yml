@@ -10,7 +10,7 @@ platforms:
     image: buildfarm/mac:stable
     flavor: m1.mac
 testplatforms:
-  - name: standalone
+  - name: Standalone
     args: --suite=playmode --platform=Standalone
   - name: playmode
     args: --suite=playmode
@@ -38,7 +38,7 @@ projects:
   commands:
       - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
       - upm-ci project pack --project-path TestProjects/{{ project.folder }}
-      - upm-ci project test --project-path TestProjects/{{ project.folder }} -u {{ editor.version }} --platform {{ testplatform.name }}
+      - upm-ci project test --project-path TestProjects/{{ project.folder }} -u {{ editor.version }} --platform {{ testplatform.name | downcase}}
             
   artifacts:
     logs:
