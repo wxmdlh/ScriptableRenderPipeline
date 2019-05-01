@@ -10,7 +10,7 @@ platforms:
     image: buildfarm/mac:stable
     flavor: m1.mac
 testplatforms:
-  - name: Standalone
+  - name: standalone
     args: --suite=playmode --platform=Standalone
   - name: playmode
     args: --suite=playmode
