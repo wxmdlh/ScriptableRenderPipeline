@@ -1,4 +1,6 @@
 using System;
+using System.Reflection;
+using System.Collections.Generic;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -265,6 +267,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             [Reload("RenderPipeline/Raytracing/Shaders/CountTracedRays.compute")]
             public ComputeShader countTracedRays;
 #endif
+
+            // Iterator to retrieve all compute shaders in reflection so we don't have to keep a list of
+            // used compute shaders up to date (prefer editor-only usage)
+            public IEnumerable<ComputeShader> GetAllComputeShaders()
+            {
+                var fields = typeof(ShaderResources).GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                foreach (var field in fields)
+                {
+                    if (field.GetValue(this) is ComputeShader computeShader)
+                        yield return computeShader;
+                }
+            }
         }
 
         [Serializable, ReloadGroup]
@@ -326,10 +341,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
         }
 
+        [Serializable, ReloadGroup]
+        public sealed class AssetResources
+        {
+            [Reload("RenderPipelineResources/defaultDiffusionProfile.asset")]
+            public DiffusionProfileSettings defaultDiffusionProfile;
+        }
+
         public ShaderResources shaders;
         public MaterialResources materials;
         public TextureResources textures;
         public ShaderGraphResources shaderGraphs;
+        public AssetResources assets;
     }
 
 #if UNITY_EDITOR

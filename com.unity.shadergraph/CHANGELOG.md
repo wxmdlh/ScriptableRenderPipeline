@@ -4,9 +4,17 @@ All notable changes to this package are documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [5.12.0] - 2019-XX-XX
+## [5.14.0] - 2019-XX-XX
 ### Fixed
 - Fixed an error that occured when using multiple Sampler State nodes with different parameters.
+- When you perform an undo or redo to an inactive Shader Graph window, the window no longer breaks.
+- When you rapidly perform an undo or redo, Shader Graph windows no longer break.
+- Sub Graphs that contain references to non-existing Sub Graphs no longer break the Sub Graph Importer.
+- You can now reference sub-assets such as Textures.
+
+## [5.13.0] - 2019-04-15
+
+## [5.12.0] - 2019-04-11
 
 ## [5.11.0] - 2019-04-01
 ### Fixed

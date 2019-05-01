@@ -37,7 +37,7 @@ void ApplyDebug(LightLoopContext lightLoopContext, PositionInputs posInput, BSDF
             float3(1.0, 1.0, 1.0)
         };
 
-        diffuseLighting = float3(1.0, 1.0, 1.0);
+        diffuseLighting = Luminance(diffuseLighting);
         if (_DirectionalShadowIndex >= 0)
         {
             real alpha;
@@ -57,7 +57,7 @@ void ApplyDebug(LightLoopContext lightLoopContext, PositionInputs posInput, BSDF
                 float3 cascadeShadowColor = lerp(s_CascadeColors[shadowSplitIndex], s_CascadeColors[shadowSplitIndex + 1], alpha);
                 // We can't mix with the lighting as it can be HDR and it is hard to find a good lerp operation for this case that is still compliant with
                 // exposure. So disable exposure instead and replace color.
-                diffuseLighting = cascadeShadowColor * shadow;
+                diffuseLighting = cascadeShadowColor * Luminance(diffuseLighting) * shadow;
             }
 
         }
@@ -99,7 +99,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             if (MaterialSupportsTransmission(bsdfData))
             {
                 // We support some kind of transmission.
-                if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THIN_THICKNESS))
+                if (!HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_TRANSMISSION_MODE_THICK_THICKNESS))
                 {
                     // We always evaluate shadows.
                     evaluateShadows = true;
@@ -125,20 +125,6 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     // PostEvaluateBSDF call at the end will convert Lighting to diffuse and specular lighting
     AggregateLighting aggregateLighting;
     ZERO_INITIALIZE(AggregateLighting, aggregateLighting); // LightLoop is in charge of initializing the struct
-
-    uint i = 0; // Declare once to avoid the D3D11 compiler warning.
-
-    if (featureFlags & LIGHTFEATUREFLAGS_DIRECTIONAL)
-    {
-        for (i = 0; i < _DirectionalLightCount; ++i)
-        {
-            if (IsMatchingLightLayer(_DirectionalLightDatas[i].lightLayers, builtinData.renderingLayers))
-            {
-                DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, builtinData);
-                AccumulateDirectLighting(lighting, aggregateLighting);
-            }
-        }
-    }
 
     if (featureFlags & LIGHTFEATUREFLAGS_PUNCTUAL)
     {
@@ -211,57 +197,6 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
     }
 
-    if (featureFlags & LIGHTFEATUREFLAGS_AREA)
-    {
-        uint lightCount, lightStart;
-
-    #ifndef LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
-        GetCountAndStart(posInput, LIGHTCATEGORY_AREA, lightStart, lightCount);
-    #else
-        lightCount = _AreaLightCount;
-        lightStart = _PunctualLightCount;
-    #endif
-
-        // COMPILER BEHAVIOR WARNING!
-        // If rectangle lights are before line lights, the compiler will duplicate light matrices in VGPR because they are used differently between the two types of lights.
-        // By keeping line lights first we avoid this behavior and save substantial register pressure.
-        // TODO: This is based on the current Lit.shader and can be different for any other way of implementing area lights, how to be generic and ensure performance ?
-
-        if (lightCount > 0)
-        {
-            i = 0;
-
-            uint      last      = lightCount - 1;
-            LightData lightData = FetchLight(lightStart, i);
-
-            while (i <= last && lightData.lightType == GPULIGHTTYPE_TUBE)
-            {
-                lightData.lightType = GPULIGHTTYPE_TUBE; // Enforce constant propagation
-                lightData.cookieIndex = -1;              // Enforce constant propagation
-
-                if (IsMatchingLightLayer(lightData.lightLayers, builtinData.renderingLayers))
-                {
-                    DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, builtinData);
-                    AccumulateDirectLighting(lighting, aggregateLighting);
-                }
-
-                lightData = FetchLight(lightStart, min(++i, last));
-            }
-
-            while (i <= last) // GPULIGHTTYPE_RECTANGLE
-            {
-                lightData.lightType = GPULIGHTTYPE_RECTANGLE; // Enforce constant propagation
-
-                if (IsMatchingLightLayer(lightData.lightLayers, builtinData.renderingLayers))
-                {
-                    DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, builtinData);
-                    AccumulateDirectLighting(lighting, aggregateLighting);
-                }
-
-                lightData = FetchLight(lightStart, min(++i, last));
-            }
-        }
-    }
 
     // Define macro for a better understanding of the loop
     // TODO: this code is now much harder to understand...
@@ -412,6 +347,71 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     }
 #undef EVALUATE_BSDF_ENV
 #undef EVALUATE_BSDF_ENV_SKY
+
+    uint i = 0; // Declare once to avoid the D3D11 compiler warning.
+    if (featureFlags & LIGHTFEATUREFLAGS_DIRECTIONAL)
+    {
+        for (i = 0; i < _DirectionalLightCount; ++i)
+        {
+            if (IsMatchingLightLayer(_DirectionalLightDatas[i].lightLayers, builtinData.renderingLayers))
+            {
+                DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, builtinData);
+                AccumulateDirectLighting(lighting, aggregateLighting);
+            }
+        }
+    }
+
+    if (featureFlags & LIGHTFEATUREFLAGS_AREA)
+    {
+        uint lightCount, lightStart;
+
+    #ifndef LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
+        GetCountAndStart(posInput, LIGHTCATEGORY_AREA, lightStart, lightCount);
+    #else
+        lightCount = _AreaLightCount;
+        lightStart = _PunctualLightCount;
+    #endif
+
+        // COMPILER BEHAVIOR WARNING!
+        // If rectangle lights are before line lights, the compiler will duplicate light matrices in VGPR because they are used differently between the two types of lights.
+        // By keeping line lights first we avoid this behavior and save substantial register pressure.
+        // TODO: This is based on the current Lit.shader and can be different for any other way of implementing area lights, how to be generic and ensure performance ?
+
+        if (lightCount > 0)
+        {
+            i = 0;
+
+            uint      last      = lightCount - 1;
+            LightData lightData = FetchLight(lightStart, i);
+
+            while (i <= last && lightData.lightType == GPULIGHTTYPE_TUBE)
+            {
+                lightData.lightType = GPULIGHTTYPE_TUBE; // Enforce constant propagation
+                lightData.cookieIndex = -1;              // Enforce constant propagation
+
+                if (IsMatchingLightLayer(lightData.lightLayers, builtinData.renderingLayers))
+                {
+                    DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, builtinData);
+                    AccumulateDirectLighting(lighting, aggregateLighting);
+                }
+
+                lightData = FetchLight(lightStart, min(++i, last));
+            }
+
+            while (i <= last) // GPULIGHTTYPE_RECTANGLE
+            {
+                lightData.lightType = GPULIGHTTYPE_RECTANGLE; // Enforce constant propagation
+
+                if (IsMatchingLightLayer(lightData.lightLayers, builtinData.renderingLayers))
+                {
+                    DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, builtinData);
+                    AccumulateDirectLighting(lighting, aggregateLighting);
+                }
+
+                lightData = FetchLight(lightStart, min(++i, last));
+            }
+        }
+    }
 
     // Also Apply indiret diffuse (GI)
     // PostEvaluateBSDF will perform any operation wanted by the material and sum everything into diffuseLighting and specularLighting

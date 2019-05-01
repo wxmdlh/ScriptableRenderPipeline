@@ -4,7 +4,44 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [5.12.0-preview] - 2019-XX-XX
+## [5.14.0-preview] - 2019-XX-XX
+
+### Added
+- Enabled cascade blends settings in the HD Shadow component
+
+### Fixed
+- Fixed TerrainLit basemap texture generation
+- Fixed single-pass stereo rendering
+- Fixed issue with renderPipelineResources and diffusion profile asset that ahve incorrect path and prevent correct upgrade of package
+- Fixed a bug that caused nans when material classification was enabled and a tile contained one standard material + a material with transmission
+- Fixed gradient sky hash that was not using the exposure hash.
+- Fixed displayed default FrameSettings in HDRenderPipelineAsset wrongly updated on scripts reload.
+- Fixed visualize cascade mode with exposure.
+- Fixed (enabled) exposure on override lighting debug modes.
+- Fixed issue with LightExplorer when volume have no profile
+- Fixed issue with SSR for negative, infinite and NaN history values
+- Fixed LightLayer in HDReflectionProbe and PlanarReflectionProbe inspector that was not displayed as a mask.
+- Fixed NaN in transmission when the thickness and a color component of the scattering distance was to 0
+- Fixed Light's ShadowMask multi-edition.
+
+### Changed
+- Improve the ray biasing code to avoid self-intersections during the SSR traversal
+- Update Pyramid Spot Light to better match emitted light volume.
+
+## [5.13.0-preview] - 2019-04-15
+
+## [5.12.0-preview] - 2019-04-11
+
+### Added
+
+### Fixed
+- Fixed deserialization crash at runtime
+- Fixed for ShaderGraph Unlit masternode not writing velocity
+- Fixed a crash when assiging a new HDRP asset with the 'Verify Saving Assets' option enabled
+- Fixed exposure to properly support TEXTURE2D_X
+
+### Changed
+
 
 ## [5.11.0-preview] - 2019-04-01
 
@@ -155,7 +192,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed nullref on layered material UI when the material is not an asset.
 - Fixed nullref exception when undo/redo a light property.
 - Fixed visual bug when area light handle size is 0.
- 
+
 ### Changed
 - When a lit material has a clear coat mask that is not null, we now use the clear coat roughness to compute the screen space reflection.
 - Update UI for 32bit/16bit shadow precision settings in HDRP asset
