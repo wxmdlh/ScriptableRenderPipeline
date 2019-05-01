@@ -140,6 +140,16 @@ namespace UnityEditor.ShaderGraph.Drawing
                     GUILayout.FlexibleSpace();
 
                     EditorGUI.BeginChangeCheck();
+                    GUILayout.Label("Precision");
+                    graph.precision = (ConcretePrecision)EditorGUILayout.EnumPopup(graph.precision, GUILayout.Width(100f));
+                    GUILayout.Space(4);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        foreach (var node in graph.GetNodes<AbstractMaterialNode>())
+                            node.Dirty(ModificationScope.Graph);
+                    }
+
+                    EditorGUI.BeginChangeCheck();
                     m_ToggleSettings.isBlackboardVisible = GUILayout.Toggle(m_ToggleSettings.isBlackboardVisible, "Blackboard", EditorStyles.toolbarButton);
 
                     GUILayout.Space(6);
