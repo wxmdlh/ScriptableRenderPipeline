@@ -42,7 +42,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         {
             get { return m_MessageManager ?? (m_MessageManager = new MessageManager()); }
         }
-        
+
         GraphEditorView graphEditorView
         {
             get { return m_GraphEditorView; }
@@ -170,6 +170,11 @@ namespace UnityEditor.ShaderGraph.Drawing
                 Debug.LogException(e);
                 throw;
             }
+        }
+
+        void OnEnable()
+        {
+            this.SetAntiAliasing(4);
         }
 
         void OnDisable()
