@@ -51,10 +51,10 @@ all_project_ci:
   {% endfor %}
   #{% endfor %}
     - .yamato/upm-ci-katana.yml#run_katana_metal
-  triggers:
-    branches:
-      only:
-        - master
+  #triggers:
+  #  branches:
+  #    only:
+  #      - master
   artifacts:
     logs.zip:
       paths:
