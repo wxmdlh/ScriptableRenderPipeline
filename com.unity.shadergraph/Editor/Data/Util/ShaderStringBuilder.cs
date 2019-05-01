@@ -261,10 +261,14 @@ namespace UnityEditor.ShaderGraph
                 // Use the total line count
                 int lastLineIndex = lines.Count;
                 if (i < sourceMap.nodes.Count - 1)
-                    lastLineIndex = sourceMap.lineStarts[i + 1] - 1;
+                    lastLineIndex = sourceMap.lineStarts[i + 1] - 2;
+
+                // TODO: Why is the start line offset after the first entry
+                // Is there an issue with the Source Map???
+                int startLine = i == 0 ? sourceMap.lineStarts[i] - 1 : sourceMap.lineStarts[i] - 2;
 
                 // Copy lines that belong to this node
-                for (int j = sourceMap.lineStarts[i] - 1; j < lastLineIndex; j++)
+                for (int j = startLine; j < lastLineIndex; j++)
                 {
                     snippets.Add(lines[j]);
                 }

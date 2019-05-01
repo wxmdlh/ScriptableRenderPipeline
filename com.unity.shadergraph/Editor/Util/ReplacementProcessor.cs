@@ -7,10 +7,12 @@ namespace UnityEditor.ShaderGraph
     {
         internal static void Precision(AbstractMaterialNode node, List<string> snippets)
         {
+            if(node == null)
+                return;
+
             for (int i = 0; i < snippets.Count; i++)
             {
-                // TODO: Add proper precision > string extensions
-                snippets[i] = snippets[i].Replace("$precision", "float");
+                snippets[i] = snippets[i].Replace("$precision", node.concretePrecision.ToShaderString());
             }
         }
     }

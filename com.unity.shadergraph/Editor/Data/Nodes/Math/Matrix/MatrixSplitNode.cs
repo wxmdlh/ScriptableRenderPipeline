@@ -242,6 +242,7 @@ namespace UnityEditor.ShaderGraph
             GetOutputSlots(s_TempSlots);
             isInError |= s_TempSlots.Any(x => x.hasError);
             isInError |= CalculateNodeHasError(ref errorMessage);
+            isInError |= ValidateConcretePrecision(ref errorMessage);
             hasError = isInError;
 
             if (isInError)

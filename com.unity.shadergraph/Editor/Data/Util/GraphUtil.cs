@@ -1216,13 +1216,13 @@ namespace UnityEditor.ShaderGraph
                     {
                         surfaceDescriptionFunction.currentNode = activeNode;
                         bodyNode.GenerateNodeCode(surfaceDescriptionFunction, graphContext, mode);
-                        surfaceDescriptionFunction.currentNode = null;
                     }
 
                     activeNode.CollectShaderProperties(shaderProperties, mode);
                 }
 
                 functionRegistry.builder.currentNode = null;
+                surfaceDescriptionFunction.currentNode = null;
 
                 if (rootNode is IMasterNode || rootNode is SubGraphOutputNode)
                 {
