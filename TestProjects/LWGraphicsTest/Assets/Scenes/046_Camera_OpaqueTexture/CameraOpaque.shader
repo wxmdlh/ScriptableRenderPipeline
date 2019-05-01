@@ -50,8 +50,8 @@
 			{
 				// sample the texture
 				half2 screenUV = i.screenUV.xy / i.screenUV.w;
-				half v = 0.05;
-				screenUV += (frac(screenUV * 80) * v) - v * 0.5;
+				half v = 0.1;
+				screenUV += (frac(screenUV * 40) * v) - v * 0.5;
 				half4 col = half4(-0.05, 0, -0.05, 1);
 				col.r += SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture_linear_clamp, ((screenUV - 0.5) * 1.1) + 0.5).r;
 				col.g += SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture_linear_clamp, screenUV).g;

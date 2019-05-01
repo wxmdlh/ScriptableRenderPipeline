@@ -383,8 +383,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ImageComparisonSettings:
-    TargetWidth: 512
-    TargetHeight: 512
+    TargetWidth: 256
+    TargetHeight: 256
     PerPixelCorrectnessThreshold: 0.005
     AverageCorrectnessThreshold: 0.001
   WaitFrames: 0

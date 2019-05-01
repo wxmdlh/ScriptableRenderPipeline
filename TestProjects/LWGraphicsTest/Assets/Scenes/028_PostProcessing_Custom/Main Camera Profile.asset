@@ -60,13 +60,13 @@ MonoBehaviour:
     value: 1
   midpoint:
     overrideState: 1
-    value: 0.803
+    value: 0
   scale:
     overrideState: 1
     value: 0.0171
   steps:
     overrideState: 1
-    value: 2
+    value: 4
   pattern:
     overrideState: 1
     value: {fileID: 2800000, guid: a40e70950360e4acaa5790b3f8081f99, type: 3}
@@ -87,6 +87,3 @@ MonoBehaviour:
   enabled:
     overrideState: 1
     value: 1
-  enable:
-    overrideState: 0
-    value: 0

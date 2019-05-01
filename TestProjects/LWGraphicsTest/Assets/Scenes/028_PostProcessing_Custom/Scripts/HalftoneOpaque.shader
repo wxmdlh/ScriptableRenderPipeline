@@ -8,12 +8,9 @@
 	HLSLINCLUDE
 
         #include "Packages/com.unity.postprocessing/PostProcessing/Shaders/StdLib.hlsl"
+        #include "Packages/com.unity.postprocessing/PostProcessing/Shaders/Colors.hlsl"
 
         TEXTURE2D_SAMPLER2D(_MainTex, sampler_MainTex);
-        //Texture2D _Pattern;
-        //Texture2D _MainTex;
-        //SamplerState sampler_MainTex;
-        //SamplerState sampler_Pattern;
         TEXTURE2D_SAMPLER2D(_Pattern, sampler_Pattern_linear_repeat);
         float _Blend;
         float _Scale;
@@ -21,11 +18,11 @@
 
         float4 Frag(VaryingsDefault i) : SV_Target
         {
-        	
             float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);
-            float luminance = 1 + dot(color.rgb, float3(0.2126729, 0.7151522, 0.0721750)) * 0.25;
-            float3 pattern = SAMPLE_TEXTURE2D(_Pattern, sampler_Pattern_linear_repeat, i.texcoord * (_ScreenParams.xy * _Scale * luminance)).rgb;
-            color.rgb = round(((pattern.rrr)-_Blend) + (color * _Steps)) / _Steps;
+            float3 hsv = RgbToHsv(color.rgb);
+            float pattern = SAMPLE_TEXTURE2D(_Pattern, sampler_Pattern_linear_repeat, i.texcoord * (_ScreenParams.xy * _Scale * (0.9 + hsv.z * 0.2))).r;
+            hsv.z = round((pattern - _Blend) + (hsv.z * (_Steps - 1))) / _Steps;
+            color.rgb = HsvToRgb(hsv);
             return color;
         }
 
