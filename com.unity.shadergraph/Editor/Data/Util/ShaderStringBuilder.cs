@@ -251,6 +251,7 @@ namespace UnityEditor.ShaderGraph
             m_CurrentMapping = new ShaderStringMapping();
             m_Mappings.Clear();
             Clear();
+            m_IndentationLevel = 0;
 
             for (int i = 0; i < sourceMap.nodes.Count; i++)
             {

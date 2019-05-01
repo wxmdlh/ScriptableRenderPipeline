@@ -552,7 +552,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             HDRPShaderStructs.AddActiveFieldsFromPixelGraphRequirements(activeFields, pixelRequirements);
 
             // build the graph outputs structure, and populate activeFields with the fields of that structure
-            GraphUtil.GenerateSurfaceDescriptionStruct(pixelGraphOutputs, pixelSlots, pixelGraphOutputStructName, activeFields);
+            GraphUtil.GenerateSurfaceDescriptionStruct(pixelGraphOutputs, pixelSlots, masterNode, pixelGraphOutputStructName, activeFields);
 
             // Build the graph evaluation code, to evaluate the specified slots
             GraphUtil.GenerateSurfaceDescriptionFunction(
@@ -585,7 +585,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 // -------------------------------------
                 // Generate Output structure for Vertex Description function
-                GraphUtil.GenerateVertexDescriptionStruct(vertexGraphOutputs, vertexSlots, vertexGraphOutputStructName, activeFields);
+                GraphUtil.GenerateVertexDescriptionStruct(vertexGraphOutputs, vertexSlots, masterNode, vertexGraphOutputStructName, activeFields);
 
                 // -------------------------------------
                 // Generate Vertex Description function
@@ -673,6 +673,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     shaderPassIncludes.AddShaderChunk(include);
             }
 
+            // -------------------------------------
+            // Do replacements for precision
+            graphNodeFunctions.DoReplacement(ReplacementProcessor.Precision);
+            pixelGraphOutputs.DoReplacement(ReplacementProcessor.Precision);
+            pixelGraphEvalFunction.DoReplacement(ReplacementProcessor.Precision);
+            vertexGraphOutputs.DoReplacement(ReplacementProcessor.Precision);
+            vertexGraphEvalFunction.DoReplacement(ReplacementProcessor.Precision);
 
             // build graph code
             var graph = new ShaderGenerator();

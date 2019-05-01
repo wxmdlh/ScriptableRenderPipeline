@@ -250,7 +250,7 @@ namespace UnityEngine.Rendering.LWRP
             // -------------------------------------
             // Generate Output structure for Vertex Description function
 
-            GraphUtil.GenerateVertexDescriptionStruct(vertexDescriptionStruct, vertexSlots);
+            GraphUtil.GenerateVertexDescriptionStruct(vertexDescriptionStruct, vertexSlots, masterNode);
 
             // -------------------------------------
             // Generate Vertex Description function
@@ -297,7 +297,7 @@ namespace UnityEngine.Rendering.LWRP
             // -------------------------------------
             // Generate Output structure for Surface Description function
 
-            GraphUtil.GenerateSurfaceDescriptionStruct(surfaceDescriptionStruct, pixelSlots);
+            GraphUtil.GenerateSurfaceDescriptionStruct(surfaceDescriptionStruct, pixelSlots, masterNode);
 
             // -------------------------------------
             // Generate Surface Description function
@@ -359,6 +359,19 @@ namespace UnityEngine.Rendering.LWRP
 
             if (pixelRequirements.requiresFaceSign)
                 faceSign.AppendLine(", half FaceSign : VFACE");
+
+            // ----------------------------------------------------- //
+            //                     REPLACEMENTS                      //
+            // ----------------------------------------------------- //
+
+            // -------------------------------------
+            // Precision
+
+            functionBuilder.DoReplacement(ReplacementProcessor.Precision);
+            surfaceDescriptionStruct.DoReplacement(ReplacementProcessor.Precision);
+            surfaceDescriptionFunction.DoReplacement(ReplacementProcessor.Precision);
+            vertexDescriptionStruct.DoReplacement(ReplacementProcessor.Precision);
+            vertexDescriptionFunction.DoReplacement(ReplacementProcessor.Precision);
 
             // ----------------------------------------------------- //
             //                      FINALIZE                         //
