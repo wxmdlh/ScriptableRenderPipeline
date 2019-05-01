@@ -50,7 +50,7 @@ Find these settings under the **Shadows** section. If some of the property field
 
 Using high shadow bias values may result in light "leaking" through Meshes. This is where there is a visible gap between the shadow and its caster and leads to shadow shapes that do not accurately represent their casters.
 
-<a name=”ShadowFiltering”></a>
+<a name="ShadowFiltering"></a>
 
 ## Shadow filtering
 
@@ -87,14 +87,14 @@ To use shadowmasks in HDRP, you must enable shadowmask support in your Unity Pro
 
 For flexible lighting setups, HDRP allows you to choose how you want the shadowmasks to behave for each individual Light. You can change the behavior of the shadowmask by changing a Light’s **Shadowmask Mode**. Set the Light’s **Mode** to **Mixed** to expose **Shadowmask Mode** in the **Shadow Map** drop-down of the **Shadows** section. 
 
-<a name=”ShadowmaskModes”></a>
+<a name="ShadowmaskModes"></a>
 
 | **Shadowmask Mode**     | **Description**                                              |
 | ----------------------- | ------------------------------------------------------------ |
 | **Distance Shadowmask** | Makes the Light cast real-time shadows for all GameObjects when the distance between the Camera and the Light is less than a punctual light’s **Fade Distance**. See [below](#DirectionalLightEquivalentProperty) for the alternative distance property that Directional Lights use. When the distance between the Light and the Camera is greater than the **Fade Distance**, HDRP stops calculating real-time shadows for the Light. Instead, it uses shadowmasks for static GameObjects, and non-static GameObjects do not cast shadows. |
 | **Shadowmask**          | Makes the Light cast real-time shadows for non-static GameObjects only. It then combines these shadows with shadowmasks for static GameObjects when the distance between the Camera and the Light is less than the **Fade Distance**. When the distance between the Light and the Camera is greater than the **Fade Distance**, HDRP stops calculating real-time shadows for the Light. Instead, it uses shadowmasks for static GameObjects and non-static GameObjects do not cast shadows. |
 
-<a name=”DirectionalLightEquivalentProperty”></a>
+<a name="DirectionalLightEquivalentProperty"></a>
 
 Directional Lights do not use **Fade Distance**. Instead they use the **Max Distance** property located in the [HD Shadow Settings](Override-Shadows.html) of your Scene’s Volumes.
 
@@ -106,6 +106,6 @@ Directional Lights do not use **Fade Distance**. Instead they use the **Max Dist
 
 Contact Shadows are shadows that HDRP [ray marches](Glossary.html#RayMarching) in screen space, inside the depth buffer, at a close range. They provide small, detailed, shadows for details in geometry that shadow maps cannot usually capture.
 
-For details on how to enable and customize Contact Shadows, see the [Contact Shadows documentation](Override-Contact-Shadows.html).
+For details on how to enable and customize Contact Shadows, see the [Contact Shadows override documentation](Override-Contact-Shadows.html).
 
 Only one Light can cast Contact Shadows at a time. This means that, if you have more than one Light that casts Contact Shadows visible on the screen, only the dominant Light renders Contact Shadows. HDRP chooses the dominant Light using the screen space size of the Light’s bounding box. A Direction Light that casts Contact Shadows is always the dominant Light.

@@ -13,7 +13,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         Deferred
     }
 
-#if FRAMESETTINGS_LOD_BIAS
     public enum LODBiasMode
     {
         /// <summary>Use the current quality settings value.</summary>
@@ -60,7 +59,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
     }
-#endif
 
     // To add a new element to FrameSettings, add en entry in this enum using the FrameSettingsFieldAttribute.
     // Inspector UI and DebugMenu are generated from this.
@@ -148,7 +146,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         VolumeVoxelizationsAsync = 45,
 
         //from 60 to 119 : space for new scopes
-#if FRAMESETTINGS_LOD_BIAS
         // true <=> Fixed, false <=> FromQualitySettings (default)
         [FrameSettingsField(4, autoName: LODBiasMode, type: FrameSettingsFieldAttribute.DisplayType.Others, targetType: typeof(LODBiasMode))]
         LODBiasMode = 60,
@@ -161,7 +158,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         /// <summary>Set the LOD Bias with the value in <see cref="FrameSettings.maximumLODLevel"/>.</summary>
         [FrameSettingsField(4, autoName: MaximumLODLevel, type: FrameSettingsFieldAttribute.DisplayType.Others, positiveDependencies: new[]{ MaximumLODLevelMode })]
         MaximumLODLevel = 63,
-#endif
 
         //lightLoop settings from 120 to 127
         [FrameSettingsField(3, autoName: FPTLForForwardOpaque)]
@@ -240,9 +236,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.TransparentsWriteMotionVector,
                 (uint)FrameSettingsField.SpecularLighting,
             }),
-#if FRAMESETTINGS_LOD_BIAS
             lodBias = 1,
-#endif
         };
         /// <summary>Default FrameSettings for realtime ReflectionProbe/PlanarReflectionProbe renderer.</summary>
         public static readonly FrameSettings defaultRealtimeReflectionProbe = new FrameSettings()
@@ -287,9 +281,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.BigTilePrepass,
                 (uint)FrameSettingsField.SpecularLighting,
             }),
-#if FRAMESETTINGS_LOD_BIAS
             lodBias = 1,
-#endif
         };
         /// <summary>Default FrameSettings for baked or custom ReflectionProbe/PlanarReflectionProbe renderer.</summary>
         public static readonly FrameSettings defaultCustomOrBakeReflectionProbe = new FrameSettings()
@@ -333,9 +325,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.BigTilePrepass,
                 (uint)FrameSettingsField.SpecularLighting,
             }),
-#if FRAMESETTINGS_LOD_BIAS
             lodBias = 1,
-#endif
         };
 
         // Each time you add data in the framesettings. Attempt to add boolean one only if possible.
@@ -345,7 +335,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [SerializeField]
         BitArray128 bitDatas;
 
-#if FRAMESETTINGS_LOD_BIAS
         /// <summary>
         /// if <c>lodBiasMode == LODBiasMode.Fixed</c>, then this value will overwrite <c>QualitySettings.lodBias</c>
         /// if <c>lodBiasMode == LODBiasMode.ScaleQualitySettings</c>, then this value will scale <c>QualitySettings.lodBias</c>
@@ -360,7 +349,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public int maximumLODLevel;
         /// <summary>Define how the <c>QualitySettings.maximumLODLevel</c> value is set.</summary>
         public MaximumLODLevelMode maximumLODLevelMode;
-#endif
 
         /// <summary>Helper to see binary saved data on LitShaderMode as a LitShaderMode enum.</summary>
         public LitShaderMode litShaderMode
@@ -392,7 +380,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             //quick override of all booleans
             overriddenFrameSettings.bitDatas = (overridingFrameSettings.bitDatas & frameSettingsOverideMask.mask) | (~frameSettingsOverideMask.mask & overriddenFrameSettings.bitDatas);
-#if FRAMESETTINGS_LOD_BIAS
             if (frameSettingsOverideMask.mask[(uint) FrameSettingsField.LODBias])
                 overriddenFrameSettings.lodBias = overridingFrameSettings.lodBias;
             if (frameSettingsOverideMask.mask[(uint) FrameSettingsField.LODBiasMode])
@@ -401,7 +388,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 overriddenFrameSettings.maximumLODLevel = overridingFrameSettings.maximumLODLevel;
             if (frameSettingsOverideMask.mask[(uint) FrameSettingsField.MaximumLODLevelMode])
                 overriddenFrameSettings.maximumLODLevelMode = overridingFrameSettings.maximumLODLevelMode;
-#endif
 
             //override remaining values here if needed
         }
@@ -416,17 +402,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool preview = HDUtils.IsRegularPreviewCamera(camera);
             bool sceneViewFog = CoreUtils.IsSceneViewFogEnabled(camera);
 
-            // XRTODO: double-wide cleanup
-            bool stereo = camera.stereoEnabled;
-            bool stereoDoubleWide = stereo && (XRGraphics.stereoRenderingMode == XRGraphics.StereoRenderingMode.SinglePass);
-            bool stereoInstancing = stereo && (XRGraphics.stereoRenderingMode == XRGraphics.StereoRenderingMode.SinglePassInstanced);
+            // XRTODO: fix it
+            bool stereoInstancing = camera.stereoEnabled && (XRGraphics.stereoRenderingMode == XRGraphics.StereoRenderingMode.SinglePassInstanced);
 
             // When rendering reflection probe we disable specular as it is view dependent
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Reflection] = !reflection;
 
             // We have to fall back to forward-only rendering when scene view is using wireframe rendering mode
             // as rendering everything in wireframe + deferred do not play well together
-            if (GL.wireframe || stereoDoubleWide)
+            if (GL.wireframe)
             {
                 sanitazedFrameSettings.litShaderMode = LitShaderMode.Forward;
             }
@@ -455,7 +439,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool msaa = sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.MSAA] &= renderPipelineSettings.supportMSAA && sanitazedFrameSettings.litShaderMode == LitShaderMode.Forward;
 
             // No recursive reflections
-            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.SSR] &= !reflection && renderPipelineSettings.supportSSR && !msaa && !preview && !stereoDoubleWide;
+            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.SSR] &= !reflection && renderPipelineSettings.supportSSR && !msaa && !preview;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.SSAO] &= renderPipelineSettings.supportSSAO && !preview;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.SubsurfaceScattering] &= !reflection && renderPipelineSettings.supportSubsurfaceScattering;
 
@@ -463,7 +447,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool atmosphericScattering = sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.AtmosphericScattering] &= sceneViewFog && !preview;
 
             // Volumetric are disabled if there is no atmospheric scattering
-            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Volumetrics] &= renderPipelineSettings.supportVolumetrics && atmosphericScattering && !stereoDoubleWide; //&& !preview induced by atmospheric scattering
+            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.Volumetrics] &= renderPipelineSettings.supportVolumetrics && atmosphericScattering; //&& !preview induced by atmospheric scattering
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.ReprojectionForVolumetrics] &= !preview;
 
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.LightLayers] &= renderPipelineSettings.supportLightLayers && !preview;
@@ -489,10 +473,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.SSAOAsync] &= async;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.ContactShadowsAsync] &= async;
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.VolumeVoxelizationsAsync] &= async;
-			
-            // XRTODO: workaround for lighting issues with single-pass double-wide (disable tile lighting)
-            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.BigTilePrepass] &= !stereoDoubleWide;
-            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.DeferredTile] &= !stereoDoubleWide;
 
             // XRTODO: fix indirect deferred pass with instancing
             sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.ComputeLightEvaluation] &= !stereoInstancing;
@@ -500,7 +480,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Deferred opaque are always using Fptl. Forward opaque can use Fptl or Cluster, transparent use cluster.
             // When MSAA is enabled we disable Fptl as it become expensive compare to cluster
             // In HD, MSAA is only supported for forward only rendering, no MSAA in deferred mode (for code complexity reasons)
-            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.FPTLForForwardOpaque] &= !msaa && !stereoDoubleWide;
+            sanitazedFrameSettings.bitDatas[(int)FrameSettingsField.FPTLForForwardOpaque] &= !msaa;
         }
 
         /// <summary>Aggregation is default with override of the renderer then sanitazed depending on supported features of hdrpasset.</summary>
