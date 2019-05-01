@@ -39,7 +39,6 @@ namespace UnityEditor.ShaderGraph
             {
                 if (w.selectedGuid == guid)
                 {
-                    foundWindow = true;
                     w.Focus();
                     return true;
                 }
