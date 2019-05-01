@@ -5,7 +5,10 @@ using NUnit.Framework;
 using Unity.Collections;
 using System.Collections.Generic;
 using Unity.Jobs;
+using Unity.TestProtocol;
+using Unity.TestProtocol.Messages;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.Networking.PlayerConnection;
 
 namespace UnityEngine.TestTools.Graphics
@@ -288,14 +291,21 @@ public class ImageHandler : ScriptableSingleton<ImageHandler>
 
         var actualImagePath = Path.Combine(failedImageMessage.PathName, $"{failedImageMessage.ImageName}.png");
         File.WriteAllBytes(actualImagePath, failedImageMessage.ActualImage);
-        // Report UTP message with reported artifact
+        ReportArtifact(actualImagePath);
 
         if (failedImageMessage.DiffImage != null)
         {
             var diffImagePath = Path.Combine(failedImageMessage.PathName, $"{failedImageMessage.ImageName}.diff.png");
             File.WriteAllBytes(diffImagePath, failedImageMessage.DiffImage);
-            // Report UTP message with reported artifact
+            ReportArtifact(diffImagePath);
         }
+    }
+
+    private void ReportArtifact(string artifactPath)
+    {
+        var fullpath = Path.GetFullPath(artifactPath);
+        var message = ArtifactPublishMessage.Create(fullpath);
+        Debug.Log(UnityTestProtocolMessageBuilder.Serialize(message));
     }
 }
 #endif
