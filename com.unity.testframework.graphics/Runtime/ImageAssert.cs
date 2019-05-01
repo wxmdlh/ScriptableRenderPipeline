@@ -166,7 +166,7 @@ namespace UnityEngine.TestTools.Graphics
 #if UNITY_EDITOR
                 ImageHandler.instance.SaveImage(failedImageMessage);
 #else
-                PlayerConnection.instance.Send(s_MessageId, failedImageMessage.Serialize());
+                PlayerConnection.instance.Send(FailedImageMessage.MessageId, failedImageMessage.Serialize());
 #endif
                 throw;
             }
@@ -267,8 +267,6 @@ namespace UnityEngine.TestTools.Graphics
             float deltaE = Mathf.Sqrt(Mathf.Pow(v1.x - v2.x, 2f) + Mathf.Pow(c1 - c2, 2f) + deltaH * deltaH);
             return deltaE;
         }
-
-        private static readonly Guid s_MessageId = new Guid("40c7a8e2-ad5d-475f-8119-af022a13b84c");
     }
 }
 

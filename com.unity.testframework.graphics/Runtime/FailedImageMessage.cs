@@ -1,8 +1,11 @@
+using System;
 using System.IO;
 using System.Text;
 
 public class FailedImageMessage
 {
+    public static Guid MessageId { get; } = new Guid("40c7a8e2-ad5d-475f-8119-af022a13b84c");
+
     public string PathName { get; set; }
 
     public string ImageName { get; set; }
@@ -13,7 +16,7 @@ public class FailedImageMessage
 
     public byte[] Serialize()
     {
-        int capacity = PathName.Length + 4 + ImageName.Length + 4 + ActualImage.Length + 4 + (DiffImage?.Length + 4 ?? 0);
+        int capacity = 4 * 4 + PathName?.Length ?? 0 + ImageName?.Length ?? 0 + ActualImage?.Length ?? 0 + DiffImage?.Length ?? 0;
         using (var memoryStream = new MemoryStream(capacity))
         {
             using (var writer = new BinaryWriter(memoryStream))
@@ -50,6 +53,12 @@ public static class BinaryWriterExtensions
 {
     public static void WriteString(this BinaryWriter writer, string value, Encoding encoding = null)
     {
+        if (value == null)
+        {
+            writer.Write(-1);
+            return;
+        }
+
         encoding = encoding ?? Encoding.UTF8;
         var data = encoding.GetBytes(value);
         writer.WriteBytes(data);
@@ -59,7 +68,7 @@ public static class BinaryWriterExtensions
     {
         if (value == null)
         {
-            writer.Write(0);
+            writer.Write(-1);
             return;
         }
 
@@ -74,13 +83,18 @@ public static class BinaryReaderExtensions
     {
         encoding = encoding ?? Encoding.UTF8;
         int length = reader.ReadInt32();
+        if (length < 0)
+        {
+            return null;
+        }
+
         return encoding.GetString(reader.ReadBytes(length));
     }
 
     public static byte[] GetBytes(this BinaryReader reader)
     {
         int length = reader.ReadInt32();
-        if (length <= 0)
+        if (length < 0)
         {
             return null;
         }
