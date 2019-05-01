@@ -25,10 +25,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed (enabled) exposure on override lighting debug modes.
 - Fixed issue with LightExplorer when volume have no profile
 - Fixed issue with SSR for negative, infinite and NaN history values
+- Fixed LightLayer in HDReflectionProbe and PlanarReflectionProbe inspector that was not displayed as a mask.
+- Fixed NaN in transmission when the thickness and a color component of the scattering distance was to 0
+- Fixed Light's ShadowMask multi-edition.
 
 ### Changed
 - Refactor PixelCoordToViewDirWS to be VR compatible and to compute it only once per frame
 - Modified the variants stripper to take in account multiple HDRP assets used in the build.
+- Improve the ray biasing code to avoid self-intersections during the SSR traversal
+- Update Pyramid Spot Light to better match emitted light volume.
+- Moved _XRViewConstants out of UnityPerPassStereo constant buffer to fix issues with PSSL
+- Removed GetPositionInput_Stereo() and single-pass (double-wide) rendering mode
 
 ## [6.6.0-preview] - 2019-04-01
 
