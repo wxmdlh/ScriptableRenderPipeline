@@ -85,7 +85,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         TransparentPrepass = 8,
         [FrameSettingsField(0, autoName: TransparentPostpass)]
         TransparentPostpass = 9,
-        [FrameSettingsField(0, autoName: TransparentsWriteMotionVector, customOrderInGroup: 7)]
+        [FrameSettingsField(0, displayedName: "Transparent Write Motion Vectors", customOrderInGroup: 7)]
         TransparentsWriteMotionVector = 16,
         [FrameSettingsField(0, autoName: MotionVectors)]
         MotionVectors = 10,
@@ -201,6 +201,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.ContactShadows,
                 (uint)FrameSettingsField.ShadowMask,
                 (uint)FrameSettingsField.VxShadows, //seongdae;vxsm
+                (uint)FrameSettingsField.SSR,
                 (uint)FrameSettingsField.SSAO,
                 (uint)FrameSettingsField.SubsurfaceScattering,
                 (uint)FrameSettingsField.Transmission,   // Caution: this is only for debug, it doesn't save the cost of Transmission execution
@@ -248,6 +249,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.Shadow,
                 //(uint)FrameSettingsField.ContactShadow,
                 //(uint)FrameSettingsField.ShadowMask,
+                //(uint)FrameSettingsField.SSR,
                 //(uint)FrameSettingsField.SSAO,
                 (uint)FrameSettingsField.SubsurfaceScattering,
                 (uint)FrameSettingsField.Transmission,   // Caution: this is only for debug, it doesn't save the cost of Transmission execution
@@ -294,6 +296,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (uint)FrameSettingsField.ContactShadows,
                 (uint)FrameSettingsField.ShadowMask,
                 (uint)FrameSettingsField.VxShadows, //seongdae;vxsm
+                //(uint)FrameSettingsField.SSR,
                 (uint)FrameSettingsField.SSAO,
                 (uint)FrameSettingsField.SubsurfaceScattering,
                 (uint)FrameSettingsField.Transmission,   // Caution: this is only for debug, it doesn't save the cost of Transmission execution
