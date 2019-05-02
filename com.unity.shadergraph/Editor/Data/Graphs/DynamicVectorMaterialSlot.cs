@@ -112,7 +112,9 @@ namespace UnityEditor.ShaderGraph
                     property = new Vector1ShaderProperty();
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    // This shouldn't happen due to edge validation. But if it does,
+                    // just ignore it. Asserting here doesn't help anybody.
+                    return;
             }
 
             property.overrideReferenceName = matOwner.GetVariableNameForSlot(id);

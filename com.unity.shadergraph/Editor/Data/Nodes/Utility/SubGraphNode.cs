@@ -341,11 +341,11 @@ namespace UnityEditor.ShaderGraph
             var outputStage = subGraphData.effectiveShaderStage;
 
             foreach (var slot in subGraphData.outputs)
-                {
-                    AddSlot(MaterialSlot.CreateMaterialSlot(slot.valueType, slot.id, slot.RawDisplayName(), 
-                        slot.shaderOutputName, SlotType.Output, Vector4.zero, outputStage));
-                    validNames.Add(slot.id);
-                }
+            {
+                AddSlot(MaterialSlot.CreateMaterialSlot(slot.valueType, slot.id, slot.RawDisplayName(), 
+                    slot.shaderOutputName, SlotType.Output, Vector4.zero, outputStage));
+                validNames.Add(slot.id);
+            }
 
             RemoveSlotsNameNotMatching(validNames, true);
         }
@@ -353,10 +353,10 @@ namespace UnityEditor.ShaderGraph
         void ValidateShaderStage()
         {
             if (subGraphData != null)
-        {
-            List<MaterialSlot> slots = new List<MaterialSlot>();
-            GetInputSlots(slots);
-            GetOutputSlots(slots);
+            {
+                List<MaterialSlot> slots = new List<MaterialSlot>();
+                GetInputSlots(slots);
+                GetOutputSlots(slots);
 
                 var outputStage = subGraphData.effectiveShaderStage;
                 foreach (MaterialSlot slot in slots)

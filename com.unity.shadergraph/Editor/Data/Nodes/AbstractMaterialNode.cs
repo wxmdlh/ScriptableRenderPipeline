@@ -253,22 +253,8 @@ namespace UnityEditor.ShaderGraph
 
             return inputSlot.GetDefaultValue(generationMode);
         }
-
-        public static bool ImplicitConversionExists(ConcreteSlotValueType from, ConcreteSlotValueType to)
-        {
-            if (from == to)
-                return true;
-
-            var fromCount = SlotValueHelper.GetChannelCount(from);
-            var toCount = SlotValueHelper.GetChannelCount(to);
-
-            if (toCount > 0 && fromCount > 0)
-                return true;
-
-            return false;
-        }
-
-        public virtual ConcreteSlotValueType ConvertDynamicInputTypeToConcrete(IEnumerable<ConcreteSlotValueType> inputTypes)
+        
+        public static ConcreteSlotValueType ConvertDynamicVectorInputTypeToConcrete(IEnumerable<ConcreteSlotValueType> inputTypes)
         {
             var concreteSlotValueTypes = inputTypes as IList<ConcreteSlotValueType> ?? inputTypes.ToList();
 
@@ -278,7 +264,9 @@ namespace UnityEditor.ShaderGraph
                 case 0:
                     return ConcreteSlotValueType.Vector1;
                 case 1:
-                    return inputTypesDistinct.FirstOrDefault();
+                    if(SlotValueHelper.AreCompatible(SlotValueType.DynamicVector, inputTypesDistinct.First()))
+                        return inputTypesDistinct.First();
+                    break;
                 default:
                     // find the 'minumum' channel width excluding 1 as it can promote
                     inputTypesDistinct.RemoveAll(x => x == ConcreteSlotValueType.Vector1);
@@ -290,7 +278,7 @@ namespace UnityEditor.ShaderGraph
             return ConcreteSlotValueType.Vector1;
         }
 
-        public virtual ConcreteSlotValueType ConvertDynamicMatrixInputTypeToConcrete(IEnumerable<ConcreteSlotValueType> inputTypes)
+        public static ConcreteSlotValueType ConvertDynamicMatrixInputTypeToConcrete(IEnumerable<ConcreteSlotValueType> inputTypes)
         {
             var concreteSlotValueTypes = inputTypes as IList<ConcreteSlotValueType> ?? inputTypes.ToList();
 
@@ -332,10 +320,10 @@ namespace UnityEditor.ShaderGraph
                 var edges = owner.GetEdges(inputSlot.slotReference).ToList();
                 if (!edges.Any())
                 {
-                    if (inputSlot is DynamicVectorMaterialSlot)
-                        skippedDynamicSlots.Add(inputSlot as DynamicVectorMaterialSlot);
-                    if (inputSlot is DynamicMatrixMaterialSlot)
-                        skippedDynamicMatrixSlots.Add(inputSlot as DynamicMatrixMaterialSlot);
+                    if (inputSlot is DynamicVectorMaterialSlot dvSlot)
+                        skippedDynamicSlots.Add(dvSlot);
+                    if (inputSlot is DynamicMatrixMaterialSlot dmSlot)
+                        skippedDynamicMatrixSlots.Add(dmSlot);
                     continue;
                 }
 
@@ -359,25 +347,19 @@ namespace UnityEditor.ShaderGraph
                 // dynamic input... depends on output from other node.
                 // we need to compare ALL dynamic inputs to make sure they
                 // are compatible.
-                if (inputSlot is DynamicVectorMaterialSlot)
+                if (inputSlot is DynamicVectorMaterialSlot dVecSlot)
                 {
-                    dynamicInputSlotsToCompare.Add((DynamicVectorMaterialSlot)inputSlot, outputConcreteType);
-                    continue;
+                    dynamicInputSlotsToCompare.Add(dVecSlot, outputConcreteType);
                 }
-                else if (inputSlot is DynamicMatrixMaterialSlot)
+                else if (inputSlot is DynamicMatrixMaterialSlot dMatrixSlot)
                 {
-                    dynamicMatrixInputSlotsToCompare.Add((DynamicMatrixMaterialSlot)inputSlot, outputConcreteType);
-                    continue;
+                    dynamicMatrixInputSlotsToCompare.Add(dMatrixSlot, outputConcreteType);
                 }
-
-                // if we have a standard connection... just check the types work!
-                if (!ImplicitConversionExists(outputConcreteType, inputSlot.concreteValueType))
-                    inputSlot.hasError = true;
             }
 
             // we can now figure out the dynamic slotType
             // from here set all the
-            var dynamicType = ConvertDynamicInputTypeToConcrete(dynamicInputSlotsToCompare.Values);
+            var dynamicType = ConvertDynamicVectorInputTypeToConcrete(dynamicInputSlotsToCompare.Values);
             foreach (var dynamicKvP in dynamicInputSlotsToCompare)
                 dynamicKvP.Key.SetConcreteType(dynamicType);
             foreach (var skippedSlot in skippedDynamicSlots)
@@ -410,15 +392,14 @@ namespace UnityEditor.ShaderGraph
                     continue;
                 }
 
-                if (outputSlot is DynamicVectorMaterialSlot)
+                switch (outputSlot)
                 {
-                    (outputSlot as DynamicVectorMaterialSlot).SetConcreteType(dynamicType);
-                    continue;
-                }
-                else if (outputSlot is DynamicMatrixMaterialSlot)
-                {
-                    (outputSlot as DynamicMatrixMaterialSlot).SetConcreteType(dynamicMatrixType);
-                    continue;
+                    case DynamicVectorMaterialSlot slot:
+                        slot.SetConcreteType(dynamicType);
+                        continue;
+                    case DynamicMatrixMaterialSlot materialSlot:
+                        materialSlot.SetConcreteType(dynamicMatrixType);
+                        continue;
                 }
             }
 
@@ -431,7 +412,7 @@ namespace UnityEditor.ShaderGraph
 
             if (isInError)
             {
-                ((GraphData) owner).AddValidationError(tempId, errorMessage);
+                owner.AddValidationError(tempId, errorMessage);
             }
             else
             {
@@ -450,6 +431,21 @@ namespace UnityEditor.ShaderGraph
         //True if error
         protected virtual bool CalculateNodeHasError(ref string errorMessage)
         {
+            foreach (var slot in this.GetInputSlots<MaterialSlot>())
+            {
+                if (slot.isConnected)
+                {
+                    var edge = owner.GetEdges(slot.slotReference).First();
+                    var outputNode = owner.GetNodeFromGuid(edge.outputSlot.nodeGuid);
+                    var outputSlot = outputNode.GetOutputSlots<MaterialSlot>().First(s => s.id == edge.outputSlot.slotId);
+                    if (!slot.IsCompatibleWith(outputSlot))
+                    {
+                        errorMessage = $"Slot {slot.RawDisplayName()} cannot accept input of type {outputSlot.concreteValueType}.";
+                        return true;
+                    }
+                }
+            }
+
             return false;
         }
 

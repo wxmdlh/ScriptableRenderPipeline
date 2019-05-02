@@ -20,25 +20,25 @@ namespace UnityEditor.ShaderGraph
         }
 
         void ValidateShaderStage()
-            {
-                List<MaterialSlot> slots = new List<MaterialSlot>();
-                GetInputSlots(slots);
+        {
+            List<MaterialSlot> slots = new List<MaterialSlot>();
+            GetInputSlots(slots);
 
-                foreach(MaterialSlot slot in slots)
+            foreach (MaterialSlot slot in slots)
                 slot.stageCapability = ShaderStageCapability.All;
 
             var effectiveStage = ShaderStageCapability.All;
             foreach (var slot in slots)
-                {
+            {
                 var stage = NodeUtils.GetEffectiveShaderStageCapability(slot, true);
                 if (stage != ShaderStageCapability.All)
                 {
                     effectiveStage = stage;
                     break;
+                }
             }
-        }
 
-            foreach(MaterialSlot slot in slots)
+            foreach (MaterialSlot slot in slots)
                 slot.stageCapability = effectiveStage;
         }
 
@@ -50,7 +50,7 @@ namespace UnityEditor.ShaderGraph
             {
                 owner.AddValidationError(tempId, s_MissingOutputSlot, ShaderCompilerMessageSeverity.Warning);
             }
-            
+
             base.ValidateNode();
         }
 
@@ -64,7 +64,8 @@ namespace UnityEditor.ShaderGraph
         {
             var index = this.GetInputSlots<ISlot>().Count() + 1;
             string name = string.Format("Out_{0}", NodeUtils.GetDuplicateSafeNameForSlot(this, index, concreteValueType.ToString()));
-            AddSlot(MaterialSlot.CreateMaterialSlot(concreteValueType.ToSlotValueType(), index, name, NodeUtils.GetHLSLSafeName(name), SlotType.Input, Vector4.zero));
+            AddSlot(MaterialSlot.CreateMaterialSlot(concreteValueType.ToSlotValueType(), index, name, NodeUtils.GetHLSLSafeName(name),
+                SlotType.Input, Vector4.zero));
             return index;
         }
 

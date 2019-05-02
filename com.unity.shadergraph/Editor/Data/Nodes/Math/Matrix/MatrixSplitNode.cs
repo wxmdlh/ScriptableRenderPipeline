@@ -147,10 +147,10 @@ namespace UnityEditor.ShaderGraph
                 var edges = owner.GetEdges(inputSlot.slotReference).ToList();
                 if (!edges.Any())
                 {
-                    if (inputSlot is DynamicVectorMaterialSlot)
-                        skippedDynamicSlots.Add(inputSlot as DynamicVectorMaterialSlot);
-                    if (inputSlot is DynamicMatrixMaterialSlot)
-                        skippedDynamicMatrixSlots.Add(inputSlot as DynamicMatrixMaterialSlot);
+                    if (inputSlot is DynamicVectorMaterialSlot dynVecSlot)
+                        skippedDynamicSlots.Add(dynVecSlot);
+                    if (inputSlot is DynamicMatrixMaterialSlot dynMatrixSlot)
+                        skippedDynamicMatrixSlots.Add(dynMatrixSlot);
                     continue;
                 }
 
@@ -173,21 +173,15 @@ namespace UnityEditor.ShaderGraph
                 var outputConcreteType = outputSlot.concreteValueType;
                 // dynamic input... depends on output from other node.
                 // we need to compare ALL dynamic inputs to make sure they
-                // are compatable.
-                if (inputSlot is DynamicVectorMaterialSlot)
+                // are compatible.
+                if (inputSlot is DynamicVectorMaterialSlot dVecSlot)
                 {
-                    dynamicInputSlotsToCompare.Add((DynamicVectorMaterialSlot)inputSlot, outputConcreteType);
-                    continue;
+                    dynamicInputSlotsToCompare.Add(dVecSlot, outputConcreteType);
                 }
-                else if (inputSlot is DynamicMatrixMaterialSlot)
+                else if (inputSlot is DynamicMatrixMaterialSlot dMatrixSlot)
                 {
-                    dynamicMatrixInputSlotsToCompare.Add((DynamicMatrixMaterialSlot)inputSlot, outputConcreteType);
-                    continue;
+                    dynamicMatrixInputSlotsToCompare.Add(dMatrixSlot, outputConcreteType);
                 }
-
-                // if we have a standard connection... just check the types work!
-                if (!AbstractMaterialNode.ImplicitConversionExists(outputConcreteType, inputSlot.concreteValueType))
-                    inputSlot.hasError = true;
             }
 
             // and now dynamic matrices

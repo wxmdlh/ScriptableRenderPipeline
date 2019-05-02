@@ -250,12 +250,11 @@ namespace UnityEditor.ShaderGraph
 
         protected override bool CalculateNodeHasError(ref string errorMessage)
         {
-            var graph = owner as GraphData;
-
-            if (!propertyGuid.Equals(Guid.Empty) && !graph.properties.Any(x => x.guid == propertyGuid))
-                return true;
-
-            return false;
+            if (propertyGuid.Equals(Guid.Empty) || owner.properties.Any(x => x.guid == propertyGuid))
+                return false;
+            
+            errorMessage = "Property Node has no associated Blackboard property.";
+            return true;
         }
 
         public override void OnBeforeSerialize()

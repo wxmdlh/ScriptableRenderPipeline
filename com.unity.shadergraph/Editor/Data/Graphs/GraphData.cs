@@ -715,11 +715,9 @@ namespace UnityEditor.ShaderGraph
                 ReplacePropertyNodeWithConcreteNodeNoValidate(pNode);
 
             messageManager?.ClearAllFromProvider(this);
-            //First validate edges, remove any
-            //orphans. This can happen if a user
-            //manually modifies serialized data
-            //of if they delete a node in the inspector
-            //debug view.
+
+            // Validate edges, remove any orphans. This can happen if a user manually
+            // modifies serialized data of if they delete a node in the inspector debug view.
             foreach (var edge in edges.ToArray())
             {
                 var outputNode = GetNodeFromGuid(edge.outputSlot.nodeGuid);
@@ -733,11 +731,8 @@ namespace UnityEditor.ShaderGraph
                     inputSlot = inputNode.FindInputSlot<MaterialSlot>(edge.inputSlot.slotId);
                 }
 
-                if (outputNode == null
-                    || inputNode == null
-                    || outputSlot == null
-                    || inputSlot == null
-                    || !outputSlot.IsCompatibleWith(inputSlot))
+                if (outputNode == null || inputNode == null ||
+                    outputSlot == null || inputSlot == null)
                 {
                     //orphaned edge
                     RemoveEdgeNoValidate(edge);
@@ -764,7 +759,7 @@ namespace UnityEditor.ShaderGraph
                 
                 if (temporaryMarks.Contains(node.tempId.index))
                 {
-                node.ValidateNode();
+                    node.ValidateNode();
                     permanentMarks.Add(node.tempId.index);
                 }
                 else

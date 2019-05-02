@@ -209,8 +209,8 @@ namespace UnityEditor.ShaderGraph
         {
             get
             {
-                // node and graph respectivly
-                if (owner == null || owner.owner == null)
+                // node and graph respectively
+                if (owner?.owner == null)
                     return false;
 
                 var graph = owner.owner;
@@ -241,74 +241,14 @@ namespace UnityEditor.ShaderGraph
             set { m_HasError = value; }
         }
 
-        bool IsCompatibleWithInputSlotType(SlotValueType inputType)
-        {
-            switch (valueType)
-            {
-                case SlotValueType.SamplerState:
-                    return inputType == SlotValueType.SamplerState;
-                case SlotValueType.DynamicMatrix:
-                case SlotValueType.Matrix4:
-                    return inputType == SlotValueType.Matrix4
-                        || inputType == SlotValueType.Matrix3
-                        || inputType == SlotValueType.Matrix2
-                        || inputType == SlotValueType.DynamicMatrix
-                        || inputType == SlotValueType.Dynamic;
-                case SlotValueType.Matrix3:
-                    return inputType == SlotValueType.Matrix3
-                        || inputType == SlotValueType.Matrix2
-                        || inputType == SlotValueType.DynamicMatrix
-                        || inputType == SlotValueType.Dynamic;
-                case SlotValueType.Matrix2:
-                    return inputType == SlotValueType.Matrix2
-                        || inputType == SlotValueType.DynamicMatrix
-                        || inputType == SlotValueType.Dynamic;
-                case SlotValueType.Texture2D:
-                    return inputType == SlotValueType.Texture2D;
-                case SlotValueType.Texture2DArray:
-                    return inputType == SlotValueType.Texture2DArray;
-                case SlotValueType.Texture3D:
-                    return inputType == SlotValueType.Texture3D;
-                case SlotValueType.Cubemap:
-                    return inputType == SlotValueType.Cubemap;
-                case SlotValueType.Gradient:
-                    return inputType == SlotValueType.Gradient;
-                case SlotValueType.DynamicVector:
-                case SlotValueType.Vector4:
-                case SlotValueType.Vector3:
-                case SlotValueType.Vector2:
-                case SlotValueType.Vector1:
-                    return inputType == SlotValueType.Vector4
-                        || inputType == SlotValueType.Vector3
-                        || inputType == SlotValueType.Vector2
-                        || inputType == SlotValueType.Vector1
-                        || inputType == SlotValueType.DynamicVector
-                        || inputType == SlotValueType.Dynamic;
-                case SlotValueType.Dynamic:
-                    return inputType == SlotValueType.Matrix4
-                        || inputType == SlotValueType.Matrix3
-                        || inputType == SlotValueType.Matrix2
-                        || inputType == SlotValueType.DynamicMatrix
-                        || inputType == SlotValueType.Vector4
-                        || inputType == SlotValueType.Vector3
-                        || inputType == SlotValueType.Vector2
-                        || inputType == SlotValueType.Vector1
-                        || inputType == SlotValueType.DynamicVector
-                        || inputType == SlotValueType.Dynamic;
-                case SlotValueType.Boolean:
-                    return inputType == SlotValueType.Boolean;
-            }
-            return false;
-        }
-
         public bool IsCompatibleWith(MaterialSlot otherSlot)
         {
             return otherSlot != null
                 && otherSlot.owner != owner
                 && otherSlot.isInputSlot != isInputSlot
                 && ((isInputSlot
-                     ? otherSlot.IsCompatibleWithInputSlotType(valueType)
-                     : IsCompatibleWithInputSlotType(otherSlot.valueType)));
+                     ? SlotValueHelper.AreCompatible(valueType, otherSlot.concreteValueType)
+                     : SlotValueHelper.AreCompatible(otherSlot.valueType, concreteValueType)));
         }
 
         public bool IsCompatibleStageWith(MaterialSlot otherSlot)
@@ -319,14 +259,13 @@ namespace UnityEditor.ShaderGraph
 
         public virtual string GetDefaultValue(GenerationMode generationMode)
         {
-            var matOwner = owner as AbstractMaterialNode;
-            if (matOwner == null)
-                throw new Exception(string.Format("Slot {0} either has no owner, or the owner is not a {1}", this, typeof(AbstractMaterialNode)));
+            if (owner == null)
+                throw new Exception($"Slot {this} either has no owner, or the owner is not a {typeof(AbstractMaterialNode)}");
 
             if (generationMode.IsPreview())
-                return matOwner.GetVariableNameForSlot(id);
+                return owner.GetVariableNameForSlot(id);
 
-            return ConcreteSlotValueAsVariable(matOwner.precision);
+            return ConcreteSlotValueAsVariable(owner.precision);
         }
 
         protected virtual string ConcreteSlotValueAsVariable(AbstractMaterialNode.OutputPrecision precision)
