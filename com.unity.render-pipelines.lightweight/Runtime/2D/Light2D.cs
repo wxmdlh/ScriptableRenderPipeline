@@ -164,7 +164,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         //                              Functions
         //==========================================================================================
 
-        internal static Dictionary<int, Color>[] SetupGlobalClearColors()
+        static Dictionary<int, Color>[] SetupGlobalClearColors()
         {
             Dictionary<int,Color>[] globalClearColors = new Dictionary<int, Color>[k_BlendStyleCount];
             for(int i=0;i<k_BlendStyleCount;i++)
@@ -174,7 +174,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             return globalClearColors;
         }
 
-        internal static List<Light2D>[] SetupLightArray()
+        static List<Light2D>[] SetupLightArray()
         {
             List<Light2D>[] retArray = new List<Light2D>[k_BlendStyleCount];
 
@@ -184,7 +184,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             return retArray;
         }
 
-        internal static void SetupCulling(Camera camera)
+        static void SetupCulling(Camera camera)
         {
             if (s_CullingGroup == null)
                 return;
@@ -251,7 +251,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
                 return -1;
         }
 
-        internal void UpdateMesh()
+        void UpdateMesh()
         {
             GetMesh(true);
         }
