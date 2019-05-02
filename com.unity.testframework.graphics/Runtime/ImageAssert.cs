@@ -159,6 +159,7 @@ namespace UnityEngine.TestTools.Graphics
                         diffImage.Apply(false);
 
                         failedImageMessage.DiffImage = diffImage.EncodeToPNG();
+                        failedImageMessage.ExpectedImage = expected.EncodeToPNG();
                         throw;
                     }
                 }
@@ -298,6 +299,11 @@ public class ImageHandler : ScriptableSingleton<ImageHandler>
             var diffImagePath = Path.Combine(failedImageMessage.PathName, $"{failedImageMessage.ImageName}.diff.png");
             File.WriteAllBytes(diffImagePath, failedImageMessage.DiffImage);
             ReportArtifact(diffImagePath);
+
+            var expectedImagesPath =
+                Path.Combine(failedImageMessage.PathName, $"{failedImageMessage.ImageName}.expected.png");
+            File.WriteAllBytes(expectedImagesPath, failedImageMessage.ExpectedImage);
+            ReportArtifact(expectedImagesPath);
         }
     }
 

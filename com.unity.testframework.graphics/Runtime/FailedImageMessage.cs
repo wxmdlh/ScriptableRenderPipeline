@@ -10,19 +10,22 @@ public class FailedImageMessage
 
     public string ImageName { get; set; }
 
+    public byte[] ExpectedImage { get; set; }
+
     public byte[] ActualImage { get; set; }
 
     public byte[] DiffImage { get; set; }
 
     public byte[] Serialize()
     {
-        int capacity = 4 * 4 + PathName?.Length ?? 0 + ImageName?.Length ?? 0 + ActualImage?.Length ?? 0 + DiffImage?.Length ?? 0;
+        int capacity = sizeof(int) * 5 + PathName?.Length ?? 0 + ImageName?.Length ?? 0 + ExpectedImage?.Length ?? 0 + ActualImage?.Length ?? 0 + DiffImage?.Length ?? 0;
         using (var memoryStream = new MemoryStream(capacity))
         {
             using (var writer = new BinaryWriter(memoryStream))
             {
                 writer.WriteString(PathName);
                 writer.WriteString(ImageName);
+                writer.WriteBytes(ExpectedImage);
                 writer.WriteBytes(ActualImage);
                 writer.WriteBytes(DiffImage);
             }
@@ -41,6 +44,7 @@ public class FailedImageMessage
                 {
                     PathName = reader.GetString(),
                     ImageName = reader.GetString(),
+                    ExpectedImage = reader.GetBytes(),
                     ActualImage = reader.GetBytes(),
                     DiffImage = reader.GetBytes(),
                 };
