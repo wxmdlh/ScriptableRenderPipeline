@@ -8,6 +8,69 @@ using UnityEngine.Serialization;
 
 namespace UnityEngine.Experimental.Rendering.LWRP
 {
+    class Light2DManager : IDisposable
+    {
+        const int k_BlendStyleCount = 4;    // This must match the array size of m_LightBlendStyles in _2DRendererData.
+        static Light2DManager s_Instance = new Light2DManager();
+
+        Light2DManager m_PrevInstance;
+        List<Light2D>[] m_Lights;
+        CullingGroup m_CullingGroup;
+        BoundingSphere[] m_BoundingSpheres;
+        Dictionary<int, Color>[] m_GlobalClearColors;
+
+#if UNITY_EDITOR
+        Dictionary<int, Color>[] m_GlobalClearColorsForPrefab;
+#endif
+
+        internal static List<Light2D>[] lights => s_Instance.m_Lights;
+        internal static CullingGroup cullingGroup => s_Instance.m_CullingGroup;
+        internal static BoundingSphere[] boundingSpheres => s_Instance.m_BoundingSpheres;
+
+        internal static Dictionary<int, Color>[] globalClearColors
+        {
+            get
+            {
+#if UNITY_EDITOR
+                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+                    return s_Instance.m_GlobalClearColorsForPrefab;
+#endif
+                return s_Instance.m_GlobalClearColors;
+            }
+        }
+
+        Light2DManager()
+        {
+            m_PrevInstance = s_Instance;
+            s_Instance = this;
+
+            m_Lights = new List<Light2D>[k_BlendStyleCount];
+            for (int i = 0; i < m_Lights.Length; ++i)
+                m_Lights[i] = new List<Light2D>();
+
+            m_GlobalClearColors = SetupGlobalClearColors();
+
+#if UNITY_EDITOR
+            m_GlobalClearColorsForPrefab = SetupGlobalClearColors();
+#endif
+        }
+
+        public void Dispose()
+        {
+            s_Instance = m_PrevInstance;
+        }
+
+        Dictionary<int, Color>[] SetupGlobalClearColors()
+        {
+            Dictionary<int, Color>[] colors = new Dictionary<int, Color>[k_BlendStyleCount];
+            for (int i = 0; i < k_BlendStyleCount; ++i)
+            {
+                colors[i] = new Dictionary<int, Color>();
+            }
+            return colors;
+        }
+    }
+
     // TODO: 
     //     Fix parametric mesh code so that the vertices, triangle, and color arrays are only recreated when number of sides change
     //     Change code to update mesh only when it is on screen. Maybe we can recreate a changed mesh if it was on screen last update (in the update), and if it wasn't set it dirty. If dirty, in the OnBecameVisible function create the mesh and clear the dirty flag.
