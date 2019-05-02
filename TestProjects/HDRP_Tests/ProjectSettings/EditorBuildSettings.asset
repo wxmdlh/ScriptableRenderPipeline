@@ -213,11 +213,17 @@ EditorBuildSettings:
     path: Assets/GraphicTests/Scenes/2x_Lighting/2306_Contact_Shadow_SpotLight.unity
     guid: a8ecf1e3cee864a48bd6bca2c797fdb3
   - enabled: 1
+    path: Assets/GraphicTests/Scenes/2x_Lighting/2307_Shadow_VeryHigh.unity
+    guid: c110cc3f909bb664b82eb554f0494597
+  - enabled: 1
     path: Assets/GraphicTests/Scenes/2x_Lighting/2308_Microshadows.unity
     guid: 6250123484c56d544a5c1cbd20fd6bb2
   - enabled: 1
-    path: Assets/GraphicTests/Scenes/2x_Lighting/2307_Shadow_VeryHigh.unity
-    guid: c110cc3f909bb664b82eb554f0494597
+    path: Assets/GraphicTests/Scenes/2x_Lighting/2309_Distance_Shadow_Mask_Light_Types.unity
+    guid: 68c9f083ec9d65046b9e280a9c4b7694
+  - enabled: 1
+    path: Assets/GraphicTests/Scenes/2x_Lighting/2310_Shadow_Mask_Light_Types.unity
+    guid: 661cf41626798cf45a2505d39e522fd4
   - enabled: 1
     path: Assets/GraphicTests/Scenes/2x_Lighting/2401_Area_Light_Meshes.unity
     guid: 359ded33a047fd540b5e19a98547f5e2
