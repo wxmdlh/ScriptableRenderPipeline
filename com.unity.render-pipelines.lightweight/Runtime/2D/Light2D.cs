@@ -24,8 +24,18 @@ namespace UnityEngine.Experimental.Rendering.LWRP
 #endif
 
         internal static List<Light2D>[] lights => s_Instance.m_Lights;
-        internal static CullingGroup cullingGroup => s_Instance.m_CullingGroup;
-        internal static BoundingSphere[] boundingSpheres => s_Instance.m_BoundingSpheres;
+
+        internal static CullingGroup cullingGroup
+        {
+            get => s_Instance.m_CullingGroup;
+            set => s_Instance.m_CullingGroup = value;
+        }
+
+        internal static BoundingSphere[] boundingSpheres
+        {
+            get => s_Instance.m_BoundingSpheres;
+            set => s_Instance.m_BoundingSpheres = value;
+        }
 
         internal static Dictionary<int, Color>[] globalClearColors
         {
@@ -249,24 +259,24 @@ namespace UnityEngine.Experimental.Rendering.LWRP
 
         static void SetupCulling(Camera camera)
         {
-            if (s_CullingGroup == null)
+            if (Light2DManager.cullingGroup == null)
                 return;
 
-            s_CullingGroup.targetCamera = camera;
+            Light2DManager.cullingGroup.targetCamera = camera;
 
             int totalLights = 0;
-            for (int blendStyleIndex = 0; blendStyleIndex < s_Lights.Length; ++blendStyleIndex)
-                totalLights += s_Lights[blendStyleIndex].Count;
+            for (int blendStyleIndex = 0; blendStyleIndex < Light2DManager.lights.Length; ++blendStyleIndex)
+                totalLights += Light2DManager.lights[blendStyleIndex].Count;
 
-            if (s_BoundingSpheres == null)
-                s_BoundingSpheres = new BoundingSphere[Mathf.Max(1024, 2 * totalLights)];
-            else if (totalLights > s_BoundingSpheres.Length)
-                s_BoundingSpheres = new BoundingSphere[2 * totalLights];
+            if (Light2DManager.boundingSpheres == null)
+                Light2DManager.boundingSpheres = new BoundingSphere[Mathf.Max(1024, 2 * totalLights)];
+            else if (totalLights > Light2DManager.boundingSpheres.Length)
+                Light2DManager.boundingSpheres = new BoundingSphere[2 * totalLights];
 
             int currentLightCullingIndex = 0;
-            for (int blendStyleIndex = 0; blendStyleIndex < s_Lights.Length; ++blendStyleIndex)
+            for (int blendStyleIndex = 0; blendStyleIndex < Light2DManager.lights.Length; ++blendStyleIndex)
             {
-                var lightsPerBlendStyle = s_Lights[blendStyleIndex];
+                var lightsPerBlendStyle = Light2DManager.lights[blendStyleIndex];
 
                 for (int lightIndex = 0; lightIndex < lightsPerBlendStyle.Count; ++lightIndex)
                 {
@@ -274,18 +284,18 @@ namespace UnityEngine.Experimental.Rendering.LWRP
                     if (light == null)
                         continue;
 
-                    s_BoundingSpheres[currentLightCullingIndex] = light.GetBoundingSphere();
+                    Light2DManager.boundingSpheres[currentLightCullingIndex] = light.GetBoundingSphere();
                     light.m_LightCullingIndex = currentLightCullingIndex++;
                 }
             }
 
-            s_CullingGroup.SetBoundingSpheres(s_BoundingSpheres);
-            s_CullingGroup.SetBoundingSphereCount(currentLightCullingIndex);
+            Light2DManager.cullingGroup.SetBoundingSpheres(Light2DManager.boundingSpheres);
+            Light2DManager.cullingGroup.SetBoundingSphereCount(currentLightCullingIndex);
         }
 
         internal static List<Light2D> GetLightsByBlendStyle(int blendStyleIndex)
         {
-            return s_Lights[blendStyleIndex];
+            return Light2DManager.lights[blendStyleIndex];
         }
 
         internal int GetTopMostLitLayer()
@@ -326,7 +336,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
 
         void InsertLight()
         {
-            var lightList = s_Lights[m_BlendStyleIndex];
+            var lightList = Light2DManager.lights[m_BlendStyleIndex];
             int index = 0;
 
             while (index < lightList.Count && m_LightOrder > lightList[index].m_LightOrder)
@@ -346,7 +356,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
                 AddGlobalLight(this);
             }
 
-            s_Lights[m_PreviousBlendStyleIndex].Remove(this);
+            Light2DManager.lights[m_PreviousBlendStyleIndex].Remove(this);
             m_PreviousBlendStyleIndex = m_BlendStyleIndex;
             InsertLight();
         }
@@ -386,7 +396,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
 
         internal bool IsLightVisible(Camera camera)
         {
-            bool isVisible = (s_CullingGroup == null || s_CullingGroup.IsVisible(m_LightCullingIndex)) && isActiveAndEnabled;
+            bool isVisible = (Light2DManager.cullingGroup == null || Light2DManager.cullingGroup.IsVisible(m_LightCullingIndex)) && isActiveAndEnabled;
 
 #if UNITY_EDITOR
             isVisible &= UnityEditor.SceneManagement.StageUtility.IsGameObjectRenderedByCamera(gameObject, camera);
@@ -404,7 +414,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             for (int i = 0; i < light2D.m_ApplyToSortingLayers.Length; i++)
             {
                 int sortingLayer = light2D.m_ApplyToSortingLayers[i];
-                Dictionary<int, Color> globalColorOp = globalClearColors[light2D.m_BlendStyleIndex];
+                Dictionary<int, Color> globalColorOp = Light2DManager.globalClearColors[light2D.m_BlendStyleIndex];
                 if (!globalColorOp.ContainsKey(sortingLayer))
                 {
                     globalColorOp.Add(sortingLayer, light2D.m_Intensity * light2D.m_Color);
@@ -429,7 +439,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             for (int i = 0; i < light2D.m_ApplyToSortingLayers.Length; i++)
             {
                 int sortingLayer = light2D.m_ApplyToSortingLayers[i];
-                Dictionary<int, Color> globalColorOp = globalClearColors[blendStyleIndex];
+                Dictionary<int, Color> globalColorOp = Light2DManager.globalClearColors[blendStyleIndex];
                 if (globalColorOp.ContainsKey(sortingLayer))
                     globalColorOp.Remove(sortingLayer);
             }
@@ -446,13 +456,13 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         private void OnEnable()
         {
             // This has to stay in OnEnable() because we need to re-initialize the static variables after a domain reload.
-            if (s_CullingGroup == null)
+            if (Light2DManager.cullingGroup == null)
             {
-                s_CullingGroup = new CullingGroup();
+                Light2DManager.cullingGroup = new CullingGroup();
                 RenderPipeline.beginCameraRendering += SetupCulling;
             }
 
-            if (!s_Lights[m_BlendStyleIndex].Contains(this))
+            if (!Light2DManager.lights[m_BlendStyleIndex].Contains(this))
                 InsertLight();
 
             m_PreviousBlendStyleIndex = m_BlendStyleIndex;
@@ -467,18 +477,18 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         {
             bool anyLightLeft = false;
 
-            for (int i = 0; i < s_Lights.Length; ++i)
+            for (int i = 0; i < Light2DManager.lights.Length; ++i)
             {
-                s_Lights[i].Remove(this);
+                Light2DManager.lights[i].Remove(this);
 
-                if (s_Lights[i].Count > 0)
+                if (Light2DManager.lights[i].Count > 0)
                     anyLightLeft = true;
             }
 
-            if (!anyLightLeft && s_CullingGroup != null)
+            if (!anyLightLeft && Light2DManager.cullingGroup != null)
             {
-                s_CullingGroup.Dispose();
-                s_CullingGroup = null;
+                Light2DManager.cullingGroup.Dispose();
+                Light2DManager.cullingGroup = null;
                 RenderPipeline.beginCameraRendering -= SetupCulling;
             }
 
@@ -504,9 +514,9 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         static internal LightStats GetLightStatsByLayer(int layer)
         {
             LightStats returnStats = new LightStats();
-            for(int blendStyleIndex = 0; blendStyleIndex < s_Lights.Length; blendStyleIndex++)
+            for(int blendStyleIndex = 0; blendStyleIndex < Light2DManager.lights.Length; blendStyleIndex++)
             {
-                List<Light2D> lights = s_Lights[blendStyleIndex];
+                List<Light2D> lights = Light2DManager.lights[blendStyleIndex];
                 for (int lightIndex = 0; lightIndex < lights.Count; lightIndex++)
                 {
                     Light2D light = lights[lightIndex];
@@ -534,7 +544,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             // Sorting. InsertLight() will make sure the lights are sorted.
             if (LightUtility.CheckForChange(m_LightOrder, ref m_PreviousLightOrder))
             {
-                s_Lights[(int)m_BlendStyleIndex].Remove(this);
+                Light2DManager.lights[(int)m_BlendStyleIndex].Remove(this);
                 InsertLight();
             }
 
