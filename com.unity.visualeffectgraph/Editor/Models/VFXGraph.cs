@@ -22,6 +22,7 @@ namespace UnityEditor.VFX
     class VFXCompilationStatus
     {
         public List<VFXCompilationLog> errors = new List<VFXCompilationLog>();
+        public List<VFXCompilationLog> warnings = new List<VFXCompilationLog>();
     }
 
     public class VFXCacheManager : EditorWindow
