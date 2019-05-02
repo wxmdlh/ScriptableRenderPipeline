@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditorInternal;
 using UnityEditor.Rendering;
@@ -93,7 +94,42 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return rect;
         }
 
-        internal static void PropertyFieldWithOptionalFlagToggle<TEnum>(
+
+        public static bool IsAssetPath(string path)
+        {
+            var isPathRooted = Path.IsPathRooted(path);
+            return isPathRooted && path.StartsWith(Application.dataPath)
+                   || !isPathRooted && path.StartsWith("Assets");
+        }
+
+        // Copy texture from cache
+        public static bool CopyFileWithRetryOnUnauthorizedAccess(string s, string path)
+        {
+            UnauthorizedAccessException exception = null;
+            for (var k = 0; k < 20; ++k)
+            {
+                try
+                {
+                    File.Copy(s, path, true);
+                    exception = null;
+                }
+                catch (UnauthorizedAccessException e)
+                {
+                    exception = e;
+                }
+            }
+
+            if (exception != null)
+            {
+                Debug.LogException(exception);
+                // Abort the update, something else is preventing the copy
+                return false;
+            }
+
+            return true;
+        }
+
+        public static void PropertyFieldWithOptionalFlagToggle<TEnum>(
             TEnum v, SerializedProperty property, GUIContent label,
             SerializedProperty @override, bool showOverrideButton,
             Action<SerializedProperty, GUIContent> drawer = null
