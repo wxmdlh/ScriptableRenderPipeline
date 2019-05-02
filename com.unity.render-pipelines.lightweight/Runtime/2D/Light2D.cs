@@ -99,31 +99,6 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             Global = 4
         }
 
-        //------------------------------------------------------------------------------------------
-        //                                      Static/Constants
-        //------------------------------------------------------------------------------------------
-
-        const int k_BlendStyleCount = 4;    // This must match the array size of m_LightBlendStyles in _2DRendererData.
-        static List<Light2D>[] s_Lights = SetupLightArray();
-        static CullingGroup s_CullingGroup;
-        static BoundingSphere[] s_BoundingSpheres;
-        static Dictionary<int, Color>[] s_GlobalClearColors = SetupGlobalClearColors();
-
-        internal static Dictionary<int, Color>[] globalClearColors
-        {
-            get
-            {
-#if UNITY_EDITOR
-                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
-                    return s_GlobalClearColorsForPrefab;
-#endif
-                return s_GlobalClearColors;
-            }
-        }
-
-        //------------------------------------------------------------------------------------------
-        //                                Variables/Properties
-        //------------------------------------------------------------------------------------------
         [UnityEngine.Animations.NotKeyable]
         [SerializeField]
         LightType m_LightType = LightType.Parametric;
@@ -228,34 +203,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         public static string s_PointLightIconPath = s_IconsPath + "PointLight.png";
         public static string s_GlobalLightIconPath = s_IconsPath + "GlobalLight.png";
         public static string[] s_LightIconPaths = new string[] { s_ParametricLightIconPath, s_FreeformLightIconPath, s_SpriteLightIconPath, s_PointLightIconPath, s_GlobalLightIconPath };
-
-        static Dictionary<int, Color>[] s_GlobalClearColorsForPrefab = SetupGlobalClearColors();
 #endif
-
-
-        //==========================================================================================
-        //                              Functions
-        //==========================================================================================
-
-        static Dictionary<int, Color>[] SetupGlobalClearColors()
-        {
-            Dictionary<int,Color>[] globalClearColors = new Dictionary<int, Color>[k_BlendStyleCount];
-            for(int i=0;i<k_BlendStyleCount;i++)
-            {
-                globalClearColors[i] = new Dictionary<int, Color>();
-            }
-            return globalClearColors;
-        }
-
-        static List<Light2D>[] SetupLightArray()
-        {
-            List<Light2D>[] retArray = new List<Light2D>[k_BlendStyleCount];
-
-            for (int i = 0; i < retArray.Length; i++)
-                retArray[i] = new List<Light2D>();
-
-            return retArray;
-        }
 
         static void SetupCulling(Camera camera)
         {
