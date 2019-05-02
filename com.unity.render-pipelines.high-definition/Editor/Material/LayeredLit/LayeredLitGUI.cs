@@ -4,10 +4,14 @@ using System.Linq;
 using UnityEditor.Rendering;
 using UnityEngine.Rendering;
 
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     class LayeredLitGUI : LitGUI
     {
+        /*
         //Be sure to start after last BaseUnlitGUI.Expandable
         [Flags]
         protected enum LayerExpandable : uint
@@ -880,6 +884,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // We should always do this call at the end
             m_MaterialEditor.serializedObject.ApplyModifiedProperties();
-        }
+        }*/
     }
 } // namespace UnityEditor

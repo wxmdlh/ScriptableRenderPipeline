@@ -7,18 +7,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class DistortionUIBlock : MaterialUIBlock
     {
-        [Flags]
-        public enum Features
-        {
-            Surface                     = 1 << 0,
-            BlendMode                   = 1 << 1,
-            DoubleSided                 = 1 << 2,
-            AlphaCutoff                 = 1 << 3,
-            AlphaCutoffThreshold        = 1 << 4,
-            AlphaCutoffShadowThreshold  = 1 << 5,
-            All = ~0,
-        }
-
         protected static class Styles
         {
             public static GUIContent distortionEnableText = new GUIContent("Distortion", "When enabled, HDRP processes distortion for this Material.");

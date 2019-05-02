@@ -4,9 +4,9 @@ using UnityEngine.Rendering;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    class TerrainLitGUI : LitGUI, ITerrainLayerCustomUI
+    class TerrainLitGUI : LitGUI
     {
-        protected override uint defaultExpandedState { get { return (uint)(Expandable.Input | Expandable.Other | Expandable.Advance); } }
+       /* protected override uint defaultExpandedState { get { return (uint)(Expandable.Input | Expandable.Other | Expandable.Advance); } }
 
         private class StylesLayer
         {
@@ -306,6 +306,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             TerrainLayerUtility.TilingSettingsUI(terrainLayer);
 
             return true;
-        }
+        }*/
     }
 } // namespace UnityEditor

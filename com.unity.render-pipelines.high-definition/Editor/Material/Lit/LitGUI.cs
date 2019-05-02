@@ -3,11 +3,45 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEngine.Rendering;
 using System;
 
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    class LitGUI : BaseLitGUI
+    class LitGUI : ShaderGUI
     {
-        protected override uint defaultExpandedState { get { return (uint)(Expandable.Base | Expandable.Input | Expandable.VertexAnimation | Expandable.Detail | Expandable.Emissive | Expandable.Transparency | Expandable.Tesselation); } }
+        // protected override uint defaultExpandedState { get { return (uint)(Expandable.Base | Expandable.Input | Expandable.VertexAnimation | Expandable.Detail | Expandable.Emissive | Expandable.Transparency | Expandable.Tesselation); } }
+
+        // For lit GUI we don't display the heightmap
+        const LitSurfaceInputsUIBlock.Features litSurfaceFeatures = LitSurfaceInputsUIBlock.Features.All ^ LitSurfaceInputsUIBlock.Features.HeightMap;
+
+        MaterialUIBlockList uiBlocks = new MaterialUIBlockList
+        {
+            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base),
+            new TessellationOptionsUIBlock(MaterialUIBlock.Expandable.Tesselation),
+            new VertexAnimationUIBlock(MaterialUIBlock.Expandable.VertexAnimation),
+            new LitSurfaceInputsUIBlock(MaterialUIBlock.Expandable.Input, features: litSurfaceFeatures),
+            new DetailInputsUIBlock(MaterialUIBlock.Expandable.Detail),
+            new TransparencyUIBlock(MaterialUIBlock.Expandable.Transparency),
+            new EmissionUIBlock(MaterialUIBlock.Expandable.Emissive),
+            new AdvancedOptionsUIBlock(MaterialUIBlock.Expandable.Advance),
+        };
+
+        public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
+        {
+            using (var changed = new EditorGUI.ChangeCheckScope())
+            {
+                // Some logic to disable the transparency block if we're opaque:
+                uiBlocks.OnGUI(materialEditor, props);
+
+                // Apply material keywords and pass:
+                if (changed.changed)
+                {
+                    foreach (var material in uiBlocks.materials)
+                        material.SetupUnlitMaterialKeywordsAndPass();
+                }
+            }
+        }
 
         protected static class Styles
         {
@@ -307,6 +341,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty ssrefractionProjectionModel = null;
         protected const string kSSRefractionProjectionModel = "_SSRefractionProjectionModel";
 
+        /*
         protected override bool showBlendModePopup
             => refractionModel == null
             || refractionModel.floatValue == 0f
@@ -966,13 +1001,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected override void SetupMaterialKeywordsAndPassInternal(Material material)
         {
             SetupMaterialKeywordsAndPass(material);
-        }
+        }*/
 
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupMaterialKeywordsAndPass(Material material)
         {
-            SetupBaseLitKeywords(material);
-            SetupBaseLitMaterialPass(material);
+            BaseLitGUI.SetupBaseLitKeywords(material);
+            BaseLitGUI.SetupBaseLitMaterialPass(material);
 
             NormalMapSpace normalMapSpace = (NormalMapSpace)material.GetFloat(kNormalMapSpace);
 
@@ -1031,6 +1066,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 material.DisableKeyword("_REQUIRE_UV3");
             }
 
+            const string kTransmissionEnable = "_TransmissionEnable";
             MaterialId materialId = (MaterialId)material.GetFloat(kMaterialID);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SUBSURFACE_SCATTERING", materialId == MaterialId.LitSSS);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == MaterialId.LitTranslucent || (materialId == MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class SurfaceOptionUIBlock : MaterialUIBlock
@@ -16,12 +19,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             AlphaCutoff                 = 1 << 3,
             AlphaCutoffThreshold        = 1 << 4,
             AlphaCutoffShadowThreshold  = 1 << 5,
-            All = ~0,
+            Unlit                       = Surface | BlendMode | DoubleSided | AlphaCutoff | AlphaCutoffShadowThreshold | AlphaCutoffThreshold,
+            Lit                         = All,
+            All                         = ~0,
         }
 
-        protected static class Styles
+        static class Styles
         {
-            public const string TransparencyInputsText = "Transparency Inputs";
             public const string optionText = "Surface Options";
             public const string surfaceTypeText = "Surface Type";
             public const string renderingPassText = "Rendering Pass";
@@ -50,46 +54,145 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent transparentSortPriorityText = new GUIContent("Sorting Priority", "Sets the sort priority (from -100 to 100) of transparent meshes using this Material. HDRP uses this value to calculate the sorting order of all transparent meshes on screen.");
             public static GUIContent enableTransparentFogText = new GUIContent("Receive fog", "When enabled, this Material can receive fog.");
             public static GUIContent enableBlendModePreserveSpecularLightingText = new GUIContent("Preserve specular lighting", "When enabled, blending only affects diffuse lighting, allowing for correct specular lighting on transparent meshes that use this Material.");
+
+            // Lit properties
+            public static GUIContent doubleSidedNormalModeText = new GUIContent("Normal Mode", "Specifies the method HDRP uses to modify the normal base.\nMirror: Mirrors the normals with the vertex normal plane.\nFlip: Flips the normal.");
+            public static GUIContent depthOffsetEnableText = new GUIContent("Depth Offset", "When enabled, HDRP uses the Height Map to calculate the depth offset for this Material.");
+
+            // Displacement mapping (POM, tessellation, per vertex)
+            //public static GUIContent enablePerPixelDisplacementText = new GUIContent("Per Pixel Displacement", "");
+
+            public static GUIContent displacementModeText = new GUIContent("Displacement Mode", "Specifies the method HDRP uses to apply height map displacement to the selected element: Vertex, pixel, or tessellated vertex.\n You must use flat surfaces for Pixel displacement.");
+            public static GUIContent lockWithObjectScaleText = new GUIContent("Lock With Object Scale", "When enabled, displacement mapping takes the absolute value of the scale of the object into account.");
+            public static GUIContent lockWithTilingRateText = new GUIContent("Lock With Height Map Tiling Rate", "When enabled, displacement mapping takes the absolute value of the tiling rate of the height map into account.");
+
+            // Material ID
+            public static GUIContent materialIDText = new GUIContent("Material Type", "Specifies additional feature for this Material. Customize you Material with different settings depending on which Material Type you select.");
+            public static GUIContent transmissionEnableText = new GUIContent("Transmission", "When enabled HDRP processes the transmission effect for subsurface scattering. Simulates the translucency of the object.");
+
+            // Per pixel displacement
+            public static GUIContent ppdMinSamplesText = new GUIContent("Minimum Steps", "Controls the minimum number of steps HDRP uses for per pixel displacement mapping.");
+            public static GUIContent ppdMaxSamplesText = new GUIContent("Maximum Steps", "Controls the maximum number of steps HDRP uses for per pixel displacement mapping.");
+            public static GUIContent ppdLodThresholdText = new GUIContent("Fading Mip Level Start", "Controls the Height Map mip level where the parallax occlusion mapping effect begins to disappear.");
+            public static GUIContent ppdPrimitiveLength = new GUIContent("Primitive Length", "Sets the length of the primitive (with the scale of 1) to which HDRP applies per-pixel displacement mapping. For example, the standard quad is 1 x 1 meter, while the standard plane is 10 x 10 meters.");
+            public static GUIContent ppdPrimitiveWidth = new GUIContent("Primitive Width", "Sets the width of the primitive (with the scale of 1) to which HDRP applies per-pixel displacement mapping. For example, the standard quad is 1 x 1 meter, while the standard plane is 10 x 10 meters.");
+
+            public static GUIContent supportDecalsText = new GUIContent("Receive Decals", "Enable to allow Materials to receive decals.");
+
+            public static GUIContent enableGeometricSpecularAAText = new GUIContent("Geometric Specular AA", "When enabled, HDRP reduces specular aliasing on high density meshes (particularly useful when the not using a normal map).");
+            public static GUIContent specularAAScreenSpaceVarianceText = new GUIContent("Screen space variance", "Controls the strength of the Specular AA reduction. Higher values give a more blurry result and less aliasing.");
+            public static GUIContent specularAAThresholdText = new GUIContent("Threshold", "Controls the effect of Specular AA reduction. A values of 0 does not apply reduction, higher values allow higher reduction.");
+            
+            // SSR
+            public static GUIContent receivesSSRText = new GUIContent("Receive SSR", "When enabled, this Material can receive screen space reflections.");
         }
    
-        protected MaterialProperty surfaceType = null;
-        protected const string kSurfaceType = "_SurfaceType";
+        // Properties common to Unlit and Lit
+        MaterialProperty surfaceType = null;
         
-        protected MaterialProperty alphaCutoffEnable = null;
-        protected const string kAlphaCutoffEnabled = "_AlphaCutoffEnable";
-        protected MaterialProperty useShadowThreshold = null;
-        protected const string kUseShadowThreshold = "_UseShadowThreshold";
-        protected MaterialProperty alphaCutoff = null;
-        protected const string kAlphaCutoff = "_AlphaCutoff";
-        protected MaterialProperty alphaCutoffShadow = null;
-        protected const string kAlphaCutoffShadow = "_AlphaCutoffShadow";
-        protected MaterialProperty alphaCutoffPrepass = null;
-        protected const string kAlphaCutoffPrepass = "_AlphaCutoffPrepass";
-        protected MaterialProperty alphaCutoffPostpass = null;
-        protected const string kAlphaCutoffPostpass = "_AlphaCutoffPostpass";
-        protected MaterialProperty transparentDepthPrepassEnable = null;
-        protected const string kTransparentDepthPrepassEnable = "_TransparentDepthPrepassEnable";
-        protected MaterialProperty transparentDepthPostpassEnable = null;
-        protected const string kTransparentDepthPostpassEnable = "_TransparentDepthPostpassEnable";
-        protected MaterialProperty transparentBackfaceEnable = null;
-        protected const string kTransparentBackfaceEnable = "_TransparentBackfaceEnable";
-        protected MaterialProperty transparentSortPriority = null;
-        protected const string kTransparentSortPriority = "_TransparentSortPriority";
-        protected MaterialProperty transparentWritingMotionVec = null;
-        protected const string kTransparentWritingMotionVec = "_TransparentWritingMotionVec";
-        protected MaterialProperty doubleSidedEnable = null;
-        protected const string kDoubleSidedEnable = "_DoubleSidedEnable";
-        protected MaterialProperty blendMode = null;
-        protected const string kBlendMode = "_BlendMode";
-        protected MaterialProperty enableBlendModePreserveSpecularLighting = null;
-        protected const string kEnableBlendModePreserveSpecularLighting = "_EnableBlendModePreserveSpecularLighting";
-        protected MaterialProperty enableFogOnTransparent = null;
-        protected const string kEnableFogOnTransparent = "_EnableFogOnTransparent";
+        MaterialProperty alphaCutoffEnable = null;
+        const string kAlphaCutoffEnabled = "_AlphaCutoffEnable";
+        MaterialProperty useShadowThreshold = null;
+        const string kUseShadowThreshold = "_UseShadowThreshold";
+        MaterialProperty alphaCutoff = null;
+        const string kAlphaCutoff = "_AlphaCutoff";
+        MaterialProperty alphaCutoffShadow = null;
+        const string kAlphaCutoffShadow = "_AlphaCutoffShadow";
+        MaterialProperty alphaCutoffPrepass = null;
+        const string kAlphaCutoffPrepass = "_AlphaCutoffPrepass";
+        MaterialProperty alphaCutoffPostpass = null;
+        const string kAlphaCutoffPostpass = "_AlphaCutoffPostpass";
+        MaterialProperty transparentDepthPrepassEnable = null;
+        const string kTransparentDepthPrepassEnable = "_TransparentDepthPrepassEnable";
+        MaterialProperty transparentDepthPostpassEnable = null;
+        const string kTransparentDepthPostpassEnable = "_TransparentDepthPostpassEnable";
+        MaterialProperty transparentBackfaceEnable = null;
+        const string kTransparentBackfaceEnable = "_TransparentBackfaceEnable";
+        MaterialProperty transparentSortPriority = null;
+        const string kTransparentSortPriority = "_TransparentSortPriority";
+        MaterialProperty transparentWritingMotionVec = null;
+        const string kTransparentWritingMotionVec = "_TransparentWritingMotionVec";
+        MaterialProperty doubleSidedEnable = null;
+        const string kDoubleSidedEnable = "_DoubleSidedEnable";
+        MaterialProperty blendMode = null;
+        const string kBlendMode = "_BlendMode";
+        MaterialProperty enableBlendModePreserveSpecularLighting = null;
+        const string kEnableBlendModePreserveSpecularLighting = "_EnableBlendModePreserveSpecularLighting";
+        MaterialProperty enableFogOnTransparent = null;
+        const string kEnableFogOnTransparent = "_EnableFogOnTransparent";
 
-        protected virtual SurfaceType defaultSurfaceType { get { return SurfaceType.Opaque; } }
+        // Lit properties
+        MaterialProperty doubleSidedNormalMode = null;
+        const string kDoubleSidedNormalMode = "_DoubleSidedNormalMode";
+        MaterialProperty materialID  = null;
+        const string kMaterialID = "_MaterialID";
+        MaterialProperty supportDecals = null;
+        const string kSupportDecals = "_SupportDecals";
+        MaterialProperty enableGeometricSpecularAA = null;
+        const string kEnableGeometricSpecularAA = "_EnableGeometricSpecularAA";
+        MaterialProperty specularAAScreenSpaceVariance = null;
+        const string kSpecularAAScreenSpaceVariance = "_SpecularAAScreenSpaceVariance";
+        MaterialProperty specularAAThreshold = null;
+        const string kSpecularAAThreshold = "_SpecularAAThreshold";
+        MaterialProperty transmissionEnable = null;
+        const string kTransmissionEnable = "_TransmissionEnable";
+
+        // Per pixel displacement params
+        MaterialProperty ppdMinSamples = null;
+        const string kPpdMinSamples = "_PPDMinSamples";
+        MaterialProperty ppdMaxSamples = null;
+        const string kPpdMaxSamples = "_PPDMaxSamples";
+        MaterialProperty ppdLodThreshold = null;
+        const string kPpdLodThreshold = "_PPDLodThreshold";
+        MaterialProperty ppdPrimitiveLength = null;
+        const string kPpdPrimitiveLength = "_PPDPrimitiveLength";
+        MaterialProperty ppdPrimitiveWidth = null;
+        const string kPpdPrimitiveWidth = "_PPDPrimitiveWidth";
+        MaterialProperty invPrimScale = null;
+        const string kInvPrimScale = "_InvPrimScale";
+
+        // SSR
+        protected MaterialProperty receivesSSR = null;
+        protected const string kReceivesSSR = "_ReceivesSSR";
+
+        protected MaterialProperty displacementMode = null;
+        protected const string kDisplacementMode = "_DisplacementMode";
+        protected MaterialProperty displacementLockObjectScale = null;
+        protected const string kDisplacementLockObjectScale = "_DisplacementLockObjectScale";
+        protected MaterialProperty displacementLockTilingScale = null;
+        protected const string kDisplacementLockTilingScale = "_DisplacementLockTilingScale";
+
+        protected MaterialProperty depthOffsetEnable = null;
+        protected const string kDepthOffsetEnable = "_DepthOffsetEnable";
+
+        protected MaterialProperty tessellationMode = null;
+        protected const string kTessellationMode = "_TessellationMode";
+
+        protected MaterialProperty[] heightMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightMap = "_HeightMap";
+        protected MaterialProperty[] heightAmplitude = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightAmplitude = "_HeightAmplitude";
+        protected MaterialProperty[] heightCenter = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightCenter = "_HeightCenter";
+        protected MaterialProperty[] heightPoMAmplitude = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightPoMAmplitude = "_HeightPoMAmplitude";
+        protected MaterialProperty[] heightTessCenter = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightTessCenter = "_HeightTessCenter";
+        protected MaterialProperty[] heightTessAmplitude = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightTessAmplitude = "_HeightTessAmplitude";
+        protected MaterialProperty[] heightMin = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightMin = "_HeightMin";
+        protected MaterialProperty[] heightMax = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightMax = "_HeightMax";
+        protected MaterialProperty[] heightOffset = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightOffset = "_HeightOffset";
+        protected MaterialProperty[] heightParametrization = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightParametrization = "_HeightMapParametrization";
+
+        SurfaceType defaultSurfaceType { get { return SurfaceType.Opaque; } }
 
         // start faking MaterialProperty for renderQueue
-        protected bool renderQueueHasMultipleDifferentValue
+        bool renderQueueHasMultipleDifferentValue
         {
             get
             {
@@ -133,12 +236,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         List<int> m_RenderingPassValues = new List<int>();
 
         Expandable  m_ExpandableBit;
-        Features    m_EnabledFeatures;
+        Features    m_Features;
+        int         m_LayerCount;
 
-        public SurfaceOptionUIBlock(Expandable expandableBit, Features enabledFeatures = Features.All)
+        public SurfaceOptionUIBlock(Expandable expandableBit, int layerCount = 1, Features enabledFeatures = Features.All)
         {
             m_ExpandableBit = expandableBit;
-            m_EnabledFeatures = enabledFeatures;
+            m_Features = enabledFeatures;
+            m_LayerCount = layerCount;
         }
 
         public override void LoadMaterialKeywords()
@@ -163,8 +268,57 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             enableBlendModePreserveSpecularLighting = FindProperty(kEnableBlendModePreserveSpecularLighting, false);
             enableFogOnTransparent = FindProperty(kEnableFogOnTransparent, false);
 
-            doubleSidedEnable = FindProperty(kDoubleSidedEnable, false);
+            if ((m_Features & Features.DoubleSided) != 0)
+                doubleSidedEnable = FindProperty(kDoubleSidedEnable, false);
+            
+            // Height
+            heightMap = FindPropertyLayered(kHeightMap, m_LayerCount, false);
+            heightAmplitude = FindPropertyLayered(kHeightAmplitude, m_LayerCount, false);
+            heightCenter = FindPropertyLayered(kHeightCenter, m_LayerCount, false);
+            heightPoMAmplitude = FindPropertyLayered(kHeightPoMAmplitude, m_LayerCount, false);
+            heightMin = FindPropertyLayered(kHeightMin, m_LayerCount, false);
+            heightMax = FindPropertyLayered(kHeightMax, m_LayerCount, false);
+            heightTessCenter = FindPropertyLayered(kHeightTessCenter, m_LayerCount, false);
+            heightTessAmplitude = FindPropertyLayered(kHeightTessAmplitude, m_LayerCount, false);
+            heightOffset = FindPropertyLayered(kHeightOffset, m_LayerCount, false);
+            heightParametrization = FindPropertyLayered(kHeightParametrization, m_LayerCount, false);
+
             blendMode = FindProperty(kBlendMode);
+
+            transmissionEnable = FindProperty(kTransmissionEnable);
+
+            doubleSidedNormalMode = FindProperty(kDoubleSidedNormalMode);
+            depthOffsetEnable = FindProperty(kDepthOffsetEnable);
+
+            // MaterialID
+            materialID = FindProperty(kMaterialID);
+            transmissionEnable = FindProperty(kTransmissionEnable);
+
+            displacementMode = FindProperty(kDisplacementMode);
+            displacementLockObjectScale = FindProperty(kDisplacementLockObjectScale);
+            displacementLockTilingScale = FindProperty(kDisplacementLockTilingScale);
+
+            // Per pixel displacement
+            ppdMinSamples = FindProperty(kPpdMinSamples);
+            ppdMaxSamples = FindProperty(kPpdMaxSamples);
+            ppdLodThreshold = FindProperty(kPpdLodThreshold);
+            ppdPrimitiveLength = FindProperty(kPpdPrimitiveLength);
+            ppdPrimitiveWidth  = FindProperty(kPpdPrimitiveWidth);
+            invPrimScale = FindProperty(kInvPrimScale);
+
+            // tessellation specific, silent if not found
+            tessellationMode = FindProperty(kTessellationMode, false);
+
+            // Decal
+            supportDecals = FindProperty(kSupportDecals);
+
+            // specular AA
+            enableGeometricSpecularAA = FindProperty(kEnableGeometricSpecularAA);
+            specularAAScreenSpaceVariance = FindProperty(kSpecularAAScreenSpaceVariance);
+            specularAAThreshold = FindProperty(kSpecularAAThreshold);
+
+            // SSR
+            receivesSSR = FindProperty(kReceivesSSR);
         }
 
         public override void OnGUI()
@@ -178,14 +332,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         void DrawSurfaceOptionGUI()
         {
-            if ((m_EnabledFeatures & Features.Surface) != 0)
+            if ((m_Features & Features.Surface) != 0)
                 DrawSurfaceGUI();
 
-            if ((m_EnabledFeatures & Features.DoubleSided) != 0)
+            if ((m_Features & Features.DoubleSided) != 0)
                 DrawDoubleSidedGUI();
 
-            if ((m_EnabledFeatures & Features.AlphaCutoff) != 0)
+            if ((m_Features & Features.AlphaCutoff) != 0)
                 DrawAlphaCutoffGUI();
+
+            DrawLitSurfaceOptions();
         }
 
         void DrawAlphaCutoffGUI()
@@ -196,13 +352,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (alphaCutoffEnable != null && alphaCutoffEnable.floatValue == 1.0f)
             {
                 EditorGUI.indentLevel++;
-                if ((m_EnabledFeatures & Features.AlphaCutoffThreshold) != 0)
+                if ((m_Features & Features.AlphaCutoffThreshold) != 0)
                     materialEditor.ShaderProperty(alphaCutoff, Styles.alphaCutoffText);
 
                 if (useShadowThreshold != null)
                     materialEditor.ShaderProperty(useShadowThreshold, Styles.useShadowThresholdText);
 
-                if (alphaCutoffShadow != null && useShadowThreshold != null && useShadowThreshold.floatValue == 1.0f && (m_EnabledFeatures & Features.AlphaCutoffShadowThreshold) != 0)
+                if (alphaCutoffShadow != null && useShadowThreshold != null && useShadowThreshold.floatValue == 1.0f && (m_Features & Features.AlphaCutoffShadowThreshold) != 0)
                 {
                     EditorGUI.indentLevel++;
                     materialEditor.ShaderProperty(alphaCutoffShadow, Styles.alphaCutoffShadowText);
@@ -225,7 +381,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
                 EditorGUI.indentLevel--;
             }
-
         }
 
         void DrawDoubleSidedGUI()
@@ -428,5 +583,129 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return EditorGUILayout.IntPopup(text, inputValue, m_RenderingPassNames.ToArray(), m_RenderingPassValues.ToArray());
         }
 
+        void DrawLitSurfaceOptions()
+        {
+            // This follow double sided option
+            if (doubleSidedNormalMode != null && doubleSidedEnable != null && doubleSidedEnable.floatValue > 0.0f)
+            {
+                EditorGUI.indentLevel++;
+                materialEditor.ShaderProperty(doubleSidedNormalMode, Styles.doubleSidedNormalModeText);
+                EditorGUI.indentLevel--;
+            }
+
+            if (materialID != null)
+            {
+                materialEditor.ShaderProperty(materialID, Styles.materialIDText);
+
+                if ((int)materialID.floatValue == (int)MaterialId.LitSSS)
+                {
+                    EditorGUI.indentLevel++;
+                    materialEditor.ShaderProperty(transmissionEnable, Styles.transmissionEnableText);
+                    EditorGUI.indentLevel--;
+                }
+            }
+
+            if (supportDecals != null)
+            {
+                materialEditor.ShaderProperty(supportDecals, Styles.supportDecalsText);
+            }
+
+            if (receivesSSR != null)
+            {
+                materialEditor.ShaderProperty(receivesSSR, Styles.receivesSSRText);
+            }
+
+            if (enableGeometricSpecularAA != null)
+            {
+                materialEditor.ShaderProperty(enableGeometricSpecularAA, Styles.enableGeometricSpecularAAText);
+
+                if (enableGeometricSpecularAA.floatValue > 0.0)
+                {
+                    EditorGUI.indentLevel++;
+                    materialEditor.ShaderProperty(specularAAScreenSpaceVariance, Styles.specularAAScreenSpaceVarianceText);
+                    materialEditor.ShaderProperty(specularAAThreshold, Styles.specularAAThresholdText);
+                    EditorGUI.indentLevel--;
+                }
+            }
+
+            if (displacementMode != null)
+            {
+                EditorGUI.BeginChangeCheck();
+                FilterDisplacementMode();
+                materialEditor.ShaderProperty(displacementMode, Styles.displacementModeText);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    for (int i = 0; i < m_LayerCount; i++)
+                        UpdateDisplacement(i);
+                }
+
+                if ((DisplacementMode)displacementMode.floatValue != DisplacementMode.None)
+                {
+                    EditorGUI.indentLevel++;
+                    materialEditor.ShaderProperty(displacementLockObjectScale, Styles.lockWithObjectScaleText);
+                    materialEditor.ShaderProperty(displacementLockTilingScale, Styles.lockWithTilingRateText);
+                    EditorGUI.indentLevel--;
+                }
+
+                if ((DisplacementMode)displacementMode.floatValue == DisplacementMode.Pixel)
+                {
+                    EditorGUILayout.Space();
+                    EditorGUI.indentLevel++;
+                    materialEditor.ShaderProperty(ppdMinSamples, Styles.ppdMinSamplesText);
+                    materialEditor.ShaderProperty(ppdMaxSamples, Styles.ppdMaxSamplesText);
+                    ppdMinSamples.floatValue = Mathf.Min(ppdMinSamples.floatValue, ppdMaxSamples.floatValue);
+                    materialEditor.ShaderProperty(ppdLodThreshold, Styles.ppdLodThresholdText);
+                    materialEditor.ShaderProperty(ppdPrimitiveLength, Styles.ppdPrimitiveLength);
+                    ppdPrimitiveLength.floatValue = Mathf.Max(0.01f, ppdPrimitiveLength.floatValue);
+                    materialEditor.ShaderProperty(ppdPrimitiveWidth, Styles.ppdPrimitiveWidth);
+                    ppdPrimitiveWidth.floatValue = Mathf.Max(0.01f, ppdPrimitiveWidth.floatValue);
+                    invPrimScale.vectorValue = new Vector4(1.0f / ppdPrimitiveLength.floatValue, 1.0f / ppdPrimitiveWidth.floatValue); // Precompute
+                    materialEditor.ShaderProperty(depthOffsetEnable, Styles.depthOffsetEnableText);
+                    EditorGUI.indentLevel--;
+                }
+            }
+        }
+
+        public void UpdateDisplacement(int layerIndex)
+        {
+            DisplacementMode displaceMode = (DisplacementMode)displacementMode.floatValue;
+            if (displaceMode == DisplacementMode.Pixel)
+            {
+                heightAmplitude[layerIndex].floatValue = heightPoMAmplitude[layerIndex].floatValue * 0.01f; // Conversion centimeters to meters.
+                heightCenter[layerIndex].floatValue = 1.0f; // PoM is always inward so base (0 height) is mapped to 1 in the texture
+            }
+            else
+            {
+                HeightmapParametrization parametrization = (HeightmapParametrization)heightParametrization[layerIndex].floatValue;
+                if (parametrization == HeightmapParametrization.MinMax)
+                {
+                    float offset = heightOffset[layerIndex].floatValue;
+                    float amplitude = (heightMax[layerIndex].floatValue - heightMin[layerIndex].floatValue);
+
+                    heightAmplitude[layerIndex].floatValue = amplitude * 0.01f; // Conversion centimeters to meters.
+                    heightCenter[layerIndex].floatValue = -(heightMin[layerIndex].floatValue + offset) / Mathf.Max(1e-6f, amplitude);
+                }
+                else
+                {
+                    float amplitude = heightTessAmplitude[layerIndex].floatValue;
+                    heightAmplitude[layerIndex].floatValue = amplitude * 0.01f;
+                    heightCenter[layerIndex].floatValue = -heightOffset[layerIndex].floatValue / Mathf.Max(1e-6f, amplitude) + heightTessCenter[layerIndex].floatValue;
+                }
+            }
+        }
+
+        void FilterDisplacementMode()
+        {
+            if (tessellationMode == null)
+            {
+                if ((DisplacementMode)displacementMode.floatValue == DisplacementMode.Tessellation)
+                    displacementMode.floatValue = (float)DisplacementMode.None;
+            }
+            else
+            {
+                if ((DisplacementMode)displacementMode.floatValue == DisplacementMode.Pixel || (DisplacementMode)displacementMode.floatValue == DisplacementMode.Vertex)
+                    displacementMode.floatValue = (float)DisplacementMode.None;
+            }
+        }
     }
 }

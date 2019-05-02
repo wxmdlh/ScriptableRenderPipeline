@@ -164,7 +164,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // The following set of functions are call by the ShaderGraph
         // It will allow to display our common parameters + setup keyword correctly for them
         protected abstract void FindMaterialProperties(MaterialProperty[] props);
-        protected abstract void SetupMaterialKeywordsAndPassInternal(Material material);
+        protected abstract void SetupMaterialKeywordsAndPassInternal(Material material); // TODO: remove
         protected abstract void MaterialPropertiesGUI(Material material);
         protected virtual void MaterialPropertiesAdvanceGUI(Material material) {}
         protected abstract void VertexAnimationPropertiesGUI();

@@ -171,7 +171,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (mat.shader.name == "HDRP/LayeredLit" || mat.shader.name == "HDRP/LayeredLitTessellation")
                 {
                     CoreEditorUtils.CheckOutFile(VCSEnabled, mat);
-                    LayeredLitGUI.SynchronizeAllLayers(mat);
+                    mat.SynchronizeAllLayers();
                     EditorUtility.SetDirty(mat);
                 }
             }

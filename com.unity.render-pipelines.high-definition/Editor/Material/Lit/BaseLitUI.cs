@@ -5,16 +5,6 @@ using UnityEngine.Rendering;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    public enum MaterialId
-    {
-        LitSSS = 0,
-        LitStandard = 1,
-        LitAniso = 2,
-        LitIridescence = 3,
-        LitSpecular = 4,
-        LitTranslucent = 5
-    };
-
     // A Material can be authored from the shader graph or by hand. When written by hand we need to provide an inspector.
     // Such a Material will share some properties between it various variant (shader graph variant or hand authored variant).
     // This is the purpose of BaseLitGUI. It contain all properties that are common to all Material based on Lit template.

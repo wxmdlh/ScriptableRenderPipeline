@@ -6,11 +6,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     public class HDUnlitGUI : ShaderGUI
     {
         // For surface option shader graph we only want all features but alpha threshold and shadow threshold that can be written into the master node
-        const SurfaceOptionUIBlock.Features   surfaceOptionFeatures = SurfaceOptionUIBlock.Features.All ^ (SurfaceOptionUIBlock.Features.AlphaCutoffShadowThreshold | SurfaceOptionUIBlock.Features.AlphaCutoffThreshold);
+        const SurfaceOptionUIBlock.Features   surfaceOptionFeatures = SurfaceOptionUIBlock.Features.Unlit ^ (SurfaceOptionUIBlock.Features.AlphaCutoffShadowThreshold | SurfaceOptionUIBlock.Features.AlphaCutoffThreshold);
         
-        MaterialUIBlockList uiBlocks = new MaterialUIBlockList()
+        MaterialUIBlockList uiBlocks = new MaterialUIBlockList
         {
-            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base, surfaceOptionFeatures),
+            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base, enabledFeatures: surfaceOptionFeatures),
             new ShaderGraphUIBlock(MaterialUIBlock.Expandable.ShaderGraph),
         };
 
@@ -24,7 +24,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (changed.changed)
                 {
                     foreach (var material in uiBlocks.materials)
-                        UnlitGUI.SetupMaterialKeywordsAndPass(material);
+                        material.SetupUnlitMaterialKeywordsAndPass();
                 }
             }
         }

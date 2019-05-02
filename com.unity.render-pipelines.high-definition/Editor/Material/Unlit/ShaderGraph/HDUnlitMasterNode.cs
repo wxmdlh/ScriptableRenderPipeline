@@ -104,8 +104,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
+#pragma warning disable 649
         [SerializeField, Obsolete("Kept for data migration")]
         internal bool m_DrawBeforeRefraction;
+#pragma warning restore 649
 
         [SerializeField]
         bool m_Distortion;
@@ -313,7 +315,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 // No sorting priority for shader graph preview
                 previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
                 
-                UnlitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
+                previewMaterial.SetupUnlitMaterialKeywordsAndPass();
             };
 
             // Add all shader properties required by the inspector

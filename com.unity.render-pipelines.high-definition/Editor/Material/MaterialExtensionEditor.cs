@@ -5,53 +5,28 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEngine.Rendering;
 
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    // Arf, there is another SurfaceType in ShaderGraph (AlphaMode.cs) which conflicts in HDRP shader graph files
-    public enum SurfaceType
+    // Needed for json serialization to work
+    [Serializable]
+    internal struct SerializeableGUIDs
     {
-        Opaque,
-        Transparent
+        public string[] GUIDArray;
     }
 
-    // Enum values are hardcoded for retro-compatibility. Don't change them.
-    public enum BlendMode
-    {
-        // Note: value is due to code change, don't change the value
-        Alpha = 0,
-        Premultiply = 4,
-        Additive = 1
-    }
-
-    public static class MaterialExtension
+    public static class MaterialExtensionEditor
     {
         // TODO: share these property names in HDStringConstants
-        static readonly string kAlphaCutoffEnabled = "_AlphaCutoffEnable";
-        static readonly string kSurfaceType = "_SurfaceType";
-        static readonly string kZTestGBuffer = "_ZTestGBuffer";
-        static readonly string kZTestDepthEqualForOpaque = "_ZTestDepthEqualForOpaque";
-        static readonly string kBlendMode = "_BlendMode";
-        static readonly string kEnableFogOnTransparent = "_EnableFogOnTransparent";
-        static readonly string kDistortionDepthTest = "_DistortionDepthTest";
-        static readonly string kDistortionEnable = "_DistortionEnable";
-        static readonly string kZTestModeDistortion = "_ZTestModeDistortion";
-        static readonly string kDistortionBlendMode = "_DistortionBlendMode";
-        static readonly string kTransparentWritingMotionVec = "_TransparentWritingMotionVec";
-        static readonly string kEnableBlendModePreserveSpecularLighting = "_EnableBlendModePreserveSpecularLighting";
-        static readonly string kEmissionColor = "_EmissionColor";
-        static readonly string kTransparentBackfaceEnable = "_TransparentBackfaceEnable";
-        static readonly string kDoubleSidedEnable = "_DoubleSidedEnable";
-        static readonly string kDistortionOnly = "_DistortionOnly";
-        static readonly string kTransparentDepthPrepassEnable = "_TransparentDepthPrepassEnable";
-        static readonly string kEnableMotionVectorForVertexAnimation = "_EnableMotionVectorForVertexAnimation";
-        static readonly string kTransparentDepthPostpassEnable = "_TransparentDepthPostpassEnable";
 
         public static void SetupBaseUnlitKeywords(this Material material)
         {
             bool alphaTestEnable = material.HasProperty(kAlphaCutoffEnabled) && material.GetFloat(kAlphaCutoffEnabled) > 0.0f;
             CoreUtils.SetKeyword(material, "_ALPHATEST_ON", alphaTestEnable);
 
-            SurfaceType surfaceType = material.HasProperty(kSurfaceType) ? (SurfaceType)material.GetFloat(kSurfaceType) : SurfaceType.Opaque;
+            SurfaceType surfaceType = material.GetSurfaceType();
             CoreUtils.SetKeyword(material, "_SURFACE_TYPE_TRANSPARENT", surfaceType == SurfaceType.Transparent);
 
             bool enableBlendModePreserveSpecularLighting = (surfaceType == SurfaceType.Transparent) && material.HasProperty(kEnableBlendModePreserveSpecularLighting) && material.GetFloat(kEnableBlendModePreserveSpecularLighting) > 0.0f;
@@ -102,7 +77,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 if (material.HasProperty(kBlendMode))
                 {
-                    BlendMode blendMode = (BlendMode)material.GetFloat(kBlendMode);
+                    BlendMode blendMode = material.GetBlendMode();
 
                     CoreUtils.SetKeyword(material, "_BLENDMODE_ALPHA", BlendMode.Alpha == blendMode);
                     CoreUtils.SetKeyword(material, "_BLENDMODE_ADD", BlendMode.Additive == blendMode);
@@ -342,6 +317,177 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
+        // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
+        public static void SetupUnlitMaterialKeywordsAndPass(this Material material)
+        {
+            material.SetupBaseUnlitKeywords();
+            material.SetupBaseUnlitPass();
+
+            // TODO: hardcoded constant !
+            if (material.HasProperty("_EMISSIVE_COLOR_MAP"))
+                CoreUtils.SetKeyword(material, "_EMISSIVE_COLOR_MAP", material.GetTexture(kEmissiveColorMap));
+
+            // Stencil usage rules:
+            // DoesntReceiveSSR and DecalsForwardOutputNormalBuffer need to be tagged during depth prepass
+            // LightingMask need to be tagged during either GBuffer or Forward pass
+            // ObjectVelocity need to be tagged in velocity pass.
+            // As velocity pass can be use as a replacement of depth prepass it also need to have DoesntReceiveSSR and DecalsForwardOutputNormalBuffer
+            // As GBuffer pass can have no depth prepass, it also need to have DoesntReceiveSSR and DecalsForwardOutputNormalBuffer
+            // Object velocity is always render after a full depth buffer (if there is no depth prepass for GBuffer all object motion vectors are render after GBuffer)
+            // so we have a guarantee than when we write object velocity no other object will be draw on top (and so would have require to overwrite velocity).
+            // Final combination is:
+            // Prepass: DoesntReceiveSSR,  DecalsForwardOutputNormalBuffer
+            // Motion vectors: DoesntReceiveSSR,  DecalsForwardOutputNormalBuffer, ObjectVelocity
+            // Forward: LightingMask
+
+            int stencilRef = (int)StencilLightingUsage.NoLighting;
+            int stencilWriteMask = (int)HDRenderPipeline.StencilBitMask.LightingMask;
+            int stencilRefDepth = (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
+            int stencilWriteMaskDepth = (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR | (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
+            int stencilRefMV = (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors | (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
+            int stencilWriteMaskMV = (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors | (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR | (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
+
+            // As we tag both during velocity pass and Gbuffer pass we need a separate state and we need to use the write mask
+            material.SetInt(kStencilRef, stencilRef);
+            material.SetInt(kStencilWriteMask, stencilWriteMask);
+            material.SetInt(kStencilRefDepth, stencilRefDepth);
+            material.SetInt(kStencilWriteMaskDepth, stencilWriteMaskDepth);
+            material.SetInt(kStencilRefMV, stencilRefMV);
+            material.SetInt(kStencilWriteMaskMV, stencilWriteMaskMV);
+            material.SetInt(kStencilRefDistortionVec, (int)HDRenderPipeline.StencilBitMask.DistortionVectors);
+            material.SetInt(kStencilWriteMaskDistortionVec, (int)HDRenderPipeline.StencilBitMask.DistortionVectors);
+        }
+
+        public static void SetupBaseLitKeyword(this Material material)
+        {
+            // :thinkingface:
+        }
+
         // TODO: move all other material keyword and pass setup functions here ?
+
+        // This function is call by a script to help artists to have up to date material
+        // that why it is static
+        public static void SynchronizeAllLayers(this Material material)
+        {
+            int layerCount = (int)material.GetFloat(kLayerCount);
+            AssetImporter materialImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(material.GetInstanceID()));
+
+            Material[] layers = null;
+
+            // Material importer can be null when the selected material doesn't exists as asset (Material saved inside the scene)
+            if (materialImporter != null)
+                InitializeMaterialLayers(material, ref layers);
+
+            // We could have no userData in the assets, so test if we have load something
+            if (layers != null)
+            {
+                for (int i = 0; i < layerCount; ++i)
+                {
+                    SynchronizeLayerProperties(material, layers, i, true);
+                }
+            }
+        }
+
+        public static void SynchronizeAllLayersProperties(this Material material, Material[] materialLayers, bool excludeUVMappingProperties)
+        {
+            int numLayer = material.GetLayerCount();
+            
+            for (int i = 0; i < numLayer; ++i)
+            {
+                SynchronizeLayerProperties(material, materialLayers, i, excludeUVMappingProperties);
+            }
+        }
+
+        // This function will look for all referenced lit material, and assign value from Lit to layered lit layers.
+        // This is based on the naming of the variables, i.E BaseColor will match BaseColor0, if a properties shouldn't be override
+        // put the name in the exclusionList below
+        public static void SynchronizeLayerProperties(this Material material, Material[] layers, int layerIndex, bool excludeUVMappingProperties)
+        {
+            Material layerMaterial = layers[layerIndex];
+            string[] exclusionList = { kTexWorldScale, kUVBase, kUVMappingMask, kUVDetail, kUVDetailsMappingMask };
+
+            if (layerMaterial != null)
+            {
+                Shader layerShader = layerMaterial.shader;
+                int propertyCount = ShaderUtil.GetPropertyCount(layerShader);
+                for (int i = 0; i < propertyCount; ++i)
+                {
+                    string propertyName = ShaderUtil.GetPropertyName(layerShader, i);
+                    string layerPropertyName = propertyName + layerIndex;
+
+                    if (!exclusionList.Contains(propertyName) || !excludeUVMappingProperties)
+                    {
+                        if (material.HasProperty(layerPropertyName))
+                        {
+                            ShaderUtil.ShaderPropertyType type = ShaderUtil.GetPropertyType(layerShader, i);
+                            switch (type)
+                            {
+                                case ShaderUtil.ShaderPropertyType.Color:
+                                {
+                                    material.SetColor(layerPropertyName, layerMaterial.GetColor(propertyName));
+                                    break;
+                                }
+                                case ShaderUtil.ShaderPropertyType.Float:
+                                case ShaderUtil.ShaderPropertyType.Range:
+                                {
+                                    material.SetFloat(layerPropertyName, layerMaterial.GetFloat(propertyName));
+                                    break;
+                                }
+                                case ShaderUtil.ShaderPropertyType.Vector:
+                                {
+                                    material.SetVector(layerPropertyName, layerMaterial.GetVector(propertyName));
+                                    break;
+                                }
+                                case ShaderUtil.ShaderPropertyType.TexEnv:
+                                {
+                                    material.SetTexture(layerPropertyName, layerMaterial.GetTexture(propertyName));
+                                    if (!excludeUVMappingProperties)
+                                    {
+                                        material.SetTextureOffset(layerPropertyName, layerMaterial.GetTextureOffset(propertyName));
+                                        material.SetTextureScale(layerPropertyName, layerMaterial.GetTextureScale(propertyName));
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // We use the user data to save a string that represent the referenced lit material
+        // so we can keep reference during serialization
+        public static void InitializeMaterialLayers(this Material material, ref Material[] layers)
+        {
+            AssetImporter materialImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(material.GetInstanceID()));
+
+            if (materialImporter.userData != string.Empty)
+            {
+                SerializeableGUIDs layersGUID = JsonUtility.FromJson<SerializeableGUIDs>(materialImporter.userData);
+                if (layersGUID.GUIDArray.Length > 0)
+                {
+                    layers = new Material[layersGUID.GUIDArray.Length];
+                    for (int i = 0; i < layersGUID.GUIDArray.Length; ++i)
+                    {
+                        layers[i] = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(layersGUID.GUIDArray[i]), typeof(Material)) as Material;
+                    }
+                }
+            }
+        }
+
+        public static void SaveMaterialLayers(this Material material, Material[] materialLayers)
+        {
+            AssetImporter materialImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(material.GetInstanceID()));
+
+            SerializeableGUIDs layersGUID;
+            layersGUID.GUIDArray = new string[materialLayers.Length];
+            for (int i = 0; i < materialLayers.Length; ++i)
+            {
+                if (materialLayers[i] != null)
+                    layersGUID.GUIDArray[i] = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(materialLayers[i].GetInstanceID()));
+            }
+
+            materialImporter.userData = JsonUtility.ToJson(layersGUID);
+        }
     }
 }

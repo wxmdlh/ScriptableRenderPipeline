@@ -19,7 +19,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (!m_Initialized)
             {
                 foreach (var uiBlock in this)
-                    uiBlock.Initialize(materialEditor, properties);
+                    uiBlock.Initialize(materialEditor, properties, this);
 
                 m_Materials = materialEditor.targets.Select(target => target as Material).ToArray();
 
@@ -27,6 +27,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
             foreach (var uiBlock in this)
                 uiBlock.OnGUI();
+        }
+
+        public T FetchUIBlock< T >() where T : MaterialUIBlock
+        {
+            return this.FirstOrDefault(uiBlock => uiBlock is T) as T;
         }
     }
 }
