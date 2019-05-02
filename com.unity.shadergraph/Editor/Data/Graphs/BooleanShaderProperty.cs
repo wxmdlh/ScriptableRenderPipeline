@@ -41,6 +41,12 @@ namespace UnityEditor.ShaderGraph
         {
             get { return m_Hidden; }
             set { m_Hidden = value; }
+
+        }
+
+        public override bool isRenamable
+        {
+            get { return true; }
         }
 
         public override string GetPropertyBlockString()
