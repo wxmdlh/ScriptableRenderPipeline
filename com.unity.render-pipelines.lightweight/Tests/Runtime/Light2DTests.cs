@@ -121,5 +121,22 @@ namespace UnityEngine.Rendering.LWRP.Tests
 
             Assert.IsFalse(light.IsLightVisible(camera));
         }
+
+        [Test]
+        public void DestroyingLastLightAlsoDestroysCullingGroup()
+        {
+            var light1 = m_TestObject1.AddComponent<Light2D>();
+            var light2 = m_TestObject2.AddComponent<Light2D>();
+
+            Assert.IsNotNull(Light2DManager.cullingGroup);
+
+            Object.Destroy(light2);
+
+            Assert.IsNotNull(Light2DManager.cullingGroup);
+
+            Object.Destroy(light1);
+
+            Assert.IsNull(Light2DManager.cullingGroup);
+        }
     }
 }
