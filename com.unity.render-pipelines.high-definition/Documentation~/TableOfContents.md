@@ -15,6 +15,7 @@
   * [Volume Overrides](Volume-Components)
 * Volume Overrides
   * [Diffusion Profile](Override-Diffusion-Profile)
+  * [Exposure](Override-Exposure)
   * Fog
     * [Exponential Fog](Override-Exponential-Fog)
     * [Linear Fog](Override-Linear-Fog)
@@ -45,7 +46,7 @@
   * Subsurface Scattering
     - [Subsurface Scattering Materials](Subsurface-Scattering)
     - [Diffusion Profile](Diffusion-Profile)
-  
+
   * [Decal Projector](Decal-Projector)
   * Shader List
     * [Lit Shader](Lit-Shader)
