@@ -34,6 +34,8 @@ When you create an HDRP Asset, open it in the Inspector to edit its properties.
 
 Frame Settings control the rendering passes made by the main Camera at run time. This section describes the Frame Settings that you set on an HDRP Asset. For information about general Frame Settings, and how to use them, see the [HDRP Frame Settings documentation](Frame-Settings.html). 
 
+<a name="GemeralProperties"></a>
+
 ## General
 
 | **Property**                         | **Description**                                              |
