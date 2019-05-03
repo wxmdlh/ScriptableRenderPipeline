@@ -239,10 +239,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         Features    m_Features;
         int         m_LayerCount;
 
-        public SurfaceOptionUIBlock(Expandable expandableBit, int layerCount = 1, Features enabledFeatures = Features.All)
+        public SurfaceOptionUIBlock(Expandable expandableBit, int layerCount = 1, Features features = Features.All)
         {
             m_ExpandableBit = expandableBit;
-            m_Features = enabledFeatures;
+            m_Features = features;
             m_LayerCount = layerCount;
         }
 

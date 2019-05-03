@@ -10,7 +10,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         
         MaterialUIBlockList uiBlocks = new MaterialUIBlockList
         {
-            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base, enabledFeatures: surfaceOptionFeatures),
+            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base, features: surfaceOptionFeatures),
             new ShaderGraphUIBlock(MaterialUIBlock.Expandable.ShaderGraph),
         };
 
