@@ -15,7 +15,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public enum Features
         {
             EnableEmissionForGI = 1 << 0,
-            All                 = ~0
+            SubHeader           = 1 << 1,
+            All                 = ~0 ^ SubHeader // By default we don't want to have a sub-header
         }
 
         public class Styles
@@ -55,15 +56,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         Features    m_Features;
         int         m_LayerIndex;
         int         m_LayerCount;
+        Color       m_DotColor;
 
         bool        isLayeredLit => m_LayerCount > 1;
 
-        public DetailInputsUIBlock(Expandable expandableBit, int layerCount = 1, int layerIndex = 0, Features features = Features.All)
+        public DetailInputsUIBlock(Expandable expandableBit, int layerCount = 1, int layerIndex = 0, Features features = Features.All, Color dotColor = default(Color))
         {
             m_ExpandableBit = expandableBit;
             m_Features = features;
             m_LayerIndex = layerIndex;
             m_LayerCount = layerCount;
+            m_DotColor = dotColor;
         }
 
         public override void LoadMaterialKeywords()
@@ -81,7 +84,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            bool subHeader = (m_Features & Features.SubHeader) != 0;
+
+            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, subHeader: subHeader, colorDot: m_DotColor))
             {
                 if (header.expanded)
                     DrawDetailsGUI();

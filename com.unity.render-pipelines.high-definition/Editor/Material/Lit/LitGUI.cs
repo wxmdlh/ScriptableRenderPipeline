@@ -10,10 +10,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     class LitGUI : ShaderGUI
     {
-        // protected override uint defaultExpandedState { get { return (uint)(Expandable.Base | Expandable.Input | Expandable.VertexAnimation | Expandable.Detail | Expandable.Emissive | Expandable.Transparency | Expandable.Tesselation); } }
-
-        // For lit GUI we don't display the heightmap
-        const LitSurfaceInputsUIBlock.Features litSurfaceFeatures = LitSurfaceInputsUIBlock.Features.All ^ LitSurfaceInputsUIBlock.Features.HeightMap;
+        // For lit GUI we don't display the heightmap nor layering options
+        const LitSurfaceInputsUIBlock.Features litSurfaceFeatures = LitSurfaceInputsUIBlock.Features.All ^ LitSurfaceInputsUIBlock.Features.HeightMap ^ LitSurfaceInputsUIBlock.Features.LayerOptions;
 
         MaterialUIBlockList uiBlocks = new MaterialUIBlockList
         {
@@ -38,7 +36,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (changed.changed)
                 {
                     foreach (var material in uiBlocks.materials)
-                        material.SetupUnlitMaterialKeywordsAndPass();
+                        SetupMaterialKeywordsAndPass(material);
                 }
             }
         }
@@ -1066,7 +1064,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 material.DisableKeyword("_REQUIRE_UV3");
             }
 
-            const string kTransmissionEnable = "_TransmissionEnable";
             MaterialId materialId = (MaterialId)material.GetFloat(kMaterialID);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SUBSURFACE_SCATTERING", materialId == MaterialId.LitSSS);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == MaterialId.LitTranslucent || (materialId == MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));

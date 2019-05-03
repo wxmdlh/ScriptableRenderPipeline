@@ -78,7 +78,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return null;
         }
 
-        protected MaterialProperty[] FindPropertyLayered(string propertyName, int layerCount, bool isMandatory = true) //  TODO: set isMandatory to false when shader graphs will be generated correctly
+        protected MaterialProperty[] FindPropertyLayered(string propertyName, int layerCount, bool isMandatory = false)
         {
             MaterialProperty[] properties = new MaterialProperty[layerCount];
 

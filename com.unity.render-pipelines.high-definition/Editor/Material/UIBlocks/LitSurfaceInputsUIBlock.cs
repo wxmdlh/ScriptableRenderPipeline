@@ -14,9 +14,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     {
         public enum Features
         {
-            CoatMask    = 1 << 0,
-            HeightMap   = 1 << 1,
-            All         = ~0
+            CoatMask        = 1 << 0,
+            HeightMap       = 1 << 1,
+            LayerOptions    = 1 << 2,
+            SubHeader       = 1 << 3,
+            Standard        = 1 << 4,
+            All             = ~0 ^ SubHeader // By default we don't want a sub-header
         }
 
         public class Styles
@@ -78,6 +81,18 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             
             // Clear Coat
             public static GUIContent coatMaskText = new GUIContent("Coat Mask", "Attenuate the coating effect.");
+
+            // Layer Options
+            public static readonly GUIContent layerTexWorldScaleText = EditorGUIUtility.TrTextContent("World Scale", "Sets the tiling factor of the Planar/Trilinear mapping.");
+            public static readonly GUIContent UVBlendMaskText = EditorGUIUtility.TrTextContent("BlendMask UV Mapping", "Specifies the UV Mapping mode of the layer.");
+            public static readonly GUIContent layerMapMaskText = EditorGUIUtility.TrTextContent("Layer Mask", "Specifies the Layer Mask for this Material");
+            public static readonly GUIContent vertexColorModeText = EditorGUIUtility.TrTextContent("Vertex Color Mode", "Specifies the method HDRP uses to color vertices.\nMultiply: Multiplies vertex color with the mask.\nAdditive: Remaps vertex color values between [-1, 1] and adds them to the mask (neutral value is 0.5 vertex color).");
+            public static readonly GUIContent layerCountText = EditorGUIUtility.TrTextContent("Layer Count", "Controls the number of layers for this Material.");
+            public static readonly GUIContent objectScaleAffectTileText = EditorGUIUtility.TrTextContent("Lock layers 0123 tiling with object Scale", "When enabled, tiling of each layer is affected by the Transform's Scale.");
+            public static readonly GUIContent objectScaleAffectTileText2 = EditorGUIUtility.TrTextContent("Lock layers  123 tiling with object Scale", "When enabled, tiling of each influenced layer (except the main layer) is affected by the Transform's Scale.");
+            public static readonly GUIContent useHeightBasedBlendText = EditorGUIUtility.TrTextContent("Use Height Based Blend", "When enabled, HDRP blends the layer with the underlying layer based on the height.");
+            public static readonly GUIContent useMainLayerInfluenceModeText = EditorGUIUtility.TrTextContent("Main Layer Influence", "Switches between regular layers mode and base/layers mode.");
+            public static readonly GUIContent heightTransition = EditorGUIUtility.TrTextContent("Height Transition", "Sets the size, in world units, of the smooth transition between layers.");
         }
 
         MaterialProperty[] UVBase = new MaterialProperty[kMaxLayerCount];
@@ -198,24 +213,53 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         MaterialProperty coatMaskMap = null;
         const string kCoatMaskMap = "_CoatMaskMap";
 
+        // Layer options
+        MaterialProperty layerCount = null;
+        const string kLayerCount = "_LayerCount";
+        MaterialProperty layerMaskMap = null;
+        const string kLayerMaskMap = "_LayerMaskMap";
+        MaterialProperty layerInfluenceMaskMap = null;
+        const string kLayerInfluenceMaskMap = "_LayerInfluenceMaskMap";
+        MaterialProperty vertexColorMode = null;
+        const string kVertexColorMode = "_VertexColorMode";
+        MaterialProperty objectScaleAffectTile = null;
+        const string kObjectScaleAffectTile = "_ObjectScaleAffectTile";
+        MaterialProperty UVBlendMask = null;
+        const string kUVBlendMask = "_UVBlendMask";
+        MaterialProperty UVMappingMaskBlendMask = null;
+        const string kUVMappingMaskBlendMask = "_UVMappingMaskBlendMask";
+        MaterialProperty texWorldScaleBlendMask = null;
+        const string kTexWorldScaleBlendMask = "_TexWorldScaleBlendMask";
+        MaterialProperty useMainLayerInfluence = null;
+        const string kkUseMainLayerInfluence = "_UseMainLayerInfluence";
+        MaterialProperty useHeightBasedBlend = null;
+        const string kUseHeightBasedBlend = "_UseHeightBasedBlend";
+
+        // Height blend
+        MaterialProperty heightTransition = null;
+        const string kHeightTransition = "_HeightTransition";
+
         Expandable  m_ExpandableBit;
         Features    m_Features;
         int         m_LayerCount;
         int         m_LayerIndex;
+        bool        m_UseHeightBasedBlend;
+        Color       m_DotColor;
 
         bool        isLayeredLit => m_LayerCount > 1;
 
-        public LitSurfaceInputsUIBlock(Expandable expandableBit, int layerCount = 1, int layerIndex = 0, Features features = Features.All)
+        public LitSurfaceInputsUIBlock(Expandable expandableBit, int layerCount = 1, int layerIndex = 0, Features features = Features.All, Color dotColor = default(Color))
         {
             m_ExpandableBit = expandableBit;
             m_Features = features;
             m_LayerCount = layerCount;
             m_LayerIndex = layerIndex;
+            m_DotColor = dotColor;
         }
 
         public override void LoadMaterialKeywords()
         {
-            UVBase = FindPropertyLayered(kUVBase, m_LayerCount);
+            UVBase = FindPropertyLayered(kUVBase, m_LayerCount, true);
             TexWorldScale = FindPropertyLayered(kTexWorldScale, m_LayerCount);
             InvTilingScale = FindPropertyLayered(kInvTilingScale, m_LayerCount);
             UVMappingMask = FindPropertyLayered(kUVMappingMask, m_LayerCount);
@@ -248,7 +292,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             heightOffset = FindPropertyLayered(kHeightOffset, m_LayerCount);
             heightParametrization = FindPropertyLayered(kHeightParametrization, m_LayerCount);
 
-                        // Specular Color
+            // Specular Color
             energyConservingSpecularColor = FindProperty(kEnergyConservingSpecularColor);
             specularColor = FindProperty(kSpecularColor);
             specularColorMap = FindProperty(kSpecularColorMap);
@@ -283,14 +327,36 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             materialID = FindProperty(kMaterialID);
             transmissionEnable = FindProperty(kTransmissionEnable);
+
+            // Layer options
+            layerCount = FindProperty(kLayerCount);
+            layerMaskMap = FindProperty(kLayerMaskMap);
+            layerInfluenceMaskMap = FindProperty(kLayerInfluenceMaskMap);
+            vertexColorMode = FindProperty(kVertexColorMode);
+            objectScaleAffectTile = FindProperty(kObjectScaleAffectTile);
+            UVBlendMask = FindProperty(kUVBlendMask);
+            UVMappingMaskBlendMask = FindProperty(kUVMappingMaskBlendMask);
+            texWorldScaleBlendMask = FindProperty(kTexWorldScaleBlendMask);
+            useMainLayerInfluence = FindProperty(kkUseMainLayerInfluence);
+            useHeightBasedBlend = FindProperty(kUseHeightBasedBlend);
+
+            // Height blend
+            heightTransition = FindProperty(kHeightTransition);
         }
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            bool subHeader = (m_Features & Features.SubHeader) != 0;
+
+            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, subHeader: subHeader, colorDot: m_DotColor))
             {
                 if (header.expanded)
-                    DrawSurfaceInputsGUI();
+                {
+                    if ((m_Features & Features.Standard) != 0)
+                        DrawSurfaceInputsGUI();
+                    if ((m_Features & Features.LayerOptions) != 0)
+                        DrawLayerOptionsGUI();
+                }
             }
         }
 
@@ -593,6 +659,70 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         void ShaderClearCoatInputGUI()
         {
             materialEditor.TexturePropertySingleLine(Styles.coatMaskText, coatMaskMap, coatMask);
+        }
+
+        void DrawLayerOptionsGUI()
+        {
+            EditorGUI.showMixedValue = layerCount.hasMixedValue;
+            EditorGUI.BeginChangeCheck();
+            int newLayerCount = EditorGUILayout.IntSlider(Styles.layerCountText, (int)layerCount.floatValue, 2, 4);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Material material = materialEditor.target as Material;
+                Undo.RecordObject(material, "Change layer count");
+                // Technically not needed (i think), TODO: check
+                // numLayer = newLayerCount;
+                layerCount.floatValue = (float)newLayerCount;
+            }
+
+            materialEditor.TexturePropertySingleLine(Styles.layerMapMaskText, layerMaskMap);
+
+            EditorGUI.indentLevel++;
+            materialEditor.ShaderProperty(UVBlendMask, Styles.UVBlendMaskText);
+            UVBaseMapping uvBlendMask = (UVBaseMapping)UVBlendMask.floatValue;
+
+            float X, Y, Z, W;
+            X = (uvBlendMask == UVBaseMapping.UV0) ? 1.0f : 0.0f;
+            Y = (uvBlendMask == UVBaseMapping.UV1) ? 1.0f : 0.0f;
+            Z = (uvBlendMask == UVBaseMapping.UV2) ? 1.0f : 0.0f;
+            W = (uvBlendMask == UVBaseMapping.UV3) ? 1.0f : 0.0f;
+
+            UVMappingMaskBlendMask.colorValue = new Color(X, Y, Z, W);
+
+            if (((UVBaseMapping)UVBlendMask.floatValue == UVBaseMapping.Planar) ||
+                ((UVBaseMapping)UVBlendMask.floatValue == UVBaseMapping.Triplanar))
+            {
+                materialEditor.ShaderProperty(texWorldScaleBlendMask, Styles.layerTexWorldScaleText);
+            }
+            materialEditor.TextureScaleOffsetProperty(layerMaskMap);
+            EditorGUI.indentLevel--;
+
+            materialEditor.ShaderProperty(vertexColorMode, Styles.vertexColorModeText);
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = useMainLayerInfluence.hasMixedValue;
+            bool mainLayerModeInfluenceEnable = EditorGUILayout.Toggle(Styles.useMainLayerInfluenceModeText, useMainLayerInfluence.floatValue > 0.0f);
+            if (EditorGUI.EndChangeCheck())
+            {
+                useMainLayerInfluence.floatValue = mainLayerModeInfluenceEnable ? 1.0f : 0.0f;
+            }
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = useHeightBasedBlend.hasMixedValue;
+            m_UseHeightBasedBlend = EditorGUILayout.Toggle(Styles.useHeightBasedBlendText, useHeightBasedBlend.floatValue > 0.0f);
+            if (EditorGUI.EndChangeCheck())
+            {
+                useHeightBasedBlend.floatValue = m_UseHeightBasedBlend ? 1.0f : 0.0f;
+            }
+
+            if (m_UseHeightBasedBlend)
+            {
+                EditorGUI.indentLevel++;
+                materialEditor.ShaderProperty(heightTransition, Styles.heightTransition);
+                EditorGUI.indentLevel--;
+            }
+
+            materialEditor.ShaderProperty(objectScaleAffectTile, mainLayerModeInfluenceEnable ? Styles.objectScaleAffectTileText2 : Styles.objectScaleAffectTileText);
         }
     }
 }

@@ -9,42 +9,38 @@ using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    class LayeredLitGUI : LitGUI
+    class LayeredLitGUI : ShaderGUI
     {
-        /*
-        //Be sure to start after last BaseUnlitGUI.Expandable
-        [Flags]
-        protected enum LayerExpandable : uint
-        {
-            MainLayer = 1 << 11,
-            Layer1 = 1 << 12,
-            Layer2 = 1 << 13,
-            Layer3 = 1 << 14,
-            LayeringOptionMain = 1 << 15,
-            ShowLayer1 = 1 << 16,
-            ShowLayer2 = 1 << 17,
-            ShowLayer3 = 1 << 18,
-            MaterialReferences = 1 << 19,
-            MainInput = 1 << 20,
-            Layer1Input = 1 << 21,
-            Layer2Input = 1 << 22,
-            Layer3Input = 1 << 23,
-            MainDetail = 1 << 24,
-            Layer1Detail = 1 << 25,
-            Layer2Detail = 1 << 26,
-            Layer3Detail = 1 << 27,
-            LayeringOption1 = 1 << 28,
-            LayeringOption2 = 1 << 29,
-            LayeringOption3 = 1 << 30
-        }
+        const LitSurfaceInputsUIBlock.Features commonLitSurfaceInputsFeatures = LitSurfaceInputsUIBlock.Features.LayerOptions;
+        // Layered lit shaders don't support emission (realtime or baked)
+        const EmissionUIBlock.Features emissionFeatures = EmissionUIBlock.Features.All ^ EmissionUIBlock.Features.EnableEmissionForGI;
 
-        protected override uint defaultExpandedState { get { return (uint)(Expandable.Base | Expandable.Input | Expandable.VertexAnimation | Expandable.Detail | Expandable.Emissive | Expandable.Transparency | Expandable.Other | Expandable.Tesselation) + (uint)(LayerExpandable.MaterialReferences | LayerExpandable.MainInput | LayerExpandable.MainDetail | LayerExpandable.Layer1 | LayerExpandable.Layer2 | LayerExpandable.Layer3); } }
-        
-        public enum VertexColorMode
+        MaterialUIBlockList uiBlocks = new MaterialUIBlockList
         {
-            None,
-            Multiply,
-            Add
+            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base),
+            new TessellationOptionsUIBlock(MaterialUIBlock.Expandable.Tesselation),
+            new VertexAnimationUIBlock(MaterialUIBlock.Expandable.VertexAnimation),
+            new LitSurfaceInputsUIBlock(MaterialUIBlock.Expandable.Input, kMaxLayerCount, features: commonLitSurfaceInputsFeatures),
+            new MaterialToCopyUIBlock(MaterialUIBlock.Expandable.MaterialReferences),
+            new LayersUIBlock(),
+            new EmissionUIBlock(MaterialUIBlock.Expandable.Emissive, features: emissionFeatures),
+            new AdvancedOptionsUIBlock(MaterialUIBlock.Expandable.Advance),
+        };
+
+        public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
+        {
+            using (var changed = new EditorGUI.ChangeCheckScope())
+            {
+                // Some logic to disable the transparency block if we're opaque:
+                uiBlocks.OnGUI(materialEditor, props);
+
+                // Apply material keywords and pass:
+                if (changed.changed)
+                {
+                    foreach (var material in uiBlocks.materials)
+                        SetupMaterialKeywordsAndPass(material);
+                }
+            }
         }
 
         private class StylesLayer
@@ -134,12 +130,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public LayeredLitGUI()
         {
-            m_LayerCount = 4;
-            m_PropertySuffixes[0] = "0";
-            m_PropertySuffixes[1] = "1";
-            m_PropertySuffixes[2] = "2";
-            m_PropertySuffixes[3] = "3";
-
             m_WithUV = new bool[]{ true, true, true, true };
         }
 
@@ -185,6 +175,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         bool m_UseHeightBasedBlend;
 
+        /*
         protected override void FindMaterialProperties(MaterialProperty[] props)
         {
             base.FindMaterialLayerProperties(props);
@@ -615,12 +606,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected override bool ShouldEmissionBeEnabled(Material material)
         {
             return (material.GetColor(kEmissiveColor) != Color.black) || material.GetTexture(kEmissiveColorMap);
-        }
-
-        protected override void SetupMaterialKeywordsAndPassInternal(Material material)
-        {
-            SetupMaterialKeywordsAndPass(material);
-        }
+        }*/
 
         static public void SetupLayersMappingKeywords(Material material)
         {
@@ -699,11 +685,180 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
+        // TODO: cleanup
+        protected MaterialProperty[] UVBase = new MaterialProperty[kMaxLayerCount];
+        protected const string kUVBase = "_UVBase";
+        protected MaterialProperty[] TexWorldScale = new MaterialProperty[kMaxLayerCount];
+        protected const string kTexWorldScale = "_TexWorldScale";
+        protected MaterialProperty[] InvTilingScale = new MaterialProperty[kMaxLayerCount];
+        protected const string kInvTilingScale = "_InvTilingScale";
+        protected MaterialProperty[] UVMappingMask = new MaterialProperty[kMaxLayerCount];
+        protected const string kUVMappingMask = "_UVMappingMask";
+
+        protected MaterialProperty[] baseColor = new MaterialProperty[kMaxLayerCount];
+        protected const string kBaseColor = "_BaseColor";
+        protected MaterialProperty[] baseColorMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kBaseColorMap = "_BaseColorMap";
+        protected MaterialProperty[] metallic = new MaterialProperty[kMaxLayerCount];
+        protected const string kMetallic = "_Metallic";
+        protected MaterialProperty[] smoothness = new MaterialProperty[kMaxLayerCount];
+        protected const string kSmoothness = "_Smoothness";
+        protected MaterialProperty[] smoothnessRemapMin = new MaterialProperty[kMaxLayerCount];
+        protected const string kSmoothnessRemapMin = "_SmoothnessRemapMin";
+        protected MaterialProperty[] smoothnessRemapMax = new MaterialProperty[kMaxLayerCount];
+        protected const string kSmoothnessRemapMax = "_SmoothnessRemapMax";
+        protected MaterialProperty[] aoRemapMin = new MaterialProperty[kMaxLayerCount];
+        protected const string kAORemapMin = "_AORemapMin";
+        protected MaterialProperty[] aoRemapMax = new MaterialProperty[kMaxLayerCount];
+        protected const string kAORemapMax = "_AORemapMax";
+        protected MaterialProperty[] maskMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kMaskMap = "_MaskMap";
+        protected MaterialProperty[] normalScale = new MaterialProperty[kMaxLayerCount];
+        protected const string kNormalScale = "_NormalScale";
+        protected MaterialProperty[] normalMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kNormalMap = "_NormalMap";
+        protected MaterialProperty[] normalMapOS = new MaterialProperty[kMaxLayerCount];
+        protected const string kNormalMapOS = "_NormalMapOS";
+        protected MaterialProperty[] bentNormalMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kBentNormalMap = "_BentNormalMap";
+        protected MaterialProperty[] bentNormalMapOS = new MaterialProperty[kMaxLayerCount];
+        protected const string kBentNormalMapOS = "_BentNormalMapOS";
+        protected MaterialProperty[] normalMapSpace = new MaterialProperty[kMaxLayerCount];
+        protected const string kNormalMapSpace = "_NormalMapSpace";
+
+        protected MaterialProperty[] heightMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightMap = "_HeightMap";
+        protected MaterialProperty[] heightAmplitude = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightAmplitude = "_HeightAmplitude";
+        protected MaterialProperty[] heightCenter = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightCenter = "_HeightCenter";
+        protected MaterialProperty[] heightPoMAmplitude = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightPoMAmplitude = "_HeightPoMAmplitude";
+        protected MaterialProperty[] heightTessCenter = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightTessCenter = "_HeightTessCenter";
+        protected MaterialProperty[] heightTessAmplitude = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightTessAmplitude = "_HeightTessAmplitude";
+        protected MaterialProperty[] heightMin = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightMin = "_HeightMin";
+        protected MaterialProperty[] heightMax = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightMax = "_HeightMax";
+        protected MaterialProperty[] heightOffset = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightOffset = "_HeightOffset";
+        protected MaterialProperty[] heightParametrization = new MaterialProperty[kMaxLayerCount];
+        protected const string kHeightParametrization = "_HeightMapParametrization";
+
+        protected MaterialProperty[] diffusionProfileHash = new MaterialProperty[kMaxLayerCount];
+        protected const string kDiffusionProfileHash = "_DiffusionProfileHash";
+        protected MaterialProperty[] diffusionProfileAsset = new MaterialProperty[kMaxLayerCount];
+        protected const string kDiffusionProfileAsset = "_DiffusionProfileAsset";
+        protected MaterialProperty[] subsurfaceMask = new MaterialProperty[kMaxLayerCount];
+        protected const string kSubsurfaceMask = "_SubsurfaceMask";
+        protected MaterialProperty[] subsurfaceMaskMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kSubsurfaceMaskMap = "_SubsurfaceMaskMap";
+        protected MaterialProperty[] thickness = new MaterialProperty[kMaxLayerCount];
+        protected const string kThickness = "_Thickness";
+        protected MaterialProperty[] thicknessMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kThicknessMap = "_ThicknessMap";
+        protected MaterialProperty[] thicknessRemap = new MaterialProperty[kMaxLayerCount];
+        protected const string kThicknessRemap = "_ThicknessRemap";
+
+        protected MaterialProperty[] UVDetail = new MaterialProperty[kMaxLayerCount];
+        protected const string kUVDetail = "_UVDetail";
+        protected MaterialProperty[] UVDetailsMappingMask = new MaterialProperty[kMaxLayerCount];
+        protected const string kUVDetailsMappingMask = "_UVDetailsMappingMask";
+        protected MaterialProperty[] detailMap = new MaterialProperty[kMaxLayerCount];
+        protected const string kDetailMap = "_DetailMap";
+        protected MaterialProperty[] linkDetailsWithBase = new MaterialProperty[kMaxLayerCount];
+        protected const string kLinkDetailsWithBase = "_LinkDetailsWithBase";
+        protected MaterialProperty[] detailAlbedoScale = new MaterialProperty[kMaxLayerCount];
+        protected const string kDetailAlbedoScale = "_DetailAlbedoScale";
+        protected MaterialProperty[] detailNormalScale = new MaterialProperty[kMaxLayerCount];
+        protected const string kDetailNormalScale = "_DetailNormalScale";
+        protected MaterialProperty[] detailSmoothnessScale = new MaterialProperty[kMaxLayerCount];
+        protected const string kDetailSmoothnessScale = "_DetailSmoothnessScale";
+
+        protected MaterialProperty energyConservingSpecularColor = null;
+        protected const string kEnergyConservingSpecularColor = "_EnergyConservingSpecularColor";
+        protected MaterialProperty specularColor = null;
+        protected const string kSpecularColor = "_SpecularColor";
+        protected MaterialProperty specularColorMap = null;
+        protected const string kSpecularColorMap = "_SpecularColorMap";
+
+        protected MaterialProperty tangentMap = null;
+        protected const string kTangentMap = "_TangentMap";
+        protected MaterialProperty tangentMapOS = null;
+        protected const string kTangentMapOS = "_TangentMapOS";
+        protected MaterialProperty anisotropy = null;
+        protected const string kAnisotropy = "_Anisotropy";
+        protected MaterialProperty anisotropyMap = null;
+        protected const string kAnisotropyMap = "_AnisotropyMap";
+
+        protected MaterialProperty iridescenceMask = null;
+        protected const string kIridescenceMask = "_IridescenceMask";
+        protected MaterialProperty iridescenceMaskMap = null;
+        protected const string kIridescenceMaskMap = "_IridescenceMaskMap";
+        protected MaterialProperty iridescenceThickness = null;
+        protected const string kIridescenceThickness = "_IridescenceThickness";
+        protected MaterialProperty iridescenceThicknessMap = null;
+        protected const string kIridescenceThicknessMap = "_IridescenceThicknessMap";
+        protected MaterialProperty iridescenceThicknessRemap = null;
+        protected const string kIridescenceThicknessRemap = "_IridescenceThicknessRemap";
+
+        protected MaterialProperty coatMask = null;
+        protected const string kCoatMask = "_CoatMask";
+        protected MaterialProperty coatMaskMap = null;
+        protected const string kCoatMaskMap = "_CoatMaskMap";
+
+        protected MaterialProperty emissiveColorMode = null;
+        protected const string kEmissiveColorMode = "_EmissiveColorMode";
+        protected MaterialProperty emissiveColor = null;
+        protected const string kEmissiveColor = "_EmissiveColor";
+        protected MaterialProperty emissiveColorMap = null;
+        protected const string kEmissiveColorMap = "_EmissiveColorMap";
+        protected MaterialProperty albedoAffectEmissive = null;
+        protected const string kAlbedoAffectEmissive = "_AlbedoAffectEmissive";
+        protected MaterialProperty UVEmissive = null;
+        protected const string kUVEmissive = "_UVEmissive";
+        protected MaterialProperty TexWorldScaleEmissive = null;
+        protected const string kTexWorldScaleEmissive = "_TexWorldScaleEmissive";
+        protected MaterialProperty UVMappingMaskEmissive = null;
+        protected const string kUVMappingMaskEmissive = "_UVMappingMaskEmissive";
+        protected MaterialProperty emissiveIntensity = null;
+        protected const string kEmissiveIntensity = "_EmissiveIntensity";
+        protected MaterialProperty emissiveColorLDR = null;
+        protected const string kEmissiveColorLDR = "_EmissiveColorLDR";
+        protected MaterialProperty emissiveIntensityUnit = null;
+        protected const string kEmissiveIntensityUnit = "_EmissiveIntensityUnit";
+        protected MaterialProperty emissiveExposureWeight = null;
+        protected const string kemissiveExposureWeight = "_EmissiveExposureWeight";
+        protected MaterialProperty useEmissiveIntensity = null;
+        protected const string kUseEmissiveIntensity = "_UseEmissiveIntensity";
+
+        protected MaterialProperty enableSpecularOcclusion = null;
+        protected const string kEnableSpecularOcclusion = "_EnableSpecularOcclusion";
+
+        // transparency params
+        protected MaterialProperty ior = null;
+        protected const string kIor = "_Ior";
+        protected MaterialProperty transmittanceColor = null;
+        protected const string kTransmittanceColor = "_TransmittanceColor";
+        protected MaterialProperty transmittanceColorMap = null;
+        protected const string kTransmittanceColorMap = "_TransmittanceColorMap";
+        protected MaterialProperty atDistance = null;
+        protected const string kATDistance = "_ATDistance";
+        protected MaterialProperty thicknessMultiplier = null;
+        protected const string kThicknessMultiplier = "_ThicknessMultiplier";
+        protected MaterialProperty refractionModel = null;
+        protected const string kRefractionModel = "_RefractionModel";
+        protected MaterialProperty ssrefractionProjectionModel = null;
+        protected const string kSSRefractionProjectionModel = "_SSRefractionProjectionModel";
+ 
+
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
-        static new public void SetupMaterialKeywordsAndPass(Material material)
+        static public void SetupMaterialKeywordsAndPass(Material material)
         {
-            SetupBaseLitKeywords(material);
-            SetupBaseLitMaterialPass(material);
+            BaseLitGUI.SetupBaseLitKeywords(material);
+            BaseLitGUI.SetupBaseLitMaterialPass(material);
             SetupLayersMappingKeywords(material);
 
             for (int i = 0; i < kMaxLayerCount; ++i)
@@ -774,6 +929,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == MaterialId.LitTranslucent || (materialId == MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));
         }
 
+
+/*
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
             FindBaseMaterialProperties(props);

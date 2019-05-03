@@ -10,19 +10,6 @@ using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    public class UnlitMaterial : Material
-    {
-        public UnlitMaterial(Shader shader) : base(shader)
-        {
-
-        }
-
-        public UnlitMaterial(Material material) : base(material)
-        {
-
-        }
-    }
-
     public class MaterialToCopyUIBlock : MaterialUIBlock
     {
         public class Styles
@@ -33,20 +20,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static readonly GUIContent uvHeader = EditorGUIUtility.TrTextContent("UV", "Also copy UV.");
             public static readonly GUIContent copyButtonIcon = EditorGUIUtility.IconContent("d_UnityEditor.ConsoleWindow", "Copy Material parameters to layer. If UV is disabled, this will not copy UV.");
 
+            // TODO: material constant
             public static readonly GUIContent[] layerLabels =
             {
                 new GUIContent("Main layer"),
                 new GUIContent("Layer 1"),
                 new GUIContent("Layer 2"),
                 new GUIContent("Layer 3"),
-            };
-
-            public static readonly Color[] layerColors =
-            {
-                Color.white,
-                Color.red,
-                Color.green,
-                Color.blue
             };
         }
 
@@ -177,7 +157,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                     
                     colorRect.width = 30f;
-                    GUI.contentColor = Styles.layerColors[layerIndex];
+                    GUI.contentColor = kLayerColors[layerIndex];
                     EditorGUI.LabelField(colorRect, "■");
                     GUI.contentColor = originalContentColor;
                     
@@ -207,7 +187,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 foreach (var mat in materials)
                 {
                     // TODO
-                    // SetupMaterialKeywordsAndPassInternal(mat);
+                    LayeredLitGUI.SetupMaterialKeywordsAndPass(mat);
                 }
 
                 // SaveAssetsProcessor the referenced material in the users data

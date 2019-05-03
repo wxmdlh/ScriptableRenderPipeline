@@ -12,6 +12,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public enum Features
         {
             EnableEmissionForGI = 1 << 0,
+            MultiplyWithBase    = 1 << 1,
             All                 = ~0
         }
 
@@ -51,6 +52,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         const string kTexWorldScaleEmissive = "_TexWorldScaleEmissive";
         MaterialProperty UVMappingMaskEmissive = null;
         const string kUVMappingMaskEmissive = "_UVMappingMaskEmissive";
+        MaterialProperty albedoAffectEmissive = null;
+        const string kAlbedoAffectEmissive = "_AlbedoAffectEmissive";
 
         Expandable  m_ExpandableBit;
         Features    m_Features;
@@ -70,6 +73,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             emissiveExposureWeight = FindProperty(kEmissiveExposureWeight);
             emissiveColorLDR = FindProperty(kEmissiveColorLDR);
             useEmissiveIntensity = FindProperty(kUseEmissiveIntensity);
+            albedoAffectEmissive = FindProperty(kAlbedoAffectEmissive);
         }
 
         public override void OnGUI()
@@ -122,6 +126,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
 
             materialEditor.ShaderProperty(emissiveExposureWeight, Styles.emissiveExposureWeightText);
+
+            if ((m_Features & Features.MultiplyWithBase) != 0)
+                materialEditor.ShaderProperty(albedoAffectEmissive, Styles.albedoAffectEmissiveText);
 
             // Emission for GI?
             if ((m_Features & Features.EnableEmissionForGI) != 0)

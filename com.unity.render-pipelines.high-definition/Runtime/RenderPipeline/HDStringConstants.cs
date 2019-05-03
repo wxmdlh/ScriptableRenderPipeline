@@ -721,6 +721,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public const string kSurfaceType = "_SurfaceType";
         public const string kMaterialID = "_MaterialID";
+        public const string kTransmissionEnable = "_TransmissionEnable";
 
         public const string kLayerCount = "_LayerCount";
         
@@ -750,5 +751,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public const string kUVMappingMask = "_UVMappingMask";
         public const string kUVDetail = "_UVDetail";
         public const string kUVDetailsMappingMask = "_UVDetailsMappingMask";
+    
+        public static readonly Color[] kLayerColors =
+        {
+            Color.white,
+            Color.red,
+            Color.green,
+            Color.blue
+        };
     }
 }
