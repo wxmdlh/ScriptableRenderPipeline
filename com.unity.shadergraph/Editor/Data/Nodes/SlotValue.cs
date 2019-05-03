@@ -23,7 +23,7 @@ namespace UnityEditor.ShaderGraph
         Vector2,
         Vector1,
         Dynamic,
-        Boolean,
+        Boolean
     }
 
     enum ConcreteSlotValueType

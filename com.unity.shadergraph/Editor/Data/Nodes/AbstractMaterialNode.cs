@@ -320,10 +320,10 @@ namespace UnityEditor.ShaderGraph
                 var edges = owner.GetEdges(inputSlot.slotReference).ToList();
                 if (!edges.Any())
                 {
-                    if (inputSlot is DynamicVectorMaterialSlot dvSlot)
-                        skippedDynamicSlots.Add(dvSlot);
-                    if (inputSlot is DynamicMatrixMaterialSlot dmSlot)
-                        skippedDynamicMatrixSlots.Add(dmSlot);
+                    if (inputSlot is DynamicVectorMaterialSlot)
+                        skippedDynamicSlots.Add(inputSlot as DynamicVectorMaterialSlot);
+                    if (inputSlot is DynamicMatrixMaterialSlot)
+                        skippedDynamicMatrixSlots.Add(inputSlot as DynamicMatrixMaterialSlot);
                     continue;
                 }
 
@@ -347,13 +347,15 @@ namespace UnityEditor.ShaderGraph
                 // dynamic input... depends on output from other node.
                 // we need to compare ALL dynamic inputs to make sure they
                 // are compatible.
-                if (inputSlot is DynamicVectorMaterialSlot dVecSlot)
+                if (inputSlot is DynamicVectorMaterialSlot)
                 {
-                    dynamicInputSlotsToCompare.Add(dVecSlot, outputConcreteType);
+                    dynamicInputSlotsToCompare.Add((DynamicVectorMaterialSlot)inputSlot, outputConcreteType);
+                    continue;
                 }
-                else if (inputSlot is DynamicMatrixMaterialSlot dMatrixSlot)
+                else if (inputSlot is DynamicMatrixMaterialSlot)
                 {
-                    dynamicMatrixInputSlotsToCompare.Add(dMatrixSlot, outputConcreteType);
+                    dynamicMatrixInputSlotsToCompare.Add((DynamicMatrixMaterialSlot)inputSlot, outputConcreteType);
+                    continue;
                 }
             }
 
@@ -392,14 +394,15 @@ namespace UnityEditor.ShaderGraph
                     continue;
                 }
 
-                switch (outputSlot)
+                if (outputSlot is DynamicVectorMaterialSlot)
                 {
-                    case DynamicVectorMaterialSlot slot:
-                        slot.SetConcreteType(dynamicType);
-                        continue;
-                    case DynamicMatrixMaterialSlot materialSlot:
-                        materialSlot.SetConcreteType(dynamicMatrixType);
-                        continue;
+                    (outputSlot as DynamicVectorMaterialSlot).SetConcreteType(dynamicType);
+                    continue;
+                }
+                else if (outputSlot is DynamicMatrixMaterialSlot)
+                {
+                    (outputSlot as DynamicMatrixMaterialSlot).SetConcreteType(dynamicMatrixType);
+                    continue;
                 }
             }
 
@@ -412,7 +415,7 @@ namespace UnityEditor.ShaderGraph
 
             if (isInError)
             {
-                owner.AddValidationError(tempId, errorMessage);
+                ((GraphData) owner).AddValidationError(tempId, errorMessage);
             }
             else
             {

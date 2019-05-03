@@ -209,8 +209,8 @@ namespace UnityEditor.ShaderGraph
         {
             get
             {
-                // node and graph respectively
-                if (owner?.owner == null)
+                // node and graph respectivly
+                if (owner == null || owner.owner == null)
                     return false;
 
                 var graph = owner.owner;
@@ -259,13 +259,14 @@ namespace UnityEditor.ShaderGraph
 
         public virtual string GetDefaultValue(GenerationMode generationMode)
         {
-            if (owner == null)
-                throw new Exception($"Slot {this} either has no owner, or the owner is not a {typeof(AbstractMaterialNode)}");
+            var matOwner = owner as AbstractMaterialNode;
+            if (matOwner == null)
+                throw new Exception(string.Format("Slot {0} either has no owner, or the owner is not a {1}", this, typeof(AbstractMaterialNode)));
 
             if (generationMode.IsPreview())
-                return owner.GetVariableNameForSlot(id);
+                return matOwner.GetVariableNameForSlot(id);
 
-            return ConcreteSlotValueAsVariable(owner.precision);
+            return ConcreteSlotValueAsVariable(matOwner.precision);
         }
 
         protected virtual string ConcreteSlotValueAsVariable(AbstractMaterialNode.OutputPrecision precision)

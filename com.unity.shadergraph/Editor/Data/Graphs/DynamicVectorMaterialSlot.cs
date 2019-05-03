@@ -112,8 +112,9 @@ namespace UnityEditor.ShaderGraph
                     property = new Vector1ShaderProperty();
                     break;
                 default:
-                    // This shouldn't happen due to edge validation. But if it does,
-                    // just ignore it. Asserting here doesn't help anybody.
+                    // This shouldn't happen due to edge validation. The generated shader will
+                    // have errors.
+                    Debug.LogError($"Invalid value type {concreteValueType} passed to Vector Slot {displayName}. Value will be ignored, please plug in an edge with a vector type.");
                     return;
             }
 

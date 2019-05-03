@@ -1,8 +1,5 @@
 {
   "dependencies": {
-    "com.unity.ide.rider": "1.0.4",
-    "com.unity.ide.visualstudio": "1.0.5",
-    "com.unity.ide.vscode": "1.0.4",
     "com.unity.render-pipelines.core": "file:../../../com.unity.render-pipelines.core",
     "com.unity.render-pipelines.lightweight": "file:../../../com.unity.render-pipelines.lightweight",
     "com.unity.shadergraph": "file:../../../com.unity.shadergraph",
