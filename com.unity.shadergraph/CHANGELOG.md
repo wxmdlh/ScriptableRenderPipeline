@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - When you rapidly perform an undo or redo, Shader Graph windows no longer break.
 - Sub Graphs that contain references to non-existing Sub Graphs no longer break the Sub Graph Importer.
 - You can now reference sub-assets such as Textures.
+- You can no longer directly connect slots with invalid types, and when the graph detects that situation it gives a good error instead of breaking.
 
 ## [6.6.0] - 2019-04-01
 ### Added
