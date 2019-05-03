@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 #if UNITY_EDITOR
 using UnityEditor.Experimental.SceneManagement;
-using UnityEngine.Serialization;
 #endif
 
 namespace UnityEngine.Experimental.Rendering.LWRP
@@ -49,7 +49,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             }
         }
 
-        Light2DManager()
+        internal Light2DManager()
         {
             m_PrevInstance = s_Instance;
             s_Instance = this;
@@ -153,7 +153,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         /// <summary>
         /// The lights current operation index
         /// </summary>
-        public int blendStyleIndex => m_BlendStyleIndex;
+        public int blendStyleIndex { get => m_BlendStyleIndex; set => m_BlendStyleIndex = value; }
 
         /// <summary>
         /// The lights current color
@@ -193,7 +193,9 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         public float falloffIntensity => m_FalloffIntensity;
         public bool useNormalMap => m_UseNormalMap;
         public bool alphaBlendOnOverlap => m_AlphaBlendOnOverlap;
-        public int lightOrder => m_LightOrder;
+        public int lightOrder { get => m_LightOrder; set => m_LightOrder = value; }
+
+        internal int lightCullingIndex => m_LightCullingIndex;
 
 #if UNITY_EDITOR
         public static string s_IconsPath = "Packages/com.unity.render-pipelines.lightweight/Editor/2D/Resources/SceneViewIcons/";
@@ -205,7 +207,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         public static string[] s_LightIconPaths = new string[] { s_ParametricLightIconPath, s_FreeformLightIconPath, s_SpriteLightIconPath, s_PointLightIconPath, s_GlobalLightIconPath };
 #endif
 
-        static void SetupCulling(Camera camera)
+        internal static void SetupCulling(Camera camera)
         {
             if (Light2DManager.cullingGroup == null)
                 return;
@@ -401,7 +403,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             GetMesh();
         }
 
-        private void OnEnable()
+        void OnEnable()
         {
             // This has to stay in OnEnable() because we need to re-initialize the static variables after a domain reload.
             if (Light2DManager.cullingGroup == null)
