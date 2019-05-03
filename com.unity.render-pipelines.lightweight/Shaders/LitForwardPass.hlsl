@@ -23,11 +23,11 @@ struct Varyings
 #endif
 
 #ifdef _NORMALMAP
-    half4 normalWS                  : TEXCOORD3;    // xyz: normal, w: viewDir.x
+    float4 normalWS                  : TEXCOORD3;    // xyz: normal, w: viewDir.x
     half4 tangentWS                 : TEXCOORD4;    // xyz: tangent, w: viewDir.y
     half4 bitangentWS                : TEXCOORD5;    // xyz: bitangent, w: viewDir.z
 #else
-    half3 normalWS                  : TEXCOORD3;
+    float3 normalWS                  : TEXCOORD3;
     half3 viewDirWS                 : TEXCOORD4;
 #endif
 
