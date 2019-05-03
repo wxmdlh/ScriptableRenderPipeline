@@ -94,7 +94,7 @@ void InitializeInputData(Varyings IN, half3 normalTS, out InputData input)
 
 #ifndef TERRAIN_SPLAT_BASEPASS
 
-void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout half4 splatControl, out half weight, out half4 mixedDiffuse, inout half3 mixedNormal)
+void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout half4 splatControl, out half weight, out half4 mixedDiffuse, out half4 defaultSmoothness, inout half3 mixedNormal)
 {
     half4 diffAlbedo[4];
     
@@ -102,6 +102,8 @@ void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout h
     diffAlbedo[1] = SAMPLE_TEXTURE2D(_Splat1, sampler_Splat0, uvSplat01.zw);
     diffAlbedo[2] = SAMPLE_TEXTURE2D(_Splat2, sampler_Splat0, uvSplat23.xy);
     diffAlbedo[3] = SAMPLE_TEXTURE2D(_Splat3, sampler_Splat0, uvSplat23.zw);
+    
+    defaultSmoothness = half4(diffAlbedo[0].a, diffAlbedo[1].a, diffAlbedo[2].a, diffAlbedo[3].a);
     
 #ifndef _TERRAIN_BLEND_HEIGHT
     // 20.0 is the number of steps in inputAlphaMask (Density mask. We decided 20 empirically)
@@ -275,6 +277,7 @@ half4 SplatmapFragment(Varyings IN) : SV_TARGET
     half4 splatControl;
     half weight;
     half4 mixedDiffuse;
+    half4 defaultSmoothness;
     
     half4 masks[4];
     splatControl = SAMPLE_TEXTURE2D(_Control, sampler_Control, IN.uvMainAndLM.xy);
@@ -288,18 +291,20 @@ half4 SplatmapFragment(Varyings IN) : SV_TARGET
     #ifdef _TERRAIN_BLEND_HEIGHT
     HeightBasedSplatModify(splatControl, masks);
     #endif  
-
-#else
-    masks[0] = half4(1.0h, 1.0h, 1.0h, 1.0h);
-    masks[1] = half4(1.0h, 1.0h, 1.0h, 1.0h);
-    masks[2] = half4(1.0h, 1.0h, 1.0h, 1.0h);
-    masks[3] = half4(1.0h, 1.0h, 1.0h, 1.0h);
+    
 #endif
 
-    SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, normalTS);
+    SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, defaultSmoothness, normalTS);
     half3 albedo = mixedDiffuse.rgb;
     
-    half4 defaultSmoothness = half4(_Smoothness0, _Smoothness1, _Smoothness2, _Smoothness3);
+#ifndef _MASKMAP
+    masks[0] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.r);
+    masks[1] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.g);
+    masks[2] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.b);
+    masks[3] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.a);
+#endif
+    
+    defaultSmoothness = half4(_Smoothness0, _Smoothness1, _Smoothness2, _Smoothness3);
     defaultSmoothness *= half4(masks[0].a, masks[1].a, masks[2].a, masks[3].a);
     defaultSmoothness *= half4(_MaskMapRemapScale0.a, _MaskMapRemapScale1.a, _MaskMapRemapScale2.a, _MaskMapRemapScale3.a);
     defaultSmoothness += half4(_MaskMapRemapOffset0.a, _MaskMapRemapOffset1.a, _MaskMapRemapOffset2.a, _MaskMapRemapOffset3.a);

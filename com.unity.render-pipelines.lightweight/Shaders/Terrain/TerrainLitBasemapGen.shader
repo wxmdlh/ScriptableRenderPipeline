@@ -86,6 +86,7 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Basemap Gen)"
                 half4 splatControl;
                 half weight;
                 half4 mixedDiffuse = 0.0h;
+                half4 defaultSmoothness = 0.0h;
     
                 half4 masks[4];
                 splatControl = SAMPLE_TEXTURE2D(_Control, sampler_Control, IN.uvMainAndLM.xy);
@@ -98,18 +99,20 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Basemap Gen)"
                 
             #ifdef _TERRAIN_BLEND_HEIGHT
                 HeightBasedSplatModify(splatControl, masks);
-            #endif                
-                
-            #else
-                masks[0] = half4(1.0h, 1.0h, 0.0h, mixedDiffuse.a);
-                masks[1] = half4(1.0h, 1.0h, 0.0h, mixedDiffuse.a);
-                masks[2] = half4(1.0h, 1.0h, 0.0h, mixedDiffuse.a);
-                masks[3] = half4(1.0h, 1.0h, 0.0h, mixedDiffuse.a);
             #endif
-            
-                SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, normalTS);
-            
-                half4 defaultSmoothness = half4(_Smoothness0, _Smoothness1, _Smoothness2, _Smoothness3);
+
+            #endif    
+          
+                SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, defaultSmoothness, normalTS);
+                
+            #ifndef _MASKMAP
+                masks[0] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.r);
+                masks[1] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.g);
+                masks[2] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.b);
+                masks[3] = half4(1.0h, 1.0h, 1.0h, defaultSmoothness.a);
+            #endif
+                   
+                defaultSmoothness = half4(_Smoothness0, _Smoothness1, _Smoothness2, _Smoothness3);
                 defaultSmoothness *= half4(masks[0].a, masks[1].a, masks[2].a, masks[3].a);
                 defaultSmoothness *= half4(_MaskMapRemapScale0.a, _MaskMapRemapScale1.a, _MaskMapRemapScale2.a, _MaskMapRemapScale3.a);
                 defaultSmoothness += half4(_MaskMapRemapOffset0.a, _MaskMapRemapOffset1.a, _MaskMapRemapOffset2.a, _MaskMapRemapOffset3.a);
@@ -161,6 +164,7 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Basemap Gen)"
                 half4 splatControl;
                 half weight;
                 half4 mixedDiffuse;
+                half4 defaultSmoothness;
     
                 half4 masks[4];
                 splatControl = SAMPLE_TEXTURE2D(_Control, sampler_Control, IN.uvMainAndLM.xy);
@@ -175,12 +179,12 @@ Shader "Hidden/Lightweight Render Pipeline/Terrain/Lit (Basemap Gen)"
                 HeightBasedSplatModify(splatControl, masks);
             #endif  
             #else
-                masks[0] = half4(1.0h, 1.0h, 0.0h, 0.0h);
-                masks[1] = half4(1.0h, 1.0h, 0.0h, 0.0h);
-                masks[2] = half4(1.0h, 1.0h, 0.0h, 0.0h);
-                masks[3] = half4(1.0h, 1.0h, 0.0h, 0.0h);
+                masks[0] = half4(1.0h, 1.0h, 1.0h, 0.0h);
+                masks[1] = half4(1.0h, 1.0h, 1.0h, 0.0h);
+                masks[2] = half4(1.0h, 1.0h, 1.0h, 0.0h);
+                masks[3] = half4(1.0h, 1.0h, 1.0h, 0.0h);
             #endif
-                SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, normalTS);
+                SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, defaultSmoothness, normalTS);
             
                 half4 defaultMetallic = half4(_Metallic0, _Metallic1, _Metallic2, _Metallic3);
                 defaultMetallic *= half4(masks[0].r, masks[1].r, masks[2].r, masks[3].r);
