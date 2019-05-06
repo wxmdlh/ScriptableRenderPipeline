@@ -422,21 +422,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         }
 
         [SerializeField]
-        int m_SortPriority;
-
-        public int sortPriority
-        {
-            get { return m_SortPriority; }
-            set
-            {
-                if (m_SortPriority == value)
-                    return;
-                m_SortPriority = value;
-                Dirty(ModificationScope.Graph);
-            }
-        }
-
-        [SerializeField]
         DoubleSidedMode m_DoubleSidedMode;
 
         public DoubleSidedMode doubleSidedMode

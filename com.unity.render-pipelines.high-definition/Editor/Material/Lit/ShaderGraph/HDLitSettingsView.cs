@@ -15,8 +15,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
     {
         HDLitMasterNode m_Node;
 
-        IntegerField m_SortPiorityField;
-
         Label CreateLabel(string text, int indentLevel)
         {
             string label = "";
@@ -48,6 +46,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                 case SurfaceType.Opaque:
                     ps.Add(new PropertyRow(CreateLabel("Rendering Pass", indentLevel)), (row) =>
                     {
+                        var valueList = HDSubShaderUtilities.GetRenderingPassList(true, false);
+
+                        row.Add(new PopupField<HDRenderQueue.RenderQueueType>(valueList, HDRenderQueue.RenderQueueType.Opaque, HDSubShaderUtilities.RenderQueueName, HDSubShaderUtilities.RenderQueueName), (field) =>
+                        {
+                            field.value = HDRenderQueue.GetOpaqueEquivalent(m_Node.renderingPass);
+                            field.RegisterValueChangedCallback(ChangeRenderingPass);
+                        });
                     });
                     break;
                 case SurfaceType.Transparent:
@@ -64,6 +69,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                                 defaultValue = HDRenderQueue.TransparentRenderQueue.BeforeRefraction;
                                 break;
                         }
+
+                        var valueList = HDSubShaderUtilities.GetRenderingPassList(false, false);
+
+                        row.Add(new PopupField<HDRenderQueue.RenderQueueType>(valueList, HDRenderQueue.RenderQueueType.Transparent, HDSubShaderUtilities.RenderQueueName, HDSubShaderUtilities.RenderQueueName), (field) =>
+                        {
+                            field.value = HDRenderQueue.GetTransparentEquivalent(m_Node.renderingPass);
+                            field.RegisterValueChangedCallback(ChangeRenderingPass);
+                        });
                     });
                     break;
                 default:
@@ -97,16 +110,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                     });
                     --indentLevel;
                 }
-
-                m_SortPiorityField = new IntegerField();
-                ps.Add(new PropertyRow(CreateLabel("Sorting Priority", indentLevel)), (row) =>
-                {
-                    row.Add(m_SortPiorityField, (field) =>
-                    {
-                        field.value = m_Node.sortPriority;
-                        field.RegisterValueChangedCallback(ChangeSortPriority);
-                    });
-                });
 
                 ps.Add(new PropertyRow(CreateLabel("Receive Fog", indentLevel)), (row) =>
                 {
@@ -474,17 +477,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
             ToggleData td = m_Node.backThenFrontRendering;
             td.isOn = evt.newValue;
             m_Node.backThenFrontRendering = td;
-        }
-
-        void ChangeSortPriority(ChangeEvent<int> evt)
-        {
-            m_Node.sortPriority = HDRenderQueue.ClampsTransparentRangePriority(evt.newValue);
-            // Force the text to match.
-            m_SortPiorityField.value = m_Node.sortPriority;
-            if (Equals(m_Node.sortPriority, evt.newValue))
-                return;
-
-            m_Node.owner.owner.RegisterCompleteObjectUndo("Sort Priority Change");
         }
 
         void ChangeAlphaTest(ChangeEvent<bool> evt)
