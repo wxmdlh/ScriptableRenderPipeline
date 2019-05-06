@@ -10,9 +10,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [Flags]
         public enum Features
         {
+            None                    = 0,
             MotionVector            = 1 << 0,
             EmissionGI              = 1 << 1,
             DiffusionProfileAsset   = 1 << 2,
+            EnableInstancing        = 1 << 3,
+            DoubleSidedGI           = 1 << 4,
             Unlit                   = MotionVector | EmissionGI,
             All                     = ~0,
         }
@@ -44,16 +47,37 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         void DrawShaderGraphGUI()
         {
-            materialEditor.PropertiesDefaultGUI(properties);
+            // Filter out properties we don't want to draw:
+            PropertiesDefaultGUI(properties);
+
+            if ((m_Features & Features.DiffusionProfileAsset) != 0)
+                DrawDiffusionProfileUI();
+
+            if ((m_Features & Features.EnableInstancing) != 0)
+                materialEditor.EnableInstancingField();
+
+            if ((m_Features & Features.DoubleSidedGI) != 0)
+                materialEditor.DoubleSidedGIField();
 
             if ((m_Features & Features.EmissionGI) != 0)
                 DrawEmissionGI();
 
             if ((m_Features & Features.MotionVector) != 0)
                 DrawMotionVectorToggle();
+        }
 
-            if ((m_Features & Features.DiffusionProfileAsset) != 0)
-                DrawDiffusionProfileUI();
+        void PropertiesDefaultGUI(MaterialProperty[] properties)
+        {
+            for (var i = 0; i < properties.Length - 2; i++)
+            {
+                if ((properties[i].flags & (MaterialProperty.PropFlags.HideInInspector | MaterialProperty.PropFlags.PerRendererData)) != 0)
+                    continue;
+
+                float h = materialEditor.GetPropertyHeight(properties[i], properties[i].displayName);
+                Rect r = EditorGUILayout.GetControlRect(true, h, EditorStyles.layerMaskField);
+
+                materialEditor.ShaderProperty(r, properties[i], properties[i].displayName);
+            }
         }
 
         void DrawEmissionGI()

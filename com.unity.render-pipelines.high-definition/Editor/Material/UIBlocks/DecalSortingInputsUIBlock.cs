@@ -14,6 +14,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [Flags]
         public enum Features
         {
+            None        = 0,
             Distortion  = 1 << 0,
             Refraction  = 1 << 1,
             All         = ~0

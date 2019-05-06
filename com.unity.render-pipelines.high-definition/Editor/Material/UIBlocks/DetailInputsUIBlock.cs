@@ -14,6 +14,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [Flags]
         public enum Features
         {
+            None                = 0,
             EnableEmissionForGI = 1 << 0,
             SubHeader           = 1 << 1,
             All                 = ~0 ^ SubHeader // By default we don't want to have a sub-header

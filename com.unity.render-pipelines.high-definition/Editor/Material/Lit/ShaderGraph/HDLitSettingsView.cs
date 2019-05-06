@@ -15,6 +15,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
     {
         HDLitMasterNode m_Node;
 
+        IntegerField m_SortPriorityField;
+
         Label CreateLabel(string text, int indentLevel)
         {
             string label = "";
@@ -110,6 +112,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                     });
                     --indentLevel;
                 }
+
+                m_SortPriorityField = new IntegerField();
+                ps.Add(new PropertyRow(CreateLabel("Sorting Priority", indentLevel)), (row) =>
+                {
+                    row.Add(m_SortPriorityField, (field) =>
+                    {
+                        field.value = m_Node.sortPriority;
+                        field.RegisterValueChangedCallback(ChangeSortPriority);
+                    });
+                });
 
                 ps.Add(new PropertyRow(CreateLabel("Receive Fog", indentLevel)), (row) =>
                 {
@@ -479,6 +491,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
             m_Node.backThenFrontRendering = td;
         }
 
+        void ChangeSortPriority(ChangeEvent<int> evt)
+        {
+            m_Node.sortPriority = HDRenderQueue.ClampsTransparentRangePriority(evt.newValue);
+            // Force the text to match.
+            m_SortPriorityField.value = m_Node.sortPriority;
+            if (Equals(m_Node.sortPriority, evt.newValue))
+                return;
+
+            m_Node.owner.owner.RegisterCompleteObjectUndo("Sort Priority Change");
+        }
+
         void ChangeAlphaTest(ChangeEvent<bool> evt)
         {
             m_Node.owner.owner.RegisterCompleteObjectUndo("Alpha Test Change");
@@ -597,7 +620,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                         Debug.LogWarning("Not supported: " + alphaModeLit);
                         return AlphaMode.Alpha;
                     }
-
             }
         }
 

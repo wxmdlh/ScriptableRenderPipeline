@@ -14,6 +14,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     {
         public enum Features
         {
+            None            = 0,
             CoatMask        = 1 << 0,
             HeightMap       = 1 << 1,
             LayerOptions    = 1 << 2,

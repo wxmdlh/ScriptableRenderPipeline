@@ -98,6 +98,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                     });
                 });
 
+                m_SortPiorityField = new IntegerField();
+                ps.Add(new PropertyRow(CreateLabel("Sorting Priority", indentLevel)), (row) =>
+                {
+                    row.Add(m_SortPiorityField, (field) =>
+                    {
+                        field.value = m_Node.sortPriority;
+                        field.RegisterValueChangedCallback(ChangeSortPriority);
+                    });
+                });
+
                 ps.Add(new PropertyRow(CreateLabel("Receive Fog", indentLevel)), (row) =>
                 {
                     row.Add(new Toggle(), (toggle) =>
@@ -277,6 +287,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
             ToggleData td = m_Node.distortionDepthTest;
             td.isOn = evt.newValue;
             m_Node.distortionDepthTest = td;
+        }
+
+        void ChangeSortPriority(ChangeEvent<int> evt)
+        {
+            m_Node.sortPriority = HDRenderQueue.ClampsTransparentRangePriority(evt.newValue);
+            // Force the text to match.
+            m_SortPiorityField.value = m_Node.sortPriority;
+            if (Equals(m_Node.sortPriority, evt.newValue))
+                return;
+
+            m_Node.owner.owner.RegisterCompleteObjectUndo("Sort Priority Change");
         }
 
         void ChangeAlphaTest(ChangeEvent<bool> evt)

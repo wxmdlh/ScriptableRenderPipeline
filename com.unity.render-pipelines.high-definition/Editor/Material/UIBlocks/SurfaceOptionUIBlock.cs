@@ -13,6 +13,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [Flags]
         public enum Features
         {
+            None                        = 0,
             Surface                     = 1 << 0,
             BlendMode                   = 1 << 1,
             DoubleSided                 = 1 << 2,
@@ -448,11 +449,23 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             if (surfaceType == null)
                 return;
-
+                
+            // TODO: does not work with multi-selection
             Material material = materialEditor.target as Material;
+
             var mode = (SurfaceType)surfaceType.floatValue;
             var renderQueueType = HDRenderQueue.GetTypeByRenderQueueValue(material.renderQueue);
             bool alphaTest = material.HasProperty(kAlphaCutoffEnabled) && material.GetFloat(kAlphaCutoffEnabled) > 0.0f;
+            
+            // Shader graph only property, used to transfer the render queue from the shader graph to the material,
+            // because we can't use the renderqueue from the shader as we have to keep the renderqueue on the material side.
+            if (material.HasProperty("_RenderQueueType"))
+            {
+                renderQueueType = (HDRenderQueue.RenderQueueType)material.GetFloat("_RenderQueueType");
+            }
+            // To know if we need to update the renderqueue, mainly happens if a material is created from a shader graph shader
+            // with default render-states.
+            bool renderQueueTypeMismatchRenderQueue = HDRenderQueue.GetTypeByRenderQueueValue(material.renderQueue) != renderQueueType;
 
             EditorGUI.showMixedValue = surfaceType.hasMixedValue;
             var newMode = (SurfaceType)EditorGUILayout.Popup(Styles.surfaceTypeText, (int)mode, Styles.surfaceTypeNames);
@@ -485,7 +498,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     //GetOpaqueEquivalent: prevent issue when switching surface type
                     HDRenderQueue.OpaqueRenderQueue renderQueueOpaqueType = HDRenderQueue.ConvertToOpaqueRenderQueue(HDRenderQueue.GetOpaqueEquivalent(renderQueueType));
                     var newRenderQueueOpaqueType = (HDRenderQueue.OpaqueRenderQueue)DoOpaqueRenderingPassPopup(Styles.renderingPassText, (int)renderQueueOpaqueType, showAfterPostProcessPass);
-                    if (newRenderQueueOpaqueType != renderQueueOpaqueType) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
+                    if (newRenderQueueOpaqueType != renderQueueOpaqueType || renderQueueTypeMismatchRenderQueue) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
                     {
                         materialEditor.RegisterPropertyChangeUndo("Rendering Pass");
                         renderQueueType = HDRenderQueue.ConvertFromOpaqueRenderQueue(newRenderQueueOpaqueType);
@@ -496,7 +509,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     //GetTransparentEquivalent: prevent issue when switching surface type
                     HDRenderQueue.TransparentRenderQueue renderQueueTransparentType = HDRenderQueue.ConvertToTransparentRenderQueue(HDRenderQueue.GetTransparentEquivalent(renderQueueType));
                     var newRenderQueueTransparentType = (HDRenderQueue.TransparentRenderQueue)DoTransparentRenderingPassPopup(Styles.renderingPassText, (int)renderQueueTransparentType, showPreRefractionPass, showLowResolutionPass, showAfterPostProcessPass);
-                    if (newRenderQueueTransparentType != renderQueueTransparentType) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
+                    if (newRenderQueueTransparentType != renderQueueTransparentType || renderQueueTypeMismatchRenderQueue) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
                     {
                         materialEditor.RegisterPropertyChangeUndo("Rendering Pass");
                         renderQueueType = HDRenderQueue.ConvertFromTransparentRenderQueue(newRenderQueueTransparentType);
@@ -508,6 +521,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
             --EditorGUI.indentLevel;
             EditorGUI.showMixedValue = false;
+        
+            if (material.HasProperty("_RenderQueueType"))
+                material.SetFloat("_RenderQueueType", (float)renderQueueType);
         }
 
         void BlendModePopup()

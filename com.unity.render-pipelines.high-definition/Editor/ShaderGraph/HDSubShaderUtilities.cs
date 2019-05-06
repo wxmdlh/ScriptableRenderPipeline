@@ -521,7 +521,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 return false;
             }
 
-            bool debugOutput = false;
+            bool debugOutput = true;
 
             // grab all of the active nodes (for pixel and vertex graphs)
             var vertexNodes = ListPool<AbstractMaterialNode>.Get();
@@ -1058,7 +1058,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddIntProperty("_StencilWriteMaskDistortionVec", 64); // StencilBitMask.DistortionVectors
         }
 
-        public static void AddBlendingStatesShaderProperties(PropertyCollector collector, SurfaceType surface, BlendMode blend)
+        public static void AddBlendingStatesShaderProperties(PropertyCollector collector, SurfaceType surface, BlendMode blend, int sortingPriority)
         {
             collector.AddFloatProperty("_SurfaceType", (int)surface);
             collector.AddFloatProperty("_BlendMode", (int)blend);
@@ -1071,35 +1071,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddFloatProperty("_ZWrite", 1.0f);
             collector.AddFloatProperty("_CullMode", 2.0f);
             collector.AddIntProperty("_ZTestModeDistortion", 8);
-        }
-
-        public static void AddDistortionShaderProperties(PropertyCollector collector)
-        {
-            collector.AddShaderProperty(new TextureShaderProperty{
-                overrideReferenceName = "DistortionVectorMap",
-                defaultType = TextureShaderProperty.DefaultType.Black
-            });
-
-            collector.AddToggleProperty("_DistortionEnable", "Enable Distortion", false);
-            collector.AddToggleProperty("_DistortionOnly", "Distortion Only", false);
-            collector.AddToggleProperty("_DistortionDepthTest", "Distortion Depth Test Enable", true);
-            collector.AddShaderProperty(new EnumShaderProperty{
-                overrideReferenceName = "_DistortionBlendMode",
-                displayName = "Distortion Blend Mode",
-                hidden = true,
-                enumNames = {"Add", "Multiply", "Replace"},
-            });
-            collector.AddIntProperty("_DistortionSrcBlend", 0);
-            collector.AddIntProperty("_DistortionDstBlend", 0);
-            collector.AddIntProperty("_DistortionBlurSrcBlend", 0);
-            collector.AddIntProperty("_DistortionBlurDstBlend", 0);
-            collector.AddIntProperty("_DistortionBlurBlendMode", 0);
-            collector.AddFloatProperty("_DistortionScale", "Distortion Scale", 1);
-            collector.AddFloatProperty("_DistortionVectorScale", "Distortion Vector Scale", 2);
-            collector.AddFloatProperty("_DistortionVectorBias", "Distortion Vector Bias", -1);
-            collector.AddFloatProperty("_DistortionBlurScale", "Distortion Blur Scale", 1);
-            collector.AddFloatProperty("_DistortionBlurRemapMin", "DistortionBlurRemapMin", 0.0f);
-            collector.AddFloatProperty("_DistortionBlurRemapMax", "DistortionBlurRemapMax", 1.0f);
+            collector.AddIntProperty("_TransparentSortPriority", sortingPriority);
         }
 
         public static void AddAlphaCutoffShaderProperties(PropertyCollector collector)

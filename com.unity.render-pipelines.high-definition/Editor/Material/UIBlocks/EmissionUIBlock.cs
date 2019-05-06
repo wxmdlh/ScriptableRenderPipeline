@@ -11,6 +11,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [Flags]
         public enum Features
         {
+            None                = 0,
             EnableEmissionForGI = 1 << 0,
             MultiplyWithBase    = 1 << 1,
             All                 = ~0

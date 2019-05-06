@@ -13,7 +13,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     /// </summary>
     class TerrainLitGUI : HDShaderGUI, ITerrainLayerCustomUI
     {
-        const SurfaceOptionUIBlock.Features surfaceOptionFeatures =  SurfaceOptionUIBlock.Features.Unlit;
+        const SurfaceOptionUIBlock.Features surfaceOptionFeatures = SurfaceOptionUIBlock.Features.Unlit;
 
         [Flags]
         enum Expandable
@@ -137,7 +137,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             BaseLitGUI.SetupBaseLitKeywords(material);
             BaseLitGUI.SetupBaseLitMaterialPass(material);
 
-            // TODO: planar/triplannar supprt
+            // TODO: planar/triplannar support
             //SetupLayersMappingKeywords(material);
 
             bool enableHeightBlend = material.HasProperty(kEnableHeightBlend) && material.GetFloat(kEnableHeightBlend) > 0;

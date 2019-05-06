@@ -297,6 +297,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 value = new Color(1.0f, 1.0f, 1.0f, 1.0f)
             });
 
+            // ShaderGraph only property used to send the RenderQueueType to the material
+            collector.AddShaderProperty(new Vector1ShaderProperty
+            {
+                overrideReferenceName = "_RenderQueueType",
+                hidden = true,
+                value = (int)renderingPass,
+            });
+
             // Hack to apply HDRP material keywords on preview material
             HackedPreview.OnCompiled = (Material previewMaterial) => {
                 // Fixup the material settings:
@@ -320,11 +328,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // Add all shader properties required by the inspector
             HDSubShaderUtilities.AddStencilShaderProperties(collector);
-            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, (BlendMode)alphaMode); // TODO: AlphaMode != BlendMode
-
-            // Currently we don't want distotions to be changed on a per-material basis
-            // HDSubShaderUtilities.AddDistortionShaderProperties(collector);
-            HDSubShaderUtilities.AddAlphaCutoffShaderProperties(collector);
+            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, (BlendMode)alphaMode, sortPriority); // TODO: AlphaMode != BlendMode
 
             base.CollectShaderProperties(collector, generationMode);
         }

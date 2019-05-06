@@ -10,6 +10,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [Flags]
         public enum Features
         {
+            None                = 0,
             Instancing          = 1 << 0,
             SpecularOcclusion   = 1 << 1,
             All                 = ~0

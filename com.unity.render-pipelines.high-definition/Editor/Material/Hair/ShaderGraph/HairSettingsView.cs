@@ -15,7 +15,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
     {
         HairMasterNode m_Node;
 
-        IntegerField m_SortPiorityField;
+        IntegerField m_SortPriorityField;
 
         Label CreateLabel(string text, int indentLevel)
         {
@@ -55,10 +55,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                     });
                 });
 
-                m_SortPiorityField = new IntegerField();
+                m_SortPriorityField = new IntegerField();
                 ps.Add(new PropertyRow(CreateLabel("Sorting Priority", indentLevel)), (row) =>
                 {
-                    row.Add(m_SortPiorityField, (field) =>
+                    row.Add(m_SortPriorityField, (field) =>
                     {
                         field.value = m_Node.sortPriority;
                         field.RegisterValueChangedCallback(ChangeSortPriority);
@@ -269,7 +269,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
         {
             m_Node.sortPriority = HDRenderQueue.ClampsTransparentRangePriority(evt.newValue);
             // Force the text to match.
-            m_SortPiorityField.value = m_Node.sortPriority;
+            m_SortPriorityField.value = m_Node.sortPriority;
             if (Equals(m_Node.sortPriority, evt.newValue))
                 return;
 
