@@ -41,6 +41,11 @@ namespace UnityEditor.ShaderGraph
             get { return true; }
         }
 
+        public override bool isRenamable
+        {
+            get { return true; }
+        }
+
         [SerializeField]
         private EnumType m_EnumType = EnumType.Enum;
 
