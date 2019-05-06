@@ -677,7 +677,9 @@ namespace UnityEditor.Experimental.Rendering.LWRP
                     break;
             }
 
-            EditorGUILayout.PropertyField(m_AlphaBlendOnOverlap, Styles.generalLightOverlapMode);
+            if(m_LightType.intValue != (int)Light2D.LightType.Global)
+                EditorGUILayout.PropertyField(m_AlphaBlendOnOverlap, Styles.generalLightOverlapMode);
+
             EditorGUILayout.PropertyField(m_LightOrder, Styles.generalLightOrder);
 
             EditorGUI.BeginChangeCheck();
