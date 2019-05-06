@@ -30,7 +30,7 @@ public class LWGraphicsTests
         
         Scene scene = SceneManager.GetActiveScene();
 
-        if (scene.name.Substring(3, 4).Equals("_xr_"))
+        if (scene.name.Substring(3, 4).Equals("_xr_") || scene.name.Substring(16, 4).Equals("_xr_"))
         {
             Assume.That((Application.platform != RuntimePlatform.OSXEditor && Application.platform != RuntimePlatform.OSXPlayer), "Stereo LWRP tests do not run on MacOSX.");
             
