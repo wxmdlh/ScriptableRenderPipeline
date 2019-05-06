@@ -4,6 +4,9 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 using System.Linq;
 
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class TessellationOptionsUIBlock : MaterialUIBlock
@@ -40,7 +43,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         MaterialProperty tessellationBackFaceCullEpsilon = null;
         const string kTessellationBackFaceCullEpsilon = "_TessellationBackFaceCullEpsilon";
         MaterialProperty doubleSidedEnable = null;
-        const string kDoubleSidedEnable = "_DoubleSidedEnable";
 
         Expandable m_ExpandableBit;
 
@@ -49,7 +51,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_ExpandableBit = expandableBit;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             doubleSidedEnable = FindProperty(kDoubleSidedEnable, false);
 
@@ -69,7 +71,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (tessellationMode == null)
                 return ;
 
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                 {

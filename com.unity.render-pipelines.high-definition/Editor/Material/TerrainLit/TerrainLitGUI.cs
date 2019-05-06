@@ -1,12 +1,55 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System;
+
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    class TerrainLitGUI : LitGUI
+    /// <summary>
+    /// GUI for HDRP Terrain Lit materials (does not include ShaderGraphs)
+    /// </summary>
+    class TerrainLitGUI : HDShaderGUI, ITerrainLayerCustomUI
     {
-       /* protected override uint defaultExpandedState { get { return (uint)(Expandable.Input | Expandable.Other | Expandable.Advance); } }
+        const SurfaceOptionUIBlock.Features surfaceOptionFeatures =  SurfaceOptionUIBlock.Features.Unlit;
+
+        [Flags]
+        enum Expandable
+        {
+            Terrain     = 1 << 0,
+        }
+
+        MaterialUIBlockList uiBlocks = new MaterialUIBlockList
+        {
+            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base, features: surfaceOptionFeatures),
+            new AdvancedOptionsUIBlock(MaterialUIBlock.Expandable.Advance, AdvancedOptionsUIBlock.Features.Instancing),
+        };
+
+        public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
+        {
+            FindMaterialProperties(props);
+            using (var changed = new EditorGUI.ChangeCheckScope())
+            {
+                uiBlocks.Initialize(materialEditor, props);
+                uiBlocks.FetchUIBlock< SurfaceOptionUIBlock >().UpdateMaterialProperties(props);
+                uiBlocks.FetchUIBlock< SurfaceOptionUIBlock >().OnGUI();
+                
+                // TODO: move the terrain UI to a MaterialUIBlock to clarify the code
+                DrawTerrainGUI(materialEditor);
+
+                uiBlocks.FetchUIBlock< SurfaceOptionUIBlock >().UpdateMaterialProperties(props);
+                uiBlocks.FetchUIBlock< AdvancedOptionsUIBlock >().OnGUI();
+
+                // Apply material keywords and pass:
+                if (changed.changed)
+                {
+                    foreach (var material in uiBlocks.materials)
+                        SetupMaterialKeywordsAndPass(material);
+                }
+            }
+        }
 
         private class StylesLayer
         {
@@ -56,7 +99,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // Custom fields
         List<MaterialProperty> customProperties = new List<MaterialProperty>();
 
-        protected override void FindMaterialProperties(MaterialProperty[] props)
+        protected void FindMaterialProperties(MaterialProperty[] props)
         {
             customProperties.Clear();
             foreach (var prop in props)
@@ -70,16 +113,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 else if ((prop.flags & (MaterialProperty.PropFlags.HideInInspector | MaterialProperty.PropFlags.PerRendererData)) == 0)
                     customProperties.Add(prop);
             }
-        }
-
-        protected override bool ShouldEmissionBeEnabled(Material mat)
-        {
-            return false;
-        }
-
-        protected override void SetupMaterialKeywordsAndPassInternal(Material material)
-        {
-            SetupMaterialKeywordsAndPass(material);
         }
 
         static public void SetupLayersMappingKeywords(Material material)
@@ -99,10 +132,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         }
 
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
-        static new public void SetupMaterialKeywordsAndPass(Material material)
+        static public void SetupMaterialKeywordsAndPass(Material material)
         {
-            SetupBaseLitKeywords(material);
-            SetupBaseLitMaterialPass(material);
+            BaseLitGUI.SetupBaseLitKeywords(material);
+            BaseLitGUI.SetupBaseLitMaterialPass(material);
 
             // TODO: planar/triplannar supprt
             //SetupLayersMappingKeywords(material);
@@ -114,41 +147,36 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             CoreUtils.SetKeyword(material, "_TERRAIN_INSTANCED_PERPIXEL_NORMAL", enableInstancedPerPixelNormal);
         }
 
-        protected override void MaterialPropertiesGUI(Material material)
+        protected void DrawTerrainGUI(MaterialEditor materialEditor)
         {
             // Don't draw the header if we have empty content
             if (enableHeightBlend == null && enableInstancedPerPixelNormal == null && customProperties.Count == 0)
                 return;
 
-            using (var header = new HeaderScope(styles.terrainText, (uint)Expandable.Other, this))
+            using (var header = new MaterialHeaderScope(styles.terrainText, (uint)Expandable.Terrain, materialEditor))
             {
                 if (header.expanded)
                 {
                     if (enableHeightBlend != null)
                     {
-                        m_MaterialEditor.ShaderProperty(enableHeightBlend, styles.enableHeightBlend);
+                        materialEditor.ShaderProperty(enableHeightBlend, styles.enableHeightBlend);
                         if (enableHeightBlend.floatValue > 0)
                         {
                             EditorGUI.indentLevel++;
-                            m_MaterialEditor.ShaderProperty(heightTransition, styles.heightTransition);
+                            materialEditor.ShaderProperty(heightTransition, styles.heightTransition);
                             EditorGUI.indentLevel--;
                         }
                     }
                     if (enableInstancedPerPixelNormal != null)
                     {
-                        EditorGUI.BeginDisabledGroup(!m_MaterialEditor.IsInstancingEnabled());
-                        m_MaterialEditor.ShaderProperty(enableInstancedPerPixelNormal, styles.enableInstancedPerPixelNormal);
+                        EditorGUI.BeginDisabledGroup(!materialEditor.IsInstancingEnabled());
+                        materialEditor.ShaderProperty(enableInstancedPerPixelNormal, styles.enableInstancedPerPixelNormal);
                         EditorGUI.EndDisabledGroup();
                     }
                     foreach (var prop in customProperties)
-                        m_MaterialEditor.ShaderProperty(prop, prop.displayName);
+                        materialEditor.ShaderProperty(prop, prop.displayName);
                 }
             }
-        }
-
-        protected override void MaterialPropertiesAdvanceGUI(Material material)
-        {
-            // do nothing
         }
 
         private bool m_ShowChannelRemapping = false;
@@ -306,6 +334,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             TerrainLayerUtility.TilingSettingsUI(terrainLayer);
 
             return true;
-        }*/
+        }
+
+        protected override void SetupMaterialKeywordsAndPassInternal(Material material) => SetupMaterialKeywordsAndPass(material);
     }
 } // namespace UnityEditor

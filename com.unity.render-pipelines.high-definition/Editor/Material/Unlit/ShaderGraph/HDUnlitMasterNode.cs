@@ -315,7 +315,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 // No sorting priority for shader graph preview
                 previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
                 
-                previewMaterial.SetupUnlitMaterialKeywordsAndPass();
+                UnlitGUI.SetupUnlitMaterialKeywordsAndPass(previewMaterial);
             };
 
             // Add all shader properties required by the inspector

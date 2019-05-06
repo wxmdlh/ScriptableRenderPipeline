@@ -56,12 +56,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public void         Initialize(MaterialEditor materialEditor, MaterialProperty[] properties, MaterialUIBlockList parent)
         {
             this.materialEditor = materialEditor;
-            this.properties = properties;
             this.parent = parent;
             materials = materialEditor.targets.Select(target => target as Material).ToArray();
 
+            // We should always register the key used to keep collapsable state
             materialEditor.InitExpandableState();
-            LoadMaterialKeywords();
+        }
+
+        public void         UpdateMaterialProperties(MaterialProperty[] properties)
+        {
+            this.properties = properties;
+            LoadMaterialProperties();
         }
 
         protected MaterialProperty FindProperty(string propertyName, bool isMandatory = false)
@@ -69,6 +74,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // ShaderGUI.FindProperty is a protected member of ShaderGUI so we can't call it here:
             // return ShaderGUI.FindProperty(propertyName, properties, isMandatory);
 
+            // TODO: move this to a map
             foreach (var prop in properties)
                 if (prop.name == propertyName)
                     return prop;
@@ -99,60 +105,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return parent.FetchUIBlock< T >();
         }
         
-        public abstract void LoadMaterialKeywords();
+        public abstract void LoadMaterialProperties();
         public abstract void OnGUI();
-
-        // TODO: move this to another file
-        protected struct HeaderScope : IDisposable
-        {
-            public readonly bool expanded;
-            private bool spaceAtEnd;
-
-            public HeaderScope(string title, uint bitExpanded, MaterialEditor materialEditor, bool spaceAtEnd = true, Color colorDot = default(Color), bool subHeader = false)
-            {
-                bool beforeExpended = materialEditor.GetExpandedAreas(bitExpanded);
-
-                this.spaceAtEnd = spaceAtEnd;
-                if (!subHeader)
-                    CoreEditorUtils.DrawSplitter();
-                GUILayout.BeginVertical();
-
-                bool saveChangeState = GUI.changed;
-                if (colorDot != default(Color))
-                    title = "   " + title;
-                expanded = subHeader
-                    ? CoreEditorUtils.DrawSubHeaderFoldout(title, beforeExpended)
-                    : CoreEditorUtils.DrawHeaderFoldout(title, beforeExpended);
-                if (colorDot != default(Color))
-                {
-                    Color previousColor = GUI.contentColor;
-                    GUI.contentColor = colorDot;
-                    Rect headerRect = GUILayoutUtility.GetLastRect();
-                    headerRect.xMin += 16f;
-                    EditorGUI.LabelField(headerRect, "■");
-                    GUI.contentColor = previousColor;
-                }
-                if (expanded ^ beforeExpended)
-                {
-                    materialEditor.SetExpandedAreas((uint)bitExpanded, expanded);
-                    saveChangeState = true;
-                }
-                GUI.changed = saveChangeState;
-
-                if (expanded)
-                    ++EditorGUI.indentLevel;
-            }
-
-            void IDisposable.Dispose()
-            {
-                if (expanded)
-                {
-                    if (spaceAtEnd && (Event.current.type == EventType.Repaint || Event.current.type == EventType.Layout))
-                        EditorGUILayout.Space();
-                    --EditorGUI.indentLevel;
-                }
-                GUILayout.EndVertical();
-            }
-        }
     }
 }

@@ -54,7 +54,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_LayerIndex = layerIndex;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             useMainLayerInfluence = FindProperty(kkUseMainLayerInfluence);
             layerInfluenceMaskMap = FindProperty(kLayerInfluenceMaskMap);
@@ -73,7 +73,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public override void OnGUI()
         {
             // We're using a subheader here because we know that layering options are only used within layers
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, colorDot: kLayerColors[m_LayerIndex], subHeader: true))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, colorDot: kLayerColors[m_LayerIndex], subHeader: true))
             {
                 if (header.expanded)
                 {

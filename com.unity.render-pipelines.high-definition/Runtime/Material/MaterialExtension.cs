@@ -47,12 +47,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         Phong
     }
 
-    public enum HeightmapParametrization
-    {
-        MinMax = 0,
-        Amplitude = 1
-    }
-
     public enum MaterialId
     {
         LitSSS = 0,
@@ -62,16 +56,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         LitSpecular = 4,
         LitTranslucent = 5
     };
-
-    public enum UVBaseMapping
-    {
-        UV0,
-        UV1,
-        UV2,
-        UV3,
-        Planar,
-        Triplanar
-    }
 
     public enum NormalMapSpace
     {
@@ -85,19 +69,42 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         Displacement,
     }
 
-    public enum UVDetailMapping
+    public enum VertexColorMode
+    {
+        None,
+        Multiply,
+        Add
+    }
+
+    internal enum    AxfBrdfType
+    {
+        SVBRDF,
+        CAR_PAINT,
+        BTF,
+    }
+
+    internal enum UVDetailMapping
     {
         UV0,
         UV1,
         UV2,
         UV3
     }
-
-    public enum VertexColorMode
+    
+    internal enum UVBaseMapping
     {
-        None,
-        Multiply,
-        Add
+        UV0,
+        UV1,
+        UV2,
+        UV3,
+        Planar,
+        Triplanar
+    }
+
+    internal enum HeightmapParametrization
+    {
+        MinMax = 0,
+        Amplitude = 1
     }
 
     public static class MaterialExtension

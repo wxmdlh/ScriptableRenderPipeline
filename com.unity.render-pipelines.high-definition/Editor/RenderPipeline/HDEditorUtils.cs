@@ -20,7 +20,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             { "HDRP/LayeredLitTessellation", LayeredLitGUI.SetupMaterialKeywordsAndPass },
             { "HDRP/Lit", LitGUI.SetupMaterialKeywordsAndPass },
             { "HDRP/LitTessellation", LitGUI.SetupMaterialKeywordsAndPass },
-            { "HDRP/Unlit", MaterialExtensionEditor.SetupUnlitMaterialKeywordsAndPass },
+            { "HDRP/Unlit", UnlitGUI.SetupUnlitMaterialKeywordsAndPass },
             { "HDRP/Decal", DecalUI.SetupMaterialKeywordsAndPass },
             { "HDRP/TerrainLit", TerrainLitGUI.SetupMaterialKeywordsAndPass }
         };

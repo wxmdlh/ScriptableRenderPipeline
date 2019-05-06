@@ -703,6 +703,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _LowResTransparent              = Shader.PropertyToID("_LowResTransparent");
     }
 
+    // Shared material property names
     public static class HDMaterialProperties
     {
         // Stencil properties
@@ -722,6 +723,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public const string kSurfaceType = "_SurfaceType";
         public const string kMaterialID = "_MaterialID";
         public const string kTransmissionEnable = "_TransmissionEnable";
+        public const string kEnableDecals = "_SupportDecals";
+        public const string kSupportDecals = kEnableDecals;
+        public const string kEnableSSR = "_ReceivesSSR";
 
         public const string kLayerCount = "_LayerCount";
         

@@ -4,87 +4,90 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    class DecalGUI : ExpandableAreaMaterial
+    class DecalGUI : HDShaderGUI
     {
-        protected MaterialEditor m_MaterialEditor;
+        protected override void SetupMaterialKeywordsAndPassInternal(Material material) {}
 
-        protected MaterialProperty decalMeshDepthBias = new MaterialProperty();
-        protected const string kDecalMeshDepthBias = "_DecalMeshDepthBias";
+        // TODO !
+        // protected MaterialEditor m_MaterialEditor;
 
-        protected MaterialProperty drawOrder = new MaterialProperty();
-        protected const string kDrawOrder = "_DrawOrder";
+        // protected MaterialProperty decalMeshDepthBias = new MaterialProperty();
+        // protected const string kDecalMeshDepthBias = "_DecalMeshDepthBias";
 
-        [Flags]
-        enum Expandable : uint
-        {
-            Input = 1 << 0,
-            Sorting = 1 << 1
-        }
-        protected override uint defaultExpandedState { get { return (uint)Expandable.Input; } }
+        // protected MaterialProperty drawOrder = new MaterialProperty();
+        // protected const string kDrawOrder = "_DrawOrder";
 
-        protected static class Styles
-        {
-            public static string InputsText = "Surface Inputs";
-            public static string SortingText = "Sorting Inputs";
+        // [Flags]
+        // enum Expandable : uint
+        // {
+        //     Input = 1 << 0,
+        //     Sorting = 1 << 1
+        // }
+        // protected override uint defaultExpandedState { get { return (uint)Expandable.Input; } }
 
-            public static GUIContent meshDecalDepthBiasText = new GUIContent("Mesh decal depth bias", "Adjust this to prevents z-fighting with the decal mesh.");
-            public static GUIContent drawOrderText = new GUIContent("Draw order", "Controls the draw order of Decal Projectors.");
-        }
+        // protected static class Styles
+        // {
+        //     public static string InputsText = "Surface Inputs";
+        //     public static string SortingText = "Sorting Inputs";
 
-        void FindMaterialProperties(MaterialProperty[] props)
-        {
-            decalMeshDepthBias = FindProperty(kDecalMeshDepthBias, props, true);
-            drawOrder = FindProperty(kDrawOrder, props, true);
+        //     public static GUIContent meshDecalDepthBiasText = new GUIContent("Mesh decal depth bias", "Adjust this to prevents z-fighting with the decal mesh.");
+        //     public static GUIContent drawOrderText = new GUIContent("Draw order", "Controls the draw order of Decal Projectors.");
+        // }
 
-            // always instanced
-            SerializedProperty instancing = m_MaterialEditor.serializedObject.FindProperty("m_EnableInstancingVariants");
-            instancing.boolValue = true;
-        }
+        // void FindMaterialProperties(MaterialProperty[] props)
+        // {
+        //     decalMeshDepthBias = FindProperty(kDecalMeshDepthBias, props, true);
+        //     drawOrder = FindProperty(kDrawOrder, props, true);
 
-        public void ShaderPropertiesGUI()
-        {
-            using (var header = new HeaderScope(Styles.SortingText, (uint)Expandable.Sorting, this))
-            {
-                if (header.expanded)
-                {
-                    m_MaterialEditor.ShaderProperty(drawOrder, Styles.drawOrderText);
-                    m_MaterialEditor.ShaderProperty(decalMeshDepthBias, Styles.meshDecalDepthBiasText);
-                }
-            }
-        }
+        //     // always instanced
+        //     SerializedProperty instancing = m_MaterialEditor.serializedObject.FindProperty("m_EnableInstancingVariants");
+        //     instancing.boolValue = true;
+        // }
 
-        public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
-        {
-            m_MaterialEditor = materialEditor;
+        // public void ShaderPropertiesGUI()
+        // {
+        //     using (var header = new MaterialHeaderScope(Styles.SortingText, (uint)Expandable.Sorting, this))
+        //     {
+        //         if (header.expanded)
+        //         {
+        //             m_MaterialEditor.ShaderProperty(drawOrder, Styles.drawOrderText);
+        //             m_MaterialEditor.ShaderProperty(decalMeshDepthBias, Styles.meshDecalDepthBiasText);
+        //         }
+        //     }
+        // }
 
-            FindMaterialProperties(props);
+        // public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
+        // {
+        //     m_MaterialEditor = materialEditor;
 
-            // Copy/Paste of public void PropertiesDefaultGUI(MaterialProperty[] props) in MaterialEditor.cs to allow to customize inspector for
-            // decal. We don't want to display GI option or instancing option and want to add tooltips to our parameters.
-            m_MaterialEditor.SetDefaultGUIWidths();
+        //     FindMaterialProperties(props);
 
-            using (var header = new HeaderScope(Styles.InputsText, (uint)Expandable.Input, this))
-            {
-                if (header.expanded)
-                {
-                    // We do "- 2" as we always have draw order and decal mesh bias. Update this number if we change the number of mandatory parameters
-                    for (var i = 0; i < props.Length - 2; i++)
-                    {
-                        if ((props[i].flags & (MaterialProperty.PropFlags.HideInInspector | MaterialProperty.PropFlags.PerRendererData)) != 0)
-                            continue;
+        //     // Copy/Paste of public void PropertiesDefaultGUI(MaterialProperty[] props) in MaterialEditor.cs to allow to customize inspector for
+        //     // decal. We don't want to display GI option or instancing option and want to add tooltips to our parameters.
+        //     m_MaterialEditor.SetDefaultGUIWidths();
 
-                        float h = m_MaterialEditor.GetPropertyHeight(props[i], props[i].displayName);
-                        Rect r = EditorGUILayout.GetControlRect(true, h, EditorStyles.layerMaskField);
+        //     using (var header = new MaterialHeaderScope(Styles.InputsText, (uint)Expandable.Input, this))
+        //     {
+        //         if (header.expanded)
+        //         {
+        //             // We do "- 2" as we always have draw order and decal mesh bias. Update this number if we change the number of mandatory parameters
+        //             for (var i = 0; i < props.Length - 2; i++)
+        //             {
+        //                 if ((props[i].flags & (MaterialProperty.PropFlags.HideInInspector | MaterialProperty.PropFlags.PerRendererData)) != 0)
+        //                     continue;
 
-                        m_MaterialEditor.ShaderProperty(r, props[i], props[i].displayName);
-                    }
-                }
-            }         
+        //                 float h = m_MaterialEditor.GetPropertyHeight(props[i], props[i].displayName);
+        //                 Rect r = EditorGUILayout.GetControlRect(true, h, EditorStyles.layerMaskField);
 
-            ShaderPropertiesGUI();
+        //                 m_MaterialEditor.ShaderProperty(r, props[i], props[i].displayName);
+        //             }
+        //         }
+        //     }         
 
-            // We should always do this call at the end
-            m_MaterialEditor.serializedObject.ApplyModifiedProperties();
-        }
+        //     ShaderPropertiesGUI();
+
+        //     // We should always do this call at the end
+        //     m_MaterialEditor.serializedObject.ApplyModifiedProperties();
+        // }
     }
 }

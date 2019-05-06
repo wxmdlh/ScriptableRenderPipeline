@@ -66,7 +66,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             layerCount = FindProperty(kLayerCount);
         }
@@ -75,7 +75,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             for (int layerIndex = 0; layerIndex < layerCount.floatValue; layerIndex++)
             {
-                using (var header = new HeaderScope(Styles.headers[layerIndex], (uint)Styles.layerExpandableBits[layerIndex], materialEditor))
+                using (var header = new MaterialHeaderScope(Styles.headers[layerIndex], (uint)Styles.layerExpandableBits[layerIndex], materialEditor))
                 {
                     if (header.expanded)
                     {

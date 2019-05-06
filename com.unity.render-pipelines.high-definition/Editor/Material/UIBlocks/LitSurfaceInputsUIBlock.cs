@@ -257,7 +257,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_DotColor = dotColor;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             UVBase = FindPropertyLayered(kUVBase, m_LayerCount, true);
             TexWorldScale = FindPropertyLayered(kTexWorldScale, m_LayerCount);
@@ -348,7 +348,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             bool subHeader = (m_Features & Features.SubHeader) != 0;
 
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, subHeader: subHeader, colorDot: m_DotColor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, subHeader: subHeader, colorDot: m_DotColor))
             {
                 if (header.expanded)
                 {
@@ -582,7 +582,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
             }
 
-            if ((int)materialID.floatValue == (int)MaterialId.LitSSS)
+            // TODO: does not work with multi-selection
+            if ((int)materialID.floatValue == (int)MaterialId.LitSSS && materials[0].GetSurfaceType() != SurfaceType.Transparent)
             {
                 materialEditor.ShaderProperty(subsurfaceMask[m_LayerIndex], Styles.subsurfaceMaskText);
                 materialEditor.TexturePropertySingleLine(Styles.subsurfaceMaskMapText, subsurfaceMaskMap[m_LayerIndex]);

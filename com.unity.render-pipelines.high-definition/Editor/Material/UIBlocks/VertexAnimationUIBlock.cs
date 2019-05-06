@@ -31,7 +31,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_ExpandableBit = expandableBit;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             windEnable = FindProperty(kWindEnabled, false);
             enableMotionVectorForVertexAnimation = FindProperty(kEnableMotionVectorForVertexAnimation);
@@ -39,7 +39,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                 {

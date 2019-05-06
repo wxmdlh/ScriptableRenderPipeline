@@ -3,8 +3,14 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEngine.Rendering;
 
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
+    /// <summary>
+    /// GUI for HDRP AxF materials
+    /// </summary>
     class AxFGUI : ShaderGUI
     {
         // protected override uint defaultExpandedState { get { return (uint)(Expandable.Base | Expandable.Detail | Expandable.Emissive | Expandable.Input | Expandable.Other | Expandable.Tesselation | Expandable.Transparency | Expandable.VertexAnimation); } }
@@ -20,7 +26,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             using (var changed = new EditorGUI.ChangeCheckScope())
             {
-                // Some logic to disable the transparency block if we're opaque:
                 uiBlocks.OnGUI(materialEditor, props);
 
                 // Apply material keywords and pass:
@@ -32,209 +37,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        protected static class Styles
-        {
-            public static string InputsText = "Surface Inputs";
-
-            /////////////////////////////////////////////////////////////////////////////////////////////////
-            // SVBRDF Parameters
-            public static GUIContent    diffuseColorMapText = new GUIContent("Diffuse Color");
-            public static GUIContent    specularColorMapText = new GUIContent("Specular Color");
-            public static GUIContent    specularLobeMapText = new GUIContent("Specular Lobe");
-            public static GUIContent    specularLobeMapScaleText = new GUIContent("Specular Lobe Scale");
-            public static GUIContent    fresnelMapText = new GUIContent("Fresnel");
-            public static GUIContent    normalMapText = new GUIContent("Normal");
-
-            // Alpha
-            public static GUIContent    alphaMapText = new GUIContent("Alpha");
-
-            // Displacement
-            public static GUIContent    heightMapText = new GUIContent("Height");
-
-            // Anisotropy
-            public static GUIContent    anisoRotationMapText = new GUIContent("Anisotropy Angle");
-
-            /////////////////////////////////////////////////////////////////////////////////////////////////
-            // Car Paint Parameters
-            public static GUIContent    BRDFColorMapText = new GUIContent("BRDF Color");
-            public static GUIContent    BRDFColorMapScaleText = new GUIContent("BRDF Color Scale");
-            public static GUIContent    BRDFColorMapUVScaleText = new GUIContent("BRDF Color Map UV scale restriction");
-
-            public static GUIContent    BTFFlakesMapText = new GUIContent("BTF Flake Color Texture2DArray");
-            public static GUIContent    BTFFlakesMapScaleText = new GUIContent("BTF Flakes Scale");
-            public static GUIContent    FlakesTilingText = new GUIContent("Flakes Tiling");
-
-            public static GUIContent    thetaFI_sliceLUTMapText = new GUIContent("ThetaFI Slice LUT");
-
-            public static GUIContent    CarPaintIORText = new GUIContent("IOR");
-
-            /////////////////////////////////////////////////////////////////////////////////////////////////
-            // Generic
-
-            // Clearcoat
-            public static GUIContent    clearcoatColorMapText = new GUIContent("Clearcoat Color");
-            public static GUIContent    clearcoatNormalMapText = new GUIContent("Clearcoat Normal");
-            public static GUIContent    clearcoatIORMapText = new GUIContent("Clearcoat IOR");
-
-            public static GUIContent    supportDecalsText = new GUIContent("Enable Decal", "Specify whether the material can receive decals.");
-            public static GUIContent    receivesSSRText = new GUIContent("Receives SSR", "Specify whether the material can receive screen space reflection.");
-        }
-
-        enum    AxfBrdfType
-        {
-            SVBRDF,
-            CAR_PAINT,
-            BTF,
-        }
-        static readonly string[]    AxfBrdfTypeNames = Enum.GetNames(typeof(AxfBrdfType));
-
-        enum    SvbrdfDiffuseType
-        {
-            LAMBERT = 0,
-            OREN_NAYAR = 1,
-        }
-        static readonly string[]    SvbrdfDiffuseTypeNames = Enum.GetNames(typeof(SvbrdfDiffuseType));
-
-        enum    SvbrdfSpecularType
-        {
-            WARD = 0,
-            BLINN_PHONG = 1,
-            COOK_TORRANCE = 2,
-            GGX = 3,
-            PHONG = 4,
-        }
-        static readonly string[]    SvbrdfSpecularTypeNames = Enum.GetNames(typeof(SvbrdfSpecularType));
-
-        enum    SvbrdfSpecularVariantWard   // Ward variants
-        {
-            GEISLERMORODER,     // 2010 (albedo-conservative, should always be preferred!)
-            DUER,               // 2006
-            WARD,               // 1992 (original paper)
-        }
-        static readonly string[]    SvbrdfSpecularVariantWardNames = Enum.GetNames(typeof(SvbrdfSpecularVariantWard));
-        enum    SvbrdfSpecularVariantBlinn  // Blinn-Phong variants
-        {
-            ASHIKHMIN_SHIRLEY,  // 2000
-            BLINN,              // 1977 (original paper)
-            VRAY,
-            LEWIS,              // 1993
-        }
-        static readonly string[]    SvbrdfSpecularVariantBlinnNames = Enum.GetNames(typeof(SvbrdfSpecularVariantBlinn));
-
-        enum    SvbrdfFresnelVariant
-        {
-            NO_FRESNEL,         // No fresnel
-            FRESNEL,            // Full fresnel (1818)
-            SCHLICK,            // Schlick's Approximation (1994)
-        }
-        static readonly string[]    SvbrdfFresnelVariantNames = Enum.GetNames(typeof(SvbrdfFresnelVariant));
-
         /////////////////////////////////////////////////////////////////////////////////////////////////
-        // Generic Parameters
-        static string               m_MaterialTilingUText = "_MaterialTilingU";
-        protected MaterialProperty  m_MaterialTilingU;
-        static string               m_MaterialTilingVText = "_MaterialTilingV";
-        protected MaterialProperty  m_MaterialTilingV;
-
+        // AxF material keywords
         static string               m_AxF_BRDFTypeText = "_AxF_BRDFType";
-        protected MaterialProperty  m_AxF_BRDFType = null;
-
-        static string               m_FlagsText = "_Flags";
-        protected MaterialProperty  m_Flags;
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////
-        // SVBRDF Parameters
-        static string               m_SVBRDF_BRDFTypeText = "_SVBRDF_BRDFType";
-        protected MaterialProperty  m_SVBRDF_BRDFType;
-        static string               m_SVBRDF_BRDFVariantsText = "_SVBRDF_BRDFVariants";
-        protected MaterialProperty  m_SVBRDF_BRDFVariants;
-        static string               m_SVBRDF_HeightMapMaxMMText = "_SVBRDF_HeightMapMaxMM";
-        protected MaterialProperty  m_SVBRDF_HeightMapMaxMM;
-
-        // Regular maps
-        static string               m_DiffuseColorMapText = "_SVBRDF_DiffuseColorMap";
-        protected MaterialProperty  m_DiffuseColorMap = null;
-        static string               m_SpecularColorMapText = "_SVBRDF_SpecularColorMap";
-        protected MaterialProperty  m_SpecularColorMap = null;
-
-        static string               m_SpecularLobeMapText = "_SVBRDF_SpecularLobeMap";
-        protected MaterialProperty  m_SpecularLobeMap = null;
-        static string               m_SpecularLobeMapScaleText = "_SVBRDF_SpecularLobeMapScale";
-        protected MaterialProperty  m_SpecularLobeMapScale;
-
-        static string               m_FresnelMapText = "_SVBRDF_FresnelMap";
-        protected MaterialProperty  m_FresnelMap = null;
-        static string               m_NormalMapText = "_SVBRDF_NormalMap";
-        protected MaterialProperty  m_NormalMap = null;
-
-        // Alpha
-        static string               m_AlphaMapText = "_SVBRDF_AlphaMap";
-        protected MaterialProperty  m_AlphaMap = null;
-
-        // Displacement
-        static string               m_HeightMapText = "_SVBRDF_HeightMap";
-        protected MaterialProperty  m_HeightMap = null;
-
-        // Anisotropy
-        static string               m_AnisoRotationMapText = "_SVBRDF_AnisoRotationMap";
-        protected MaterialProperty  m_AnisoRotationMap = null;
-
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////
-        // Car Paint Parameters
-        static string               m_CarPaint2_BRDFColorMapText = "_CarPaint2_BRDFColorMap";
-        protected MaterialProperty  m_CarPaint2_BRDFColorMap = null;
-
-        static string               m_CarPaint2_BRDFColorMapScaleText = "_CarPaint2_BRDFColorMapScale";
-        protected MaterialProperty  m_CarPaint2_BRDFColorMapScale;
-
-        static string               m_CarPaint2_BRDFColorMapUVScaleText = "_CarPaint2_BRDFColorMapUVScale";
-        protected MaterialProperty  m_CarPaint2_BRDFColorMapUVScale;
-
-        static string               m_CarPaint2_BTFFlakeMapText = "_CarPaint2_BTFFlakeMap";
-        protected MaterialProperty  m_CarPaint2_BTFFlakeMap = null;
-
-        static string               m_CarPaint2_BTFFlakeMapScaleText = "_CarPaint2_BTFFlakeMapScale";
-        protected MaterialProperty  m_CarPaint2_BTFFlakeMapScale;
-
-        static string               m_CarPaint2_FlakeTilingText = "_CarPaint2_FlakeTiling";
-        protected MaterialProperty  m_CarPaint2_FlakeTiling;
-
-        static string               m_CarPaint2_FlakeThetaFISliceLUTMapText = "_CarPaint2_FlakeThetaFISliceLUTMap";
-        protected MaterialProperty  m_CarPaint2_FlakeThetaFISliceLUTMap;
-
-        static string               m_CarPaint2_FlakeMaxThetaIText = "_CarPaint2_FlakeMaxThetaI";
-        protected MaterialProperty  m_CarPaint2_FlakeMaxThetaI;
-        static string               m_CarPaint2_FlakeNumThetaFText = "_CarPaint2_FlakeNumThetaF";
-        protected MaterialProperty  m_CarPaint2_FlakeNumThetaF;
-        static string               m_CarPaint2_FlakeNumThetaIText = "_CarPaint2_FlakeNumThetaI";
-        protected MaterialProperty  m_CarPaint2_FlakeNumThetaI;
-
-        static string               m_CarPaint2_ClearcoatIORText = "_CarPaint2_ClearcoatIOR";
-        protected MaterialProperty  m_CarPaint2_ClearcoatIOR;
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////
-        // Clearcoat
-        static string               m_ClearcoatColorMapText = "_SVBRDF_ClearcoatColorMap";
-        protected MaterialProperty  m_ClearcoatColorMap = null;
-        static string               m_ClearcoatNormalMapText = "_ClearcoatNormalMap";
-        protected MaterialProperty  m_ClearcoatNormalMap = null;
-        static string               m_ClearcoatIORMapText = "_SVBRDF_ClearcoatIORMap";
-        protected MaterialProperty  m_ClearcoatIORMap = null;
-
-        // Stencil refs and masks
-        protected const string kStencilRef = "_StencilRef";
-        protected const string kStencilWriteMask = "_StencilWriteMask";
-        protected const string kStencilRefDepth = "_StencilRefDepth";
-        protected const string kStencilWriteMaskDepth = "_StencilWriteMaskDepth";
-        protected const string kStencilRefMV = "_StencilRefMV";
-        protected const string kStencilWriteMaskMV = "_StencilWriteMaskMV";
-
-        // Decals and SSR
-        protected const string kEnableDecals = "_SupportDecals";
-        protected const string kEnableSSR = "_ReceivesSSR";
-        protected MaterialProperty m_SupportDecals = null;
-        protected MaterialProperty m_ReceivesSSR = null;
 
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupMaterialKeywordsAndPass(Material material)

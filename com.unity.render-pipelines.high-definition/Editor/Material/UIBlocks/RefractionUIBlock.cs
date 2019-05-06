@@ -46,7 +46,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             refractionModel = FindProperty(kRefractionModel, false);
             ssrefractionProjectionModel = FindProperty(kSSRefractionProjectionModel, false);

@@ -33,14 +33,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_Features = features;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             enableSpecularOcclusion = FindProperty(kEnableSpecularOcclusion);
         }
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                     DrawAdvancedOptionsGUI();

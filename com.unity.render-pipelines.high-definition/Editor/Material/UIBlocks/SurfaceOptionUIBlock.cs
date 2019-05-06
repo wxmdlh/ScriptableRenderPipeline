@@ -246,42 +246,42 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_LayerCount = layerCount;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             surfaceType = FindProperty(kSurfaceType);
-            useShadowThreshold = FindProperty(kUseShadowThreshold, false);
-            alphaCutoffEnable = FindProperty(kAlphaCutoffEnabled, false);
-            alphaCutoff = FindProperty(kAlphaCutoff, false);
+            useShadowThreshold = FindProperty(kUseShadowThreshold);
+            alphaCutoffEnable = FindProperty(kAlphaCutoffEnabled);
+            alphaCutoff = FindProperty(kAlphaCutoff);
 
             // TODO: implement features flags so we do not load unused fields
-            alphaCutoffShadow = FindProperty(kAlphaCutoffShadow, false);
-            alphaCutoffPrepass = FindProperty(kAlphaCutoffPrepass, false);
-            alphaCutoffPostpass = FindProperty(kAlphaCutoffPostpass, false);
-            transparentDepthPrepassEnable = FindProperty(kTransparentDepthPrepassEnable, false);
-            transparentDepthPostpassEnable = FindProperty(kTransparentDepthPostpassEnable, false);
-            transparentBackfaceEnable = FindProperty(kTransparentBackfaceEnable, false);
+            alphaCutoffShadow = FindProperty(kAlphaCutoffShadow);
+            alphaCutoffPrepass = FindProperty(kAlphaCutoffPrepass);
+            alphaCutoffPostpass = FindProperty(kAlphaCutoffPostpass);
+            transparentDepthPrepassEnable = FindProperty(kTransparentDepthPrepassEnable);
+            transparentDepthPostpassEnable = FindProperty(kTransparentDepthPostpassEnable);
+            transparentBackfaceEnable = FindProperty(kTransparentBackfaceEnable);
 
             transparentSortPriority = FindProperty(kTransparentSortPriority);
 
-            transparentWritingMotionVec = FindProperty(kTransparentWritingMotionVec, false);
+            transparentWritingMotionVec = FindProperty(kTransparentWritingMotionVec);
             
-            enableBlendModePreserveSpecularLighting = FindProperty(kEnableBlendModePreserveSpecularLighting, false);
-            enableFogOnTransparent = FindProperty(kEnableFogOnTransparent, false);
+            enableBlendModePreserveSpecularLighting = FindProperty(kEnableBlendModePreserveSpecularLighting);
+            enableFogOnTransparent = FindProperty(kEnableFogOnTransparent);
 
             if ((m_Features & Features.DoubleSided) != 0)
-                doubleSidedEnable = FindProperty(kDoubleSidedEnable, false);
+                doubleSidedEnable = FindProperty(kDoubleSidedEnable);
             
             // Height
-            heightMap = FindPropertyLayered(kHeightMap, m_LayerCount, false);
-            heightAmplitude = FindPropertyLayered(kHeightAmplitude, m_LayerCount, false);
-            heightCenter = FindPropertyLayered(kHeightCenter, m_LayerCount, false);
-            heightPoMAmplitude = FindPropertyLayered(kHeightPoMAmplitude, m_LayerCount, false);
-            heightMin = FindPropertyLayered(kHeightMin, m_LayerCount, false);
-            heightMax = FindPropertyLayered(kHeightMax, m_LayerCount, false);
-            heightTessCenter = FindPropertyLayered(kHeightTessCenter, m_LayerCount, false);
-            heightTessAmplitude = FindPropertyLayered(kHeightTessAmplitude, m_LayerCount, false);
-            heightOffset = FindPropertyLayered(kHeightOffset, m_LayerCount, false);
-            heightParametrization = FindPropertyLayered(kHeightParametrization, m_LayerCount, false);
+            heightMap = FindPropertyLayered(kHeightMap, m_LayerCount);
+            heightAmplitude = FindPropertyLayered(kHeightAmplitude, m_LayerCount);
+            heightCenter = FindPropertyLayered(kHeightCenter, m_LayerCount);
+            heightPoMAmplitude = FindPropertyLayered(kHeightPoMAmplitude, m_LayerCount);
+            heightMin = FindPropertyLayered(kHeightMin, m_LayerCount);
+            heightMax = FindPropertyLayered(kHeightMax, m_LayerCount);
+            heightTessCenter = FindPropertyLayered(kHeightTessCenter, m_LayerCount);
+            heightTessAmplitude = FindPropertyLayered(kHeightTessAmplitude, m_LayerCount);
+            heightOffset = FindPropertyLayered(kHeightOffset, m_LayerCount);
+            heightParametrization = FindPropertyLayered(kHeightParametrization, m_LayerCount);
 
             blendMode = FindProperty(kBlendMode);
 
@@ -307,7 +307,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             invPrimScale = FindProperty(kInvPrimScale);
 
             // tessellation specific, silent if not found
-            tessellationMode = FindProperty(kTessellationMode, false);
+            tessellationMode = FindProperty(kTessellationMode);
 
             // Decal
             supportDecals = FindProperty(kSupportDecals);
@@ -323,7 +323,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(Styles.optionText, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new MaterialHeaderScope(Styles.optionText, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                     DrawSurfaceOptionGUI();

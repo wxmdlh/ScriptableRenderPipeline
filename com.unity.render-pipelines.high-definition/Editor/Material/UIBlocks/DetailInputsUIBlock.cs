@@ -69,7 +69,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_DotColor = dotColor;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             UVDetail = FindPropertyLayered(kUVDetail, m_LayerCount);
             UVDetailsMappingMask = FindPropertyLayered(kUVDetailsMappingMask, m_LayerCount);
@@ -86,7 +86,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             bool subHeader = (m_Features & Features.SubHeader) != 0;
 
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, subHeader: subHeader, colorDot: m_DotColor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor, subHeader: subHeader, colorDot: m_DotColor))
             {
                 if (header.expanded)
                     DrawDetailsGUI();

@@ -46,7 +46,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             distortionEnable = FindProperty(kDistortionEnable, false);
             distortionOnly = FindProperty(kDistortionOnly, false);

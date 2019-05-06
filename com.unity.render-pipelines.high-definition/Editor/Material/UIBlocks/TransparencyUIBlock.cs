@@ -39,7 +39,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_Features = features;
         }
 
-        public override void LoadMaterialKeywords() {}
+        public override void LoadMaterialProperties() {}
 
         public override void OnGUI()
         {
@@ -47,7 +47,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (materials.Any(material => material.GetSurfaceType() != SurfaceType.Transparent))
                 return ;
             
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                 {

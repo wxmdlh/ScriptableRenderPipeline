@@ -66,7 +66,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_WithUV = new bool[]{ true, true, true, true };
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             layerCount = FindProperty(kLayerCount);
            
@@ -100,7 +100,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                 {
@@ -151,7 +151,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     if (EditorGUI.EndChangeCheck())
                     {
                         Undo.RecordObject(m_MaterialImporter, "Change layer material");
-                        material.SynchronizeLayerProperties(m_MaterialLayers, layerIndex, true);
+                        LayeredLitGUI.SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, true);
                         layersChanged = true;
                     }
 
@@ -165,7 +165,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     
                     if (GUI.Button(copyRect, GUIContent.none))
                     {
-                        material.SynchronizeLayerProperties(m_MaterialLayers, layerIndex, !m_WithUV[layerIndex]);
+                        LayeredLitGUI.SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, !m_WithUV[layerIndex]);
                         layersChanged = true;
                     }
 
@@ -192,7 +192,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 // SaveAssetsProcessor the referenced material in the users data
                 if (m_MaterialImporter != null)
-                    material.SaveMaterialLayers(m_MaterialLayers);
+                    LayeredLitGUI.SaveMaterialLayers(material, m_MaterialLayers);
 
                 // We should always do this call at the end
                 materialEditor.serializedObject.ApplyModifiedProperties();

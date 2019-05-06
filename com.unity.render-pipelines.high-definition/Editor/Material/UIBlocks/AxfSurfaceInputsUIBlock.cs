@@ -60,12 +60,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent    receivesSSRText = new GUIContent("Receives SSR", "Specify whether the material can receive screen space reflection.");
         }
 
-        enum    AxfBrdfType
-        {
-            SVBRDF,
-            CAR_PAINT,
-            BTF,
-        }
         static readonly string[]    AxfBrdfTypeNames = Enum.GetNames(typeof(AxfBrdfType));
 
         enum    SvbrdfDiffuseType
@@ -223,7 +217,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_ExpandableBit = expandableBit;
         }
 
-        public override void LoadMaterialKeywords()
+        public override void LoadMaterialProperties()
         {
             m_MaterialTilingU = FindProperty(m_MaterialTilingUText);
             m_MaterialTilingV = FindProperty(m_MaterialTilingVText);
@@ -286,7 +280,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void OnGUI()
         {
-            using (var header = new HeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
             {
                 if (header.expanded)
                 {
