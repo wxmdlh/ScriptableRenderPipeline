@@ -316,8 +316,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_LastFrameActive = frameIndex;
 
-                nonScaledViewport.x = screenWidth = m_ActualWidth = xrDesc.width;
-                nonScaledViewport.y = screenHeight = m_ActualHeight = xrDesc.height;
             m_msaaSamples = msaaSamples;
 
             screenSize = new Vector4(screenWidth, screenHeight, 1.0f / screenWidth, 1.0f / screenHeight);
@@ -325,11 +323,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             UpdateAllViewConstants();
             isFirstFrame = false;
-
-            m_msaaSamples = msaaSamples;
-
-            screenSize = new Vector4(screenWidth, screenHeight, 1.0f / screenWidth, 1.0f / screenHeight);
-            screenParams = new Vector4(screenSize.x, screenSize.y, 1 + screenSize.z, 1 + screenSize.w);
 
             if (vlSys != null)
             {
@@ -342,29 +335,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // This is necessary because we assume that after post processes, we have the full size render target for debug rendering
             // The only point of calling this here is to grow the render targets. The call in BeginRender will setup the current RTHandle viewport size.
             RTHandles.SetReferenceSize(nonScaledViewport.x, nonScaledViewport.y, m_msaaSamples);
-            }
+        }
 
         // Updating RTHandle needs to be done at the beginning of rendering (not during update of HDCamera which happens in batches)
         // The reason is that RTHandle will hold data necessary to setup RenderTargets and viewports properly.
         public void BeginRender()
-            {
-                {
-                vlSys.UpdatePerCameraData(this);
-                }
-
-            UpdateVolumeParameters();
-
-            // This is necessary because we assume that after post processes, we have the full size render target for debug rendering
-            // The only point of calling this here is to grow the render targets. The call in BeginRender will setup the current RTHandle viewport size.
-            RTHandles.SetReferenceSize(nonScaledViewport.x, nonScaledViewport.y, m_msaaSamples);
-            RTHandles.SetReferenceSize(m_ActualWidth, m_ActualHeight, m_msaaSamples);
-            m_HistoryRTSystem.SetReferenceSize(m_ActualWidth, m_ActualHeight, m_msaaSamples);
-                }
-
-        // Updating RTHandle needs to be done at the beginning of rendering (not during update of HDCamera which happens in batches)
-        // The reason is that RTHandle will hold data necessary to setup RenderTargets and viewports properly.
-        public void BeginRender()
-            {
+        {
             RTHandles.SetReferenceSize(m_ActualWidth, m_ActualHeight, m_msaaSamples);
             m_HistoryRTSystem.SwapAndSetReferenceSize(m_ActualWidth, m_ActualHeight, m_msaaSamples);
 

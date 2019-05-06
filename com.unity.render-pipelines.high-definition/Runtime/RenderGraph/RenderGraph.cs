@@ -13,7 +13,6 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
         public CommandBuffer                cmd;
         public RenderGraphObjectPool        renderGraphPool;
         public RenderGraphResourceRegistry  resources;
-        public RTHandleProperties           rtHandleProperties;
     }
 
     public struct RenderGraphExecuteParams
@@ -191,7 +190,6 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
             rgContext.renderContext = renderContext;
             rgContext.renderGraphPool = m_RenderGraphPool;
             rgContext.resources = m_Resources;
-            rgContext.rtHandleProperties = m_Resources.GetRTHandleProperties();
 
             try
             {
@@ -241,7 +239,7 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
                         using (new ProfilingSample(rgContext.cmd, "RenderGraph: Clear Buffer"))
                         {
                             var clearFlag = resourceDesc.desc.depthBufferBits != DepthBits.None ? ClearFlag.Depth : ClearFlag.Color;
-                            HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, rgContext.rtHandleProperties, m_Resources.GetTexture(resource), clearFlag, resourceDesc.desc.clearColor);
+                            HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, m_Resources.GetTexture(resource), clearFlag, resourceDesc.desc.clearColor);
                         }
                     }
                 }
@@ -266,7 +264,7 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
 
                     if (pass.depthBuffer.IsValid())
                     {
-                        HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, rgContext.rtHandleProperties, mrtArray, m_Resources.GetTexture(pass.depthBuffer));
+                        HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, mrtArray, m_Resources.GetTexture(pass.depthBuffer));
                     }
                     else
                     {
@@ -277,11 +275,11 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
                 {
                     if (pass.depthBuffer.IsValid())
                     {
-                        HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, rgContext.rtHandleProperties, m_Resources.GetTexture(pass.colorBuffers[0]), m_Resources.GetTexture(pass.depthBuffer));
+                        HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, m_Resources.GetTexture(pass.colorBuffers[0]), m_Resources.GetTexture(pass.depthBuffer));
                     }
                     else
                     {
-                        HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, rgContext.rtHandleProperties, m_Resources.GetTexture(pass.colorBuffers[0]));
+                        HDPipeline.HDUtils.SetRenderTarget(rgContext.cmd, m_Resources.GetTexture(pass.colorBuffers[0]));
                     }
 
                 }

@@ -178,8 +178,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 renderPassData.settings = settings;
                 renderPassData.cameraWidth = camera.actualWidth;
                 renderPassData.cameraHeight = camera.actualHeight;
-                renderPassData.viewport = camera.viewportScale;
-                renderPassData.tanHalfFoVHeight = 1f / camera.projMatrix[0, 0];
+                renderPassData.viewport = RTHandles.rtHandleProperties.rtHandleScale;
+                renderPassData.tanHalfFoVHeight = 1f / camera.mainViewConstants.projMatrix[0, 0];
                 renderPassData.msaaEnabled = camera.frameSettings.IsEnabled(FrameSettingsField.MSAA);
                 renderPassData.inputDepth = builder.ReadTexture(inputDepth);
                 renderPassData.output = builder.WriteTexture(CreateOutputAOTexture(builder, renderPassData.msaaEnabled));
@@ -419,7 +419,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public RenderGraphResource inputAO;
             public RenderGraphMutableResource output;
             public RenderGraphResource finalOutput; // Temporary
-            public HDCamera camera; // Temporary (implement SetRenderTarget internally)
             public AmbientOcclusion settings;
             public Material resolveMaterial;
         }
@@ -431,7 +430,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 var settings = VolumeManager.instance.stack.GetComponent<AmbientOcclusion>();
                 renderPassData.enableMSAA = camera.frameSettings.IsEnabled(FrameSettingsField.MSAA);
                 renderPassData.isActive = IsActive(camera, settings);
-                renderPassData.camera = camera;
                 renderPassData.settings = settings;
                 renderPassData.resolveMaterial = m_ResolveMaterial;
                 if (renderPassData.enableMSAA)
@@ -456,7 +454,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     if (data.enableMSAA)
                     {
                         MaterialPropertyBlock mpb = renderGraphPool.GetTempMaterialPropertyBlock();
-                        HDUtils.SetRenderTarget(cmd, data.camera, resources.GetTexture(data.output));
+                        HDUtils.SetRenderTarget(cmd, resources.GetTexture(data.output));
                         mpb.SetTexture(HDShaderIDs._DepthValuesTexture, resources.GetTexture(data.inputDepth));
                         mpb.SetTexture(HDShaderIDs._MultiAmbientOcclusionTexture, resources.GetTexture(data.inputAO));
                         cmd.DrawProcedural(Matrix4x4.identity, data.resolveMaterial, 0, MeshTopology.Triangles, 3, 1, mpb);

@@ -95,7 +95,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     (DebugViewMaterialData data, RenderGraphContext context) =>
                     {
                         var res = context.resources;
-                        HDUtils.DrawFullScreen(context.cmd, context.rtHandleProperties, data.debugGBufferMaterial, res.GetTexture(data.outputColor));
+                        HDUtils.DrawFullScreen(context.cmd, data.debugGBufferMaterial, res.GetTexture(data.outputColor));
                     });
                 }
             }

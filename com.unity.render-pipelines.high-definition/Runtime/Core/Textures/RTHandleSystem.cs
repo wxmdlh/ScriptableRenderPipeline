@@ -35,9 +35,8 @@ namespace UnityEngine.Experimental.Rendering
         RTHandle[]          m_AutoSizedRTsArray; // For fast iteration
         HashSet<RTHandle>   m_ResizeOnDemandRTs;
         RTHandleProperties  m_RTHandleProperties;
-        public RTHandleProperties rtHandleProperties { get { return m_RTHandleProperties; } }
 
-        public RTHandleProperties  rtHandleProperties { get { return m_RTHandleProperties; } }
+        public RTHandleProperties rtHandleProperties { get { return m_RTHandleProperties; } }
 
         int m_MaxWidths = 0;
         int m_MaxHeights = 0;
@@ -77,7 +76,6 @@ namespace UnityEngine.Experimental.Rendering
                 rth.Release();
             }
         }
-
         public void SetReferenceSize(int width, int height, MSAASamples msaaSamples)
         {
             m_RTHandleProperties.previousViewportSize = m_RTHandleProperties.currentViewportSize;
@@ -100,18 +98,6 @@ namespace UnityEngine.Experimental.Rendering
 
             if (HDDynamicResolutionHandler.instance.HardwareDynamicResIsEnabled())
             {
-                m_RTHandleProperties.screenToTargetScale = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-            }
-            else
-            {
-                Vector2 maxSize = new Vector2(GetMaxWidth(), GetMaxHeight());
-                Vector2 scaleCurrent = m_RTHandleProperties.currentFrameSize / maxSize;
-                Vector2 scalePrevious = m_RTHandleProperties.previousFrameSize / maxSize;
-                m_RTHandleProperties.screenToTargetScale = new Vector4(scaleCurrent.x, scaleCurrent.y, scalePrevious.x, scalePrevious.y);
-            }
-
-            if (HDDynamicResolutionHandler.instance.HardwareDynamicResIsEnabled())
-        {
                 m_RTHandleProperties.rtHandleScale = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
             }
             else

@@ -188,7 +188,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         builder.SetRenderFunc(
                         (DepthPrepassData data, RenderGraphContext context) =>
                         {
-                            HDUtils.SetRenderTarget(context.cmd, context.rtHandleProperties, context.resources.GetTexture(data.depthBuffer));
+                            HDUtils.SetRenderTarget(context.cmd, context.resources.GetTexture(data.depthBuffer));
                             // XRTODO: wait for XR SDK integration and implement custom version in HDUtils with dynamic resolution support
                             //XRUtils.DrawOcclusionMesh(cmd, hdCamera.camera, hdCamera.camera.stereoEnabled);
                             DrawOpaqueRendererList(data.frameSettings, context.resources.GetRendererList(data.rendererList1), context);
@@ -198,7 +198,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             if (data.msaaEnabled)
                                 mrt[1] = context.resources.GetTexture(data.depthAsColorBuffer);
 
-                            HDUtils.SetRenderTarget(context.cmd, context.rtHandleProperties, mrt, context.resources.GetTexture(data.depthBuffer));
+                            HDUtils.SetRenderTarget(context.cmd, mrt, context.resources.GetTexture(data.depthBuffer));
                             DrawOpaqueRendererList(data.frameSettings, context.resources.GetRendererList(data.rendererList2), context);
                         });
                     }
@@ -487,7 +487,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (CameraMotionVectorsPassData data, RenderGraphContext context) =>
                 {
                     var res = context.resources;
-                    HDUtils.DrawFullScreen(context.cmd, context.rtHandleProperties, data.cameraMotionVectorsMaterial, res.GetTexture(data.motionVectorsBuffer), res.GetTexture(data.depthBuffer), null, 0);
+                    HDUtils.DrawFullScreen(context.cmd, data.cameraMotionVectorsMaterial, res.GetTexture(data.motionVectorsBuffer), res.GetTexture(data.depthBuffer), null, 0);
                 });
             }
 
