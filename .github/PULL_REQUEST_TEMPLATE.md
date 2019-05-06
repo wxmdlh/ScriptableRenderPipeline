@@ -17,9 +17,12 @@ Please add any useful notes about the feature/fix that might be helpful for othe
 - [ ] C# and shader warnings (supress shader cache to see them)
 - Other: 
 
-**Automated Tests**: What did you setup?
+**Automated Tests**: What did you setup? (Add a screenshot or the reference image of the test please)
 
 Any test projects to go with this to help reviewers?
+
+Launch Katana (Link on master here - update for your branch):
+https://katana.bf.unity3d.com/projects/com.unity.render-pipelines/builders?ScriptableRenderLoop_branch=master&automation-tools_branch=master&unity_branch=trunk&sort=1-asc
 
 ---
 ### Overall Product Risks

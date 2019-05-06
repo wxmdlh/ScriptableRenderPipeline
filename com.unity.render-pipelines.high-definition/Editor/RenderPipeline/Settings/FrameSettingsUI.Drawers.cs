@@ -15,9 +15,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LightingSettings = 1 << 2,
             AsynComputeSettings = 1 << 3,
             LightLoop = 1 << 4,
-#if FRAMESETTINGS_LOD_BIAS
             OtherSettings = 1 << 5,
-#endif
         }
 
         readonly static ExpandedState<Expandable, FrameSettings> k_ExpandedState = new ExpandedState<Expandable, FrameSettings>(~(-1), "HDRP");
@@ -35,22 +33,20 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         //separated to add enum popup on default frame settings
         internal static CED.IDrawer InspectorInnerbox(bool withOverride = true) => CED.Group(
                 CED.FoldoutGroup(renderingSettingsHeaderContent, Expandable.RenderingPasses, k_ExpandedState, FoldoutOption.Indent | FoldoutOption.Boxed,
-                    CED.Group(190, (serialized, owner) => Drawer_SectionRenderingSettings(serialized, owner, withOverride))
+                    CED.Group(194, (serialized, owner) => Drawer_SectionRenderingSettings(serialized, owner, withOverride))
                     ),
                 CED.FoldoutGroup(lightSettingsHeaderContent, Expandable.LightingSettings, k_ExpandedState, FoldoutOption.Indent | FoldoutOption.Boxed,
-                    CED.Group(190, (serialized, owner) => Drawer_SectionLightingSettings(serialized, owner, withOverride))
+                    CED.Group(194, (serialized, owner) => Drawer_SectionLightingSettings(serialized, owner, withOverride))
                     ),
                 CED.FoldoutGroup(asyncComputeSettingsHeaderContent, Expandable.AsynComputeSettings, k_ExpandedState, FoldoutOption.Indent | FoldoutOption.Boxed,
-                    CED.Group(190, (serialized, owner) => Drawer_SectionAsyncComputeSettings(serialized, owner, withOverride))
+                    CED.Group(194, (serialized, owner) => Drawer_SectionAsyncComputeSettings(serialized, owner, withOverride))
                     ),
                 CED.FoldoutGroup(lightLoopSettingsHeaderContent, Expandable.LightLoop, k_ExpandedState, FoldoutOption.Indent | FoldoutOption.Boxed,
-                    CED.Group(190, (serialized, owner) => Drawer_SectionLightLoopSettings(serialized, owner, withOverride))
+                    CED.Group(194, (serialized, owner) => Drawer_SectionLightLoopSettings(serialized, owner, withOverride))
                     )
-#if FRAMESETTINGS_LOD_BIAS
                     , CED.FoldoutGroup(otherSettingsHeaderContent, Expandable.OtherSettings, k_ExpandedState, FoldoutOption.Indent | FoldoutOption.Boxed,
-                        CED.Group(190, (serialized, owner) => Drawer_SectionOtherSettings(serialized, owner, withOverride))
+                        CED.Group(194, (serialized, owner) => Drawer_SectionOtherSettings(serialized, owner, withOverride))
                     )
-#endif
                 );
 
         static HDRenderPipelineAsset GetHDRPAssetFor(Editor owner)
@@ -185,7 +181,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             area.Draw(withOverride);
         }
 
-#if FRAMESETTINGS_LOD_BIAS
         static void Drawer_SectionOtherSettings(SerializedFrameSettings serialized, Editor owner, bool withOverride)
         {
             var area = GetFrameSettingSectionContent(4, serialized, owner);
@@ -214,7 +209,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 customOverrideable: () => serialized.maximumLODLevelMode.enumValueIndex != (int)MaximumLODLevelMode.FromQualitySettings);
             area.Draw(withOverride);
         }
-#endif
 
         static OverridableFrameSettingsArea GetFrameSettingSectionContent(int group, SerializedFrameSettings serialized, Editor owner)
         {
