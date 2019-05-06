@@ -6,9 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [6.7.0-preview] - 2019-XX-XX
 ### Added
-- Distortion Outputs (Quad / Mesh)
-- Motion-Vector-Based Flipbook Interpolation
-- Color mapping mode for unlit outputs (Textured/Gradient Mapped)
+- Add Triangle and Octagon primitives for particle outputs
 
 ### Fixed
 - Fix shader compilation error with debug views
@@ -16,6 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix screen space size block
 - Crash chaining two spawners each other [Case 1135299](https://issuetracker.unity3d.com/issues/crash-chaining-two-spawners-to-each-other-produces-an-infinite-loop)
 - Inspector : Exposed parameters disregard the initial value [Case 1126471](https://issuetracker.unity3d.com/issues/parameters-exposed-parameters-disregard-the-initial-value)
+- Asset name now displayed in compile errors and output context shaders
+- Fix for linking spawner to spawner while first spawner is linked to initialize + test 
+- Fix space of spacable slot not copy pasted + test
 
 ## [6.6.0-preview] - 2019-04-01
 ### Added
