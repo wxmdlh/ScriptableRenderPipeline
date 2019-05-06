@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed NaN issue with refraction effect and IOR of 1 at extreme grazing angle
 - Fixed nan tracker not using the exposure 
 - Fixed sorting priority on lit and unlit materials
+- Fixed null pointer exception when there are no AOVRequests defined on a camera
+- Fixed dirty state of prefab using disabled ReflectionProbes
+- Fixed an issue where gizmos and editor grid were not correctly depth tested
+- Fixed created default scene prefab non editable due to wrong file extension.
+- Fixed an issue where sky convolution was recomputed for nothing when a preview was visible (causing extreme slowness when fabric convolution is enabled)
 
 ### Changed
 - Refactor PixelCoordToViewDirWS to be VR compatible and to compute it only once per frame
@@ -49,6 +54,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Re-enabled the sharpening filter on Temporal Anti-aliasing
 - Exposed HDEditorUtils.LightLayerMaskDrawer for integration in other packages and user scripting.
 - Rename atmospheric scattering in FrameSettings to Fog
+- The size modifier in the override for the culling sphere in Shadow Cascades now defaults to 0.6, which is the same as the formerly hardcoded value.
 
 ## [6.6.0-preview] - 2019-04-01
 
