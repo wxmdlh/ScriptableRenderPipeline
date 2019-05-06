@@ -127,7 +127,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_CopyStencilForSplitLighting = CoreUtils.CreateEngineMaterial(hdAsset.renderPipelineResources.shaders.copyStencilBufferPS);
             m_CopyStencilForSplitLighting.SetInt(HDShaderIDs._StencilRef, (int)StencilLightingUsage.SplitLighting);
             m_CopyStencilForSplitLighting.SetInt(HDShaderIDs._StencilMask, (int)HDRenderPipeline.StencilBitMask.LightingMask);
-
+            
             this.hdAsset = hdAsset;
             defaultDiffusionProfile = hdAsset.renderPipelineResources.assets.defaultDiffusionProfile;
         }
@@ -186,7 +186,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // if the diffusion profile was already set and it haven't changed then there is nothing to upgrade
             if (setDiffusionProfiles[index] == settings && diffusionProfileUpdate[index] == settings.updateCount)
                 return;
-
+            
             // if the settings have not yet been initialized
             if (settings.profile.filterKernelNearField == null)
                 return;
@@ -213,7 +213,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             uint mask = 1u << index;
             texturingModeFlags &= ~mask;
             transmissionFlags &= ~mask;
-
+            
             texturingModeFlags |= (uint)settings.profile.texturingMode    << index;
             transmissionFlags  |= (uint)settings.profile.transmissionMode << index;
 
@@ -323,8 +323,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 {
                     cmd.SetComputeTextureParam(m_SubsurfaceScatteringCS, sssKernel, HDShaderIDs._SSSBufferTexture[i], GetSSSBuffer(i));
                 }
-
-                int numTilesX = ((int)(hdCamera.textureWidthScaling.x * hdCamera.screenSize.x) + 15) / 16;
+                
+                int numTilesX = ((int)hdCamera.screenSize.x + 15) / 16;
                 int numTilesY = ((int)hdCamera.screenSize.y + 15) / 16;
                 int numTilesZ = hdCamera.computePassCount;
 

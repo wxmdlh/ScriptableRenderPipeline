@@ -33,8 +33,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Lighting
             [Reload("Runtime/Lighting/Deferred.Shader")]
             public Shader deferredPS;
-            [Reload("Runtime/RenderPipeline/RenderPass/ColorPyramid.compute")]
-            public ComputeShader colorPyramidCS;
             [Reload("Runtime/RenderPipeline/RenderPass/ColorPyramidPS.Shader")]
             public Shader colorPyramidPS;
             [Reload("Runtime/RenderPipeline/RenderPass/DepthPyramid.compute")]
@@ -305,7 +303,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Texture2D debugFontTex;
             [Reload("Runtime/Debug/ColorGradient.png")]
             public Texture2D colorGradient;
-            
+            [Reload("Runtime/RenderPipelineResources/Texture/DefaultMatcap.png")]
+            public Texture2D matcapTex;
+
             // Pre-baked noise
             [Reload("Runtime/RenderPipelineResources/Texture/BlueNoise16/L/LDR_LLL1_{0}.png", 0, 32)]
             public Texture2D[] blueNoise16LTex;
