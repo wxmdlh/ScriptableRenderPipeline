@@ -666,8 +666,6 @@ namespace UnityEditor.Experimental.Rendering.LWRP
 
             EditorGUILayout.PropertyField(m_LightOrder, Styles.generalLightOrder);
 
-            EditorGUI.BeginChangeCheck();
-
             EditorGUILayout.IntPopup(m_BlendStyleIndex, m_BlendStyleNames, m_BlendStyleIndices, Styles.generalBlendStyle);
             EditorGUILayout.PropertyField(m_LightColor, Styles.generalLightColor);
 
@@ -675,8 +673,6 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             EditorGUILayout.PropertyField(m_LightIntensity, Styles.generalLightIntensity);
             if (EditorGUI.EndChangeCheck())
                 m_LightIntensity.floatValue = Mathf.Max(m_LightIntensity.floatValue, 0);
-
-            bool updateGlobalLights = EditorGUI.EndChangeCheck();
 
             if (m_LightType.intValue != (int)Light2D.LightType.Global)
             {
