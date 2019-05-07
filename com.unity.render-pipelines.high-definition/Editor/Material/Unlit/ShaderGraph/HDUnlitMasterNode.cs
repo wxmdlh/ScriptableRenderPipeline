@@ -308,27 +308,24 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Hack to apply HDRP material keywords on preview material
             HackedPreview.OnCompiled = (Material previewMaterial) => {
                 // Fixup the material settings:
-
-                Debug.Log("Patch material keywords: " + previewMaterial.shader.name);
-
-                // TODO: hardcoded value:
                 previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
                 previewMaterial.SetFloat("_DoubleSidedEnable", doubleSided.isOn ? 1.0f : 0.0f);
                 previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
-                // TODO: alphaMode is a AlphaModeLit and does not match the BlendMode enum
-                previewMaterial.SetFloat("_BlendMode", (int)alphaMode);
+                previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
                 previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
                 previewMaterial.SetFloat("_DistortionDepthTest", distortionDepthTest.isOn ? 1.0f : 0.0f);
                 previewMaterial.SetFloat("_DistortionEnable", distortion.isOn ? 1.0f : 0.0f);
                 // No sorting priority for shader graph preview
                 previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
-                
+
                 UnlitGUI.SetupUnlitMaterialKeywordsAndPass(previewMaterial);
             };
 
             // Add all shader properties required by the inspector
             HDSubShaderUtilities.AddStencilShaderProperties(collector);
-            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, (BlendMode)alphaMode, sortPriority); // TODO: AlphaMode != BlendMode
+            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode), sortPriority);
+            HDSubShaderUtilities.AddAlphaCutoffShaderProperties(collector, alphaTest.isOn, false);
+            HDSubShaderUtilities.AddDoubleSidedProperty(collector, doubleSided.isOn ? DoubleSidedMode.Enabled : DoubleSidedMode.Disabled);
 
             base.CollectShaderProperties(collector, generationMode);
         }

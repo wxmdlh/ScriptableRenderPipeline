@@ -20,7 +20,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             AlphaCutoff                 = 1 << 3,
             AlphaCutoffThreshold        = 1 << 4,
             AlphaCutoffShadowThreshold  = 1 << 5,
-            Unlit                       = Surface | BlendMode | DoubleSided | AlphaCutoff | AlphaCutoffShadowThreshold | AlphaCutoffThreshold,
+            DoubleSidedNormalMode       = 1 << 6,
+            Unlit                       = Surface | BlendMode | DoubleSided | DoubleSidedNormalMode | AlphaCutoff | AlphaCutoffShadowThreshold | AlphaCutoffThreshold,
             Lit                         = All,
             All                         = ~0,
         }
@@ -288,7 +289,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             transmissionEnable = FindProperty(kTransmissionEnable);
 
-            doubleSidedNormalMode = FindProperty(kDoubleSidedNormalMode);
+            if ((m_Features & Features.DoubleSidedNormalMode) != 0)
+                doubleSidedNormalMode = FindProperty(kDoubleSidedNormalMode);
             depthOffsetEnable = FindProperty(kDepthOffsetEnable);
 
             // MaterialID
@@ -336,11 +338,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if ((m_Features & Features.Surface) != 0)
                 DrawSurfaceGUI();
 
-            if ((m_Features & Features.DoubleSided) != 0)
-                DrawDoubleSidedGUI();
-
             if ((m_Features & Features.AlphaCutoff) != 0)
                 DrawAlphaCutoffGUI();
+
+            if ((m_Features & Features.DoubleSided) != 0)
+                DrawDoubleSidedGUI();
 
             DrawLitSurfaceOptions();
         }

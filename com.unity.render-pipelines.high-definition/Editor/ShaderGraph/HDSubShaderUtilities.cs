@@ -955,8 +955,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             generator.AddShaderChunk(builder.ToString());
         }
 
-        // TODO: move this to an utils file for PropertyCollector + more util functions
-        static void AddIntProperty(this PropertyCollector collector, string referenceName, int defaultValue, bool hidden = true)
+        // Utils property to add properties to the collector, all hidden because we use a custom UI to display them
+        static void AddIntProperty(this PropertyCollector collector, string referenceName, int defaultValue)
         {
             collector.AddShaderProperty(new Vector1ShaderProperty{
                 floatType = FloatType.Integer,
@@ -987,13 +987,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             });
         }
 
-        static void AddToggleProperty(this PropertyCollector collector, string referenceName, string displayName, bool defaultValue)
+        static void AddToggleProperty(this PropertyCollector collector, string referenceName, bool defaultValue)
         {
             collector.AddShaderProperty(new BooleanShaderProperty{
                 value = defaultValue,
                 hidden = true,
                 overrideReferenceName = referenceName,
-                displayName = displayName,
             });
         }
 
@@ -1030,9 +1029,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddFloatProperty("_CullModeForward", 2.0f);
         }
 
-        public static void AddAlphaCutoffShaderProperties(PropertyCollector collector)
+        public static void AddAlphaCutoffShaderProperties(PropertyCollector collector, bool alphaCutoff, bool shadowThreshold)
         {
-            collector.AddToggleProperty("_AlphaCutoffEnable", "Alpha Cutoff Enable", false);
+            collector.AddToggleProperty("_AlphaCutoffEnable", alphaCutoff);
             collector.AddShaderProperty(new Vector1ShaderProperty{
                 overrideReferenceName = "_AlphaCutoff",
                 displayName = "Alpha Cutoff",
@@ -1042,8 +1041,23 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 value = 0.5f
             });
             collector.AddFloatProperty("_TransparentSortPriority", "_TransparentSortPriority", 0);
+            collector.AddToggleProperty("_UseShadowThreshold", shadowThreshold);
+        }
 
-            // TODO: _AlphaCutoffShadow and others (for lit)
+        public static void AddDoubleSidedProperty(PropertyCollector collector, DoubleSidedMode mode = DoubleSidedMode.Enabled)
+        {
+            collector.AddToggleProperty("_DoubleSidedEnable", mode != DoubleSidedMode.Disabled);
+            collector.AddShaderProperty(new EnumShaderProperty{
+                enumNames = {"Flip", "Mirror", "None"}, // values will be 0, 1 and 2
+                overrideReferenceName = "_DoubleSidedNormalMode",
+                hidden = true,
+                value = (int)mode
+            });
+            // collector.AddShaderProperty(new Vector4ShaderProperty{
+            //     overrideReferenceName = "_DoubleSidedConstants",
+            //     hidden = true,
+            //     value = new Vector4(1, 1, -1, 0)
+            // });
         }
 
         public static string RenderQueueName(HDRenderQueue.RenderQueueType value)
@@ -1097,6 +1111,23 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
 
             return result;
+        }
+
+        public static BlendMode ConvertAlphaModeToBlendMode(AlphaMode alphaMode)
+        {
+            switch (alphaMode)
+            {
+                case AlphaMode.Additive:
+                    return BlendMode.Additive;
+                case AlphaMode.Alpha:
+                    return BlendMode.Alpha;
+                case AlphaMode.Premultiply:
+                    return BlendMode.Premultiply;
+                case AlphaMode.Multiply: // In case of multiply we fall back to alpha
+                    return BlendMode.Alpha;
+                default:
+                    throw new System.Exception("Unknown AlphaMode: " + alphaMode + ": can't convert to BlendMode.");
+            }
         }
     }
 }

@@ -53,7 +53,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     }
 
                     foreach (var material in uiBlocks.materials)
-                        SetupMaterialKeywordsAndPass(material);
+                        SetupMaterialKeywordsAndPassInternal(material);
                 }
             }
         }

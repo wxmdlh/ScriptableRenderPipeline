@@ -27,7 +27,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (changed.changed)
                 {
                     foreach (var material in uiBlocks.materials)
-                        UnlitGUI.SetupUnlitMaterialKeywordsAndPass(material);
+                        SetupMaterialKeywordsAndPassInternal(material);
                 }
             }
         }

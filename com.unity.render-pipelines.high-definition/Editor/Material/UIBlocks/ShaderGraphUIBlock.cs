@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 
+// Include material common properties names
+using static UnityEngine.Experimental.Rendering.HDPipeline.HDMaterialProperties;
+
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class ShaderGraphUIBlock : MaterialUIBlock
@@ -60,7 +63,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 materialEditor.EnableInstancingField();
 
             if ((m_Features & Features.DoubleSidedGI) != 0)
-                materialEditor.DoubleSidedGIField();
+            {
+                // If the shader graph have a double sided flag, then we don't display this field.
+                // The double sided GI value will be synced with the double sided property during the SetupBaseUnlitKeywords()
+                if (!materials[0].HasProperty(kDoubleSidedEnable))
+                    materialEditor.DoubleSidedGIField();
+            }
 
             if ((m_Features & Features.EmissionGI) != 0)
                 DrawEmissionGI();

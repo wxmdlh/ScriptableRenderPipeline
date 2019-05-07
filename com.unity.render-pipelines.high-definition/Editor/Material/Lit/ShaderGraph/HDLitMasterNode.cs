@@ -900,13 +900,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Hack to apply HDRP material keywords on preview material
             UnityEditor.ShaderGraph.Drawing.HackedPreview.OnCompiled = (Material previewMaterial) => {
                 // Fixup the material settings:
-
-                // TODO: hardcoded value:
                 previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
                 previewMaterial.SetFloat("_DoubleSidedNormalMode", (int)doubleSidedMode);
                 previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
-                // TODO: alphaMode is a AlphaModeLit and does not match the BlendMode enum
-                previewMaterial.SetFloat("_BlendMode", (int)alphaMode);
+                previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
                 previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
                 previewMaterial.SetFloat("_DistortionDepthTest", distortionDepthTest.isOn ? 1.0f : 0.0f);
                 previewMaterial.SetFloat("_DistortionEnable", distortion.isOn ? 1.0f : 0.0f);
@@ -937,7 +934,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // Add all shader properties required by the inspector
             HDSubShaderUtilities.AddStencilShaderProperties(collector);
-            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, (BlendMode)alphaMode, sortPriority); // TODO: AlphaMode != BlendMode
+            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode), sortPriority); // TODO: AlphaMode != BlendMode
+            HDSubShaderUtilities.AddAlphaCutoffShaderProperties(collector, alphaTest.isOn, alphaTestShadow.isOn);
+            HDSubShaderUtilities.AddDoubleSidedProperty(collector, doubleSidedMode);
 
             base.CollectShaderProperties(collector, generationMode);
         }
