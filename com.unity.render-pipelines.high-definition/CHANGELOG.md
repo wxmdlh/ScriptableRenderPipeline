@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Enabled cascade blends settings in the HD Shadow component
 - Added Hardware Dynamic Resolution support. 
 - Added MatCap debug view to replace the no scene lighting debug view. 
+- Added a new abstraction for RendererList that will help transition to Render Graph and future RendererList API
 
 ### Fixed
 - Fixed deserialization crash at runtime
