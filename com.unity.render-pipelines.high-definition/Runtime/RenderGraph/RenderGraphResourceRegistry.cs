@@ -133,40 +133,6 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
             return hashCode;
         }
     }
-
-    public struct RendererListDesc
-    {
-        public SortingCriteria      sortingCriteria;
-        public PerObjectData        rendererConfiguration;
-        public RenderQueueRange     renderQueueRange;
-        public RenderStateBlock?    stateBlock;
-        public Material             overrideMaterial;
-        public bool                 excludeMotionVectors;
-
-        // Mandatory parameters passed through constructors
-        public CullingResults       cullingResult { get; private set; }
-        public Camera               camera { get; private set; }
-        public ShaderTagId          passName { get; private set; }
-        public ShaderTagId[]        passNames { get; private set; }
-
-        public RendererListDesc(ShaderTagId passName, CullingResults cullingResult, Camera camera)
-            : this()
-        {
-            this.passName = passName;
-            this.passNames = null;
-            this.cullingResult = cullingResult;
-            this.camera = camera;
-        }
-
-        public RendererListDesc(ShaderTagId[] passNames, CullingResults cullingResult, Camera camera)
-            : this()
-        {
-            this.passNames = passNames;
-            this.passName = ShaderTagId.none;
-            this.cullingResult = cullingResult;
-            this.camera = camera;
-        }
-    }
     #endregion
 
     public class RenderGraphResourceRegistry
@@ -489,48 +455,8 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
 
                 ref var rendererListResource = ref m_RendererListResources[rendererList.handle];
                 ref var desc = ref rendererListResource.desc;
-                RendererList newRenderList = new RendererList();
-
-                var sortingSettings = new SortingSettings(desc.camera)
-                {
-                    criteria = desc.sortingCriteria
-                };
-
-                var drawSettings = new DrawingSettings(s_EmptyName, sortingSettings)
-                {
-                    perObjectData = desc.rendererConfiguration
-                };
-
-                if (desc.passName != ShaderTagId.none)
-                {
-                    Debug.Assert(desc.passNames == null);
-                    drawSettings.SetShaderPassName(0, desc.passName);
-                }
-                else
-                {
-                    for (int i = 0; i < desc.passNames.Length; ++i)
-                    {
-                        drawSettings.SetShaderPassName(i, desc.passNames[i]);
-                    }
-                }
-
-                if (desc.overrideMaterial != null)
-                {
-                    drawSettings.overrideMaterial = desc.overrideMaterial;
-                    drawSettings.overrideMaterialPassIndex = 0;
-                }
-
-                var filterSettings = new FilteringSettings(desc.renderQueueRange)
-                {
-                    excludeMotionVectorObjects = desc.excludeMotionVectors
-                };
-
-                newRenderList.isValid = true;
-                newRenderList.cullingResult = desc.cullingResult;
-                newRenderList.drawSettings = drawSettings;
-                newRenderList.filteringSettings = filterSettings;
-                newRenderList.stateBlock = desc.stateBlock;
-                rendererListResource.rendererList = newRenderList;
+                RendererList newRendererList = RendererList.Create(desc);
+                rendererListResource.rendererList = newRendererList;
             }
         }
 
@@ -563,16 +489,5 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
             }
         }
         #endregion
-    }
-
-    // This is a temporary structure and this is why it's declared here.
-    // Plan is to define this correctly on the C++ side and expose it to C# later.
-    public struct RendererList
-    {
-        public bool                 isValid;
-        public CullingResults       cullingResult;
-        public DrawingSettings      drawSettings;
-        public FilteringSettings    filteringSettings;
-        public RenderStateBlock?    stateBlock;
     }
 }

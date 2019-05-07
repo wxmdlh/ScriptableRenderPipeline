@@ -146,7 +146,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         builder.SetRenderFunc(
                         (DepthPrepassData data, RenderGraphContext context) =>
                         {
-                            DrawOpaqueRendererList(data.frameSettings, context.resources.GetRendererList(data.rendererList1), context);
+                            DrawOpaqueRendererList(context, data.frameSettings, context.resources.GetRendererList(data.rendererList1));
                         });
                     }
                     break;
@@ -191,7 +191,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             HDUtils.SetRenderTarget(context.cmd, context.resources.GetTexture(data.depthBuffer));
                             // XRTODO: wait for XR SDK integration and implement custom version in HDUtils with dynamic resolution support
                             //XRUtils.DrawOcclusionMesh(cmd, hdCamera.camera, hdCamera.camera.stereoEnabled);
-                            DrawOpaqueRendererList(data.frameSettings, context.resources.GetRendererList(data.rendererList1), context);
+                            DrawOpaqueRendererList(context, data.frameSettings, context.resources.GetRendererList(data.rendererList1));
 
                             var mrt = RenderGraphUtils.GetMRTArray(data.msaaEnabled ? 2 : 1);
                             mrt[0] = context.resources.GetTexture(data.normalBuffer);
@@ -199,7 +199,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                 mrt[1] = context.resources.GetTexture(data.depthAsColorBuffer);
 
                             HDUtils.SetRenderTarget(context.cmd, mrt, context.resources.GetTexture(data.depthBuffer));
-                            DrawOpaqueRendererList(data.frameSettings, context.resources.GetRendererList(data.rendererList2), context);
+                            DrawOpaqueRendererList(context, data.frameSettings, context.resources.GetRendererList(data.rendererList2));
                         });
                     }
                     break;
@@ -255,7 +255,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 builder.SetRenderFunc(
                 (ObjectMotionVectorsPassData data, RenderGraphContext context) =>
                 {
-                    DrawOpaqueRendererList(data.frameSettings, context.resources.GetRendererList(data.rendererList), context);
+                    DrawOpaqueRendererList(context, data.frameSettings, context.resources.GetRendererList(data.rendererList));
                 });
             }
         }
@@ -333,7 +333,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 builder.SetRenderFunc(
                 (GBufferPassData data, RenderGraphContext context) =>
                 {
-                    DrawOpaqueRendererList(data.frameSettings, context.resources.GetRendererList(data.rendererList), context);
+                    DrawOpaqueRendererList(context, data.frameSettings, context.resources.GetRendererList(data.rendererList));
                 });
             }
 

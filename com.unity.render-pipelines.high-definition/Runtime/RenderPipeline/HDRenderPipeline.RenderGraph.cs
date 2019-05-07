@@ -130,8 +130,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     (DebugViewMaterialData data, RenderGraphContext context) =>
                     {
                         var res = context.resources;
-                        DrawOpaqueRendererList(data.frameSettings, res.GetRendererList(data.opaqueRendererList), context);
-                        DrawOpaqueRendererList(data.frameSettings, res.GetRendererList(data.transparentRendererList), context);
+                        DrawOpaqueRendererList(context, data.frameSettings, res.GetRendererList(data.opaqueRendererList));
+                        DrawOpaqueRendererList(context, data.frameSettings, res.GetRendererList(data.transparentRendererList));
                     });
                 }
             }
@@ -174,38 +174,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        protected static void DrawRendererList(RendererList rendererList, RenderGraphContext context)
+        protected static void DrawOpaqueRendererList(in RenderGraphContext context, in FrameSettings frameSettings, in RendererList rendererList)
         {
-            if (!rendererList.isValid)
-                throw new ArgumentException("Invalid renderer list provided to DrawOpaqueRendererList");
-
-            // This is done here because DrawRenderers API lives outside command buffers so we need to make call this before doing any DrawRenders
-            context.renderContext.ExecuteCommandBuffer(context.cmd);
-            context.cmd.Clear();
-
-            if (rendererList.stateBlock == null)
-                context.renderContext.DrawRenderers(rendererList.cullingResult, ref rendererList.drawSettings, ref rendererList.filteringSettings);
-            else
-            {
-                var renderStateBlock = rendererList.stateBlock.Value;
-                context.renderContext.DrawRenderers(rendererList.cullingResult, ref rendererList.drawSettings, ref rendererList.filteringSettings, ref renderStateBlock);
-            }
-        }
-
-        protected static void DrawOpaqueRendererList(in FrameSettings frameSettings, RendererList rendererList, RenderGraphContext context)
-        {
-            if (!frameSettings.IsEnabled(FrameSettingsField.OpaqueObjects))
-                return;
-
-            DrawRendererList(rendererList, context);
+            DrawOpaqueRendererList(context.renderContext, context.cmd, frameSettings, rendererList);
         }
 
         protected static void DrawTransparentRendererList(in FrameSettings frameSettings, RendererList rendererList, RenderGraphContext context)
         {
-            if (!frameSettings.IsEnabled(FrameSettingsField.TransparentObjects))
-                return;
-
-            DrawRendererList(rendererList, context);
+            DrawTransparentRendererList(context.renderContext, context.cmd, frameSettings, rendererList);
         }
 
         protected static int SampleCountToPassIndex(MSAASamples samples)
