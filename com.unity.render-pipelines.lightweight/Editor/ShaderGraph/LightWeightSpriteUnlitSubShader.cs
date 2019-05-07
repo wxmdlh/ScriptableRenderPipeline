@@ -41,7 +41,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             if (sourceAssetDependencyPaths != null)
             {
                 // LightWeightSpriteUnlitSubShader.cs
-                sourceAssetDependencyPaths.Add(AssetDatabase.GUIDToAssetPath("62511ee827d14492a8c78ba0ef167e7f"));
+                sourceAssetDependencyPaths.Add(AssetDatabase.GUIDToAssetPath("f2df349d00ec920488971bb77440b7bc"));
             }
 
             var templatePath = GetTemplatePath("lightweightSpriteUnlitPass.template");
@@ -309,8 +309,9 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         static string GetTemplatePath(string templateName)
         {
-            var pathSegments = new[] { "Packages", "com.unity.render-pipelines.lightweight", "Editor", "ShaderGraph", templateName };
-            var path = pathSegments.Aggregate("", Path.Combine);
+            var basePath = "Packages/com.unity.render-pipelines.lightweight/Editor/ShaderGraph/";
+            string path = Path.Combine(basePath, templateName);
+
             if (!File.Exists(path))
                 throw new FileNotFoundException(string.Format(@"Cannot find a template with name ""{0}"".", templateName));
             return path;
