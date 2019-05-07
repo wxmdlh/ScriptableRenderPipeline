@@ -11,8 +11,9 @@
                          PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_Y, \
                          PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_Z)
 
-RW_TEXTURE3D(float4, _InScatteredRadianceTable); // Emulate a 4D texture with a "deep" 3D texture
-
+// Emulate a 4D texture with a "deep" 3D texture.
+RW_TEXTURE3D(float4, _AirSingleScatteringTable);
+RW_TEXTURE3D(float4, _AerosolSingleScatteringTable);
 
 float2 IntersectRayCylinder(float3 cylOrigin, float3 cylAxis, float cylRadiusSquared,
                             float3 rayOrigin, float3 rayDir)
@@ -92,10 +93,14 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         tMax = IntersectSphere(_PlanetaryRadius,   cosChi, r).x; // Min root
     }
 
-    float3 radiance   = 0;
-    float4 tableEntry = float4(radiance, 0);
+    // float3 radiance   = 0;
+    // float4 tableEntry = float4(radiance, 0);
 
 #if (SCATTERING_ORDER == 1)
+
+    float4 airTableEntry     = 0;
+    float4 aerosolTableEntry = 0;
+
     // For single scattering with the directional light assumption, planet's shadow forms a shadow volume
     // which is shaped like a cylinder with the planet's radius, aligned with the light direction.
     // We can use it to optimize the integration process, as the shadowed region has 0 contribution.
@@ -141,11 +146,13 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         }
     }
 
-    tableEntry.a = max(0, tMax - tMin);
+    airTableEntry.a     = max(0, tMax - tMin);
+    aerosolTableEntry.a = max(0, tMax - tMin);
 
     if (tMin >= tMax)
     {
-        _InScatteredRadianceTable[tableCoord] = tableEntry; // Return 0
+        _AirSingleScatteringTable[tableCoord]     = airTableEntry;     // Return 0
+        _AerosolSingleScatteringTable[tableCoord] = aerosolTableEntry; // Return 0
         return;
     }
 
@@ -159,7 +166,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float  t0          = tMin;
     float3 viewTransmX = SampleTransmittanceTexture(cosChi, height); // Start to end
-    float3 viewTransm0 = 1;
+    float3 viewTransm  = 1;                                          // Start to sample
 
     if (tMin > 0) // Start changed?
     {
@@ -171,19 +178,14 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         NdotL  = dot(normalize(P),  L);
 
         // TODO: maybe better to use optical depth?
-        viewTransm0 = viewTransmX * rcp(SampleTransmittanceTexture(cosChi, height)); // Start to sample
+        viewTransm = viewTransmX * rcp(SampleTransmittanceTexture(cosChi, height));
     }
 
-    float3 inScatterTerm0;
+    float3 lightTransm = SampleTransmittanceTexture(NdotL, height);
 
-    // TODO: we don't have to apply the phase function here.
-    // It's a better idea to apply it when sampling the texture.
-    {
-        float3 lightScatter = AtmosphereScatter(LdotV, height);
-        float3 lightTransm  = SampleTransmittanceTexture(NdotL, height);
-
-        inScatterTerm0 = viewTransm0 * lightScatter * lightTransm;
-    }
+    // Apply the phase function at runtime.
+    float3 airInScatterTerm0     = viewTransm * lightTransm * AirScatter(height);
+    float3 aerosolInScatterTerm0 = viewTransm * lightTransm * AerosolScatter(height);
 
     // const int numSamples = 4096;
     const int numSamples = 256;
@@ -200,11 +202,8 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         NdotL  = dot(normalize(P),  L);
 
         // TODO: maybe better to use optical depth?
-        float3 viewTransm   = viewTransmX * rcp(SampleTransmittanceTexture(cosChi, height));
-        float3 lightScatter = AtmosphereScatter(LdotV, height);
-        float3 lightTransm  = SampleTransmittanceTexture(NdotL, height);
-
-        float3 inScatterTerm1 = viewTransm * lightScatter * lightTransm;
+        viewTransm  = viewTransmX * rcp(SampleTransmittanceTexture(cosChi, height));
+        lightTransm = SampleTransmittanceTexture(NdotL, height);
 
         // Compute the amount of in-scattered radiance.
         // Evaluate the transmittance integral from 't0' to 't1' using the trapezoid rule.
@@ -212,12 +211,21 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         // (Transmittance(0, a) + Transmittance(0, b)) * (b - a) / 2 =
         // (Transmittance(0, a) + Transmittance(0, tMax) / Transmittance(b, tMax)) * (b - a) / 2.
         // We handle other terms in a similar way (by pre-multiplying transmittance).
-        radiance += (inScatterTerm0 + inScatterTerm1) * (0.5 * dt) * _SunRadiance;
+        float3 airInScatterTerm1     = viewTransm * lightTransm * AirScatter(height);
+        float3 aerosolInScatterTerm1 = viewTransm * lightTransm * AerosolScatter(height);
+
+        // Apply the phase function at runtime.
+        airTableEntry.rgb     += (airInScatterTerm0     + airInScatterTerm1    ) * (0.5 * dt) * _SunRadiance;
+        aerosolTableEntry.rgb += (aerosolInScatterTerm0 + aerosolInScatterTerm1) * (0.5 * dt) * _SunRadiance;
 
         // Carry these over to the next iteration...
-        t0             = t1;
-        inScatterTerm0 = inScatterTerm1;
+        t0                    = t1;
+        airInScatterTerm0     = airInScatterTerm1;
+        aerosolInScatterTerm0 = aerosolInScatterTerm1;
     }
+
+    _AirSingleScatteringTable[tableCoord]     = airTableEntry;
+    _AerosolSingleScatteringTable[tableCoord] = aerosolTableEntry;
 #endif
 
     // if (NdotL > cosHor)
@@ -276,10 +284,10 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     // }
 
     // TODO: deep compositing.
-    tableEntry.rgb = radiance;
+    // tableEntry.rgb = radiance;
     // tableEntry = float4(radiance, tMax);
     // tableEntry = float4(cosChi, h, NdotL, tMax);
     // tableEntry = float4(viewTransmX, tMax);
 
-    _InScatteredRadianceTable[tableCoord] = tableEntry;
+    // _InScatteredRadianceTable[tableCoord] = tableEntry;
 }

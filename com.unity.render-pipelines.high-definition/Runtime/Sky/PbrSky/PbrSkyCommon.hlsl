@@ -35,29 +35,33 @@ CBUFFER_END
 
 TEXTURE2D(_OpticalDepthTexture);
 TEXTURE2D(_GroundIrradianceTexture);
-TEXTURE3D(_InScatteredRadianceTexture); // Emulate a 4D texture with a "deep" 3D texture
+
+// Emulate a 4D texture with a "deep" 3D texture.
+TEXTURE3D(_AirSingleScatteringTexture);
+TEXTURE3D(_AerosolSingleScatteringTexture);
 
 #ifndef UNITY_SHADER_VARIABLES_INCLUDED
     SAMPLER(s_linear_clamp_sampler);
 #endif
 
-float3 AirScatter(float LdotV, float height)
+float3 AirScatter(float height)
 {
-    float3 kS = _AirSeaLevelScattering * exp(-height * _AirDensityFalloff);
-
-    return kS * RayleighPhaseFunction(-LdotV);
+    return _AirSeaLevelScattering * exp(-height * _AirDensityFalloff);
 }
 
-float AerosolScatter(float LdotV, float height)
+float AirPhase(float LdotV)
 {
-    float kS = _AerosolSeaLevelScattering * exp(-height * _AerosolDensityFalloff);
-
-    return kS * _AerosolPhasePartConstant * CornetteShanksPhasePartVarying(_AerosolAnisotropy, -LdotV);
+    return RayleighPhaseFunction(-LdotV);
 }
 
-float3 AtmosphereScatter(float LdotV, float height)
+float AerosolScatter(float height)
 {
-    return AirScatter(LdotV, height) + AerosolScatter(LdotV, height);
+    return _AerosolSeaLevelScattering * exp(-height * _AerosolDensityFalloff);
+}
+
+float AerosolPhase(float LdotV)
+{
+    return _AerosolPhasePartConstant * CornetteShanksPhasePartVarying(_AerosolAnisotropy, -LdotV);
 }
 
 // Returns the closest hit in X and the farthest hit in Y.

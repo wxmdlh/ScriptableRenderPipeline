@@ -29,7 +29,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Precomputed data below.
         RTHandleSystem.RTHandle      m_OpticalDepthTable;
         RTHandleSystem.RTHandle      m_GroundIrradianceTable;
-        RTHandleSystem.RTHandle[]    m_InScatteredRadianceTables; // Double-buffer
+        RTHandleSystem.RTHandle[]    m_InScatteredRadianceTables; // Air SS, Aerosol SS, Atmosphere MS (double-buffer, one is temp)
 
         static ComputeShader         s_OpticalDepthPrecomputationCS;
         static ComputeShader         s_GroundIrradiancePrecomputationCS;
@@ -77,7 +77,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_InScatteredRadianceTables = new RTHandleSystem.RTHandle[2];
 
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 4; i++)
             {
                 // Emulate a 4D texture with a "deep" 3D texture.
                 m_InScatteredRadianceTables[i] = RTHandles.Alloc((int)PbrSkyConfig.InScatteredRadianceTableSizeX,
@@ -93,9 +93,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 Debug.Assert(m_InScatteredRadianceTables[i] != null);
             }
 
-            Debug.Assert(m_OpticalDepthTable        != null);
-            Debug.Assert(m_GroundIrradianceTable    != null);
-
+            Debug.Assert(m_OpticalDepthTable     != null);
+            Debug.Assert(m_GroundIrradianceTable != null);
         }
 
         public override bool IsValid()
@@ -179,9 +178,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     cmd.SetComputeTextureParam(s_GroundIrradiancePrecomputationCS, 0, "_GroundIrradianceTable", m_GroundIrradianceTable);
                     cmd.DispatchCompute(s_GroundIrradiancePrecomputationCS, 0, (int)PbrSkyConfig.GroundIrradianceTableSize / 64, 1, 1);
 
-                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_OpticalDepthTexture",      m_OpticalDepthTable);
-                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_GroundIrradianceTexture",  m_GroundIrradianceTable);
-                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_InScatteredRadianceTable", m_InScatteredRadianceTables[0]);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_OpticalDepthTexture",          m_OpticalDepthTable);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_GroundIrradianceTexture",      m_GroundIrradianceTable);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_AirSingleScatteringTable",     m_InScatteredRadianceTables[0]);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_AerosolSingleScatteringTable", m_InScatteredRadianceTables[1]);
 
                     // Emulate a 4D dispatch with a "deep" 3D dispatch.
                     cmd.DispatchCompute(s_InScatteredRadiancePrecomputationCS, 0, (int)PbrSkyConfig.InScatteredRadianceTableSizeX / 4,
@@ -225,7 +225,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             s_PbrSkyMaterialProperties.SetVector( "_SunDirection",                    L);
             s_PbrSkyMaterialProperties.SetTexture("_OpticalDepthTexture",             m_OpticalDepthTable);
             s_PbrSkyMaterialProperties.SetTexture("_GroundIrradianceTexture",         m_GroundIrradianceTable);
-            s_PbrSkyMaterialProperties.SetTexture("_InScatteredRadianceTexture",      m_InScatteredRadianceTables[0]);
+            s_PbrSkyMaterialProperties.SetTexture("_AirSingleScatteringTexture",      m_InScatteredRadianceTables[0]);
+            s_PbrSkyMaterialProperties.SetTexture("_AerosolSingleScatteringTexture",  m_InScatteredRadianceTables[1]);
 
             CoreUtils.DrawFullScreen(builtinParams.commandBuffer, s_PbrSkyMaterial, s_PbrSkyMaterialProperties, renderForCubemap ? 0 : 1);
         }

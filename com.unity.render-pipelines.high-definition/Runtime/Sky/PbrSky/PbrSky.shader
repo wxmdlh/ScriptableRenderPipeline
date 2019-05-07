@@ -118,9 +118,16 @@ Shader "Hidden/HDRP/Sky/PbrSky"
         float w0 = (floor(k) + w) * rcp(zTexCnt);
         float w1 = (ceil(k)  + w) * rcp(zTexCnt);
 
-        radiance += lerp(SAMPLE_TEXTURE3D(_InScatteredRadianceTexture, s_linear_clamp_sampler, float3(u, v, w0)),
-                         SAMPLE_TEXTURE3D(_InScatteredRadianceTexture, s_linear_clamp_sampler, float3(u, v, w1)),
-                         frac(k)).rgb;
+        // Apply the phase function.
+        float LdotV = dot(L, V);
+
+        radiance += lerp(SAMPLE_TEXTURE3D(_AirSingleScatteringTexture,     s_linear_clamp_sampler, float3(u, v, w0)),
+                         SAMPLE_TEXTURE3D(_AirSingleScatteringTexture,     s_linear_clamp_sampler, float3(u, v, w1)),
+                         frac(k)).rgb * AirPhase(LdotV);
+
+        radiance += lerp(SAMPLE_TEXTURE3D(_AerosolSingleScatteringTexture, s_linear_clamp_sampler, float3(u, v, w0)),
+                         SAMPLE_TEXTURE3D(_AerosolSingleScatteringTexture, s_linear_clamp_sampler, float3(u, v, w1)),
+                         frac(k)).rgb * AerosolPhase(LdotV);
 
         if (earlyOut)
         {
