@@ -425,11 +425,6 @@ namespace UnityEditor.ShaderGraph.Drawing
         HashSet<IShaderNodeView> m_NodeViewHashSet = new HashSet<IShaderNodeView>();
         HashSet<ShaderGroup> m_GroupHashSet = new HashSet<ShaderGroup>();
 
-        public void UpdatePreviewShaders()
-        {
-            previewManager.ForceShaderUpdate();
-        }
-
         public void HandleGraphChanges()
         {
             previewManager.HandleGraphChanges();

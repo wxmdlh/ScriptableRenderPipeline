@@ -29,7 +29,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         bool m_HasError;
 
         [NonSerialized]
-        public bool updatePreviewShaders = false;
+        public bool reloadSubGraphs;
 
         ColorSpace m_ColorSpace;
         RenderPipelineAsset m_RenderPipelineAsset;
@@ -145,17 +145,24 @@ namespace UnityEditor.ShaderGraph.Drawing
                     graphObject.Validate();
                 }
 
+                if (reloadSubGraphs)
+                {
+                    if (graphObject != null && graphObject.graph != null)
+                    {
+                        foreach (var subGraphNode in graphObject.graph.GetNodes<SubGraphNode>())
+                        {
+                            subGraphNode.Reload();
+                        }
+                    }
+
+                    reloadSubGraphs = false;
+                }
+
                 if (graphObject.wasUndoRedoPerformed)
                 {
                     graphEditorView.HandleGraphChanges();
                     graphObject.graph.ClearChanges();
                     graphObject.HandleUndoRedo();
-                }
-
-                if (updatePreviewShaders)
-                {
-                    m_GraphEditorView.UpdatePreviewShaders();
-                    updatePreviewShaders = false;
                 }
 
                 graphEditorView.HandleGraphChanges();
@@ -464,15 +471,6 @@ namespace UnityEditor.ShaderGraph.Drawing
         {
             File.WriteAllText(path, EditorJsonUtility.ToJson(graphObject.graph, true));
             AssetDatabase.ImportAsset(path);
-        }
-
-        public void Rebuild()
-        {
-            if (graphObject != null && graphObject.graph != null)
-            {
-                graphObject.graph.OnEnable();
-                graphObject.graph.ValidateGraph();
-            }
         }
 
         public void Initialize(string assetGuid)

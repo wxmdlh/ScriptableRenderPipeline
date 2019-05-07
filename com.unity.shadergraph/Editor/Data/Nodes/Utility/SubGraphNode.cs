@@ -31,6 +31,9 @@ namespace UnityEditor.ShaderGraph
         [NonSerialized]
         SubGraphData m_SubGraphData = default;
 
+        [NonSerialized]
+        long m_SubGraphProcessedAt;
+
         [SerializeField]
         List<string> m_PropertyGuids = new List<string>();
 
@@ -98,6 +101,7 @@ namespace UnityEditor.ShaderGraph
                 name = m_SubGraph.name;
                 var index = SubGraphDatabase.instance.subGraphGuids.BinarySearch(graphGuid);
                 m_SubGraphData = index < 0 ? null : SubGraphDatabase.instance.subGraphs[index];
+                m_SubGraphProcessedAt = m_SubGraphData?.processedAt ?? -1;
             }
         }
 
@@ -215,8 +219,23 @@ namespace UnityEditor.ShaderGraph
 
         public void OnEnable()
         {
-            m_SubGraph = null;
             UpdateSlots();
+        }
+
+        public void Reload()
+        {
+            var processedAt = m_SubGraphProcessedAt;
+
+            // Force-reload sub graph
+            m_SubGraph = null;
+            LoadSubGraph();
+            if (m_SubGraphProcessedAt == processedAt)
+            {
+                return;
+            }
+            
+            UpdateSlots();
+            Dirty(ModificationScope.Graph);
         }
 
         public virtual void UpdateSlots()
