@@ -75,12 +75,21 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public void UpdateParameters(BuiltinSkyParameters builtinParams)
         {
+            atmosphericDepth.value = ComputeAtmosphericDepth();
+
             Light sun = builtinParams.sunLight;
 
-            atmosphericDepth.value = ComputeAtmosphericDepth();
-            sunRadiance.value      = new Vector3(sun.intensity * sun.color.linear.r,
-                                                 sun.intensity * sun.color.linear.g,
-                                                 sun.intensity * sun.color.linear.b);
+            if (sun != null)
+            {
+                sunRadiance.value = new Vector3(sun.intensity * sun.color.linear.r,
+                                                sun.intensity * sun.color.linear.g,
+                                                sun.intensity * sun.color.linear.b);
+            }
+            else
+            {
+                sunRadiance.value = Vector3.zero;
+            }
+
 //            sunDirection.value     = -sun.transform.forward;
         }
 

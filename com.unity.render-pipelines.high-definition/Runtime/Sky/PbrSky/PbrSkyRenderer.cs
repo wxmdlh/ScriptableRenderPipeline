@@ -197,6 +197,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             CommandBuffer cmd = builtinParams.commandBuffer;
 
+            Light sun = builtinParams.sunLight;
+
+            Vector3 L;
+
+            if (sun != null)
+            {
+                L = -builtinParams.sunLight.transform.forward;
+            }
+            else
+            {
+                L = Vector3.zero;
+            }
             m_Settings.UpdateParameters(builtinParams);
             int currentParamHash = m_Settings.GetHashCode();
 
@@ -209,11 +221,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
 
             // This matrix needs to be updated at the draw call frequency.
-            s_PbrSkyMaterialProperties.SetMatrix( HDShaderIDs._PixelCoordToViewDirWS,  builtinParams.pixelCoordToViewDirMatrix);
-            s_PbrSkyMaterialProperties.SetVector( "_SunDirection",                    -builtinParams.sunLight.transform.forward);
-            s_PbrSkyMaterialProperties.SetTexture("_OpticalDepthTexture",              m_OpticalDepthTable);
-            s_PbrSkyMaterialProperties.SetTexture("_GroundIrradianceTexture",          m_GroundIrradianceTable);
-            s_PbrSkyMaterialProperties.SetTexture("_InScatteredRadianceTexture",       m_InScatteredRadianceTables[0]);
+            s_PbrSkyMaterialProperties.SetMatrix( HDShaderIDs._PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
+            s_PbrSkyMaterialProperties.SetVector( "_SunDirection",                    L);
+            s_PbrSkyMaterialProperties.SetTexture("_OpticalDepthTexture",             m_OpticalDepthTable);
+            s_PbrSkyMaterialProperties.SetTexture("_GroundIrradianceTexture",         m_GroundIrradianceTable);
+            s_PbrSkyMaterialProperties.SetTexture("_InScatteredRadianceTexture",      m_InScatteredRadianceTables[0]);
 
             CoreUtils.DrawFullScreen(builtinParams.commandBuffer, s_PbrSkyMaterial, s_PbrSkyMaterialProperties, renderForCubemap ? 0 : 1);
         }
