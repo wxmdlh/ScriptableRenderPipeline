@@ -14,7 +14,7 @@ The camera-relative rendering process translates GameObjects and Lights by the n
 
 If you view the source files for pre-built HDRP Shaders, the view and view-projection matrices are Camera-relative, along with Light and surface positions. Most world space positions in HDRP Shaders are also Camera-relative.
 
-**Exception: ** `_WorldSpaceCameraPos` is never Camera-relative because HDRP uses it for coordinate space conversion.
+**Exception**: `_WorldSpaceCameraPos` is never Camera-relative because HDRP uses it for coordinate space conversion.
 
 ## **Examples**
 

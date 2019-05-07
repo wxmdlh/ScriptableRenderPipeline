@@ -34,7 +34,7 @@ When you create an HDRP Asset, open it in the Inspector to edit its properties.
 
 Frame Settings control the rendering passes made by the main Camera at run time. This section describes the Frame Settings that you set on an HDRP Asset. For information about general Frame Settings, and how to use them, see the [HDRP Frame Settings documentation](Frame-Settings.html). 
 
-<a name="GemeralProperties"></a>
+<a name="GeneralProperties"></a>
 
 ## General
 
@@ -43,7 +43,7 @@ Frame Settings control the rendering passes made by the main Camera at run time.
 | **Render Pipeline Resources**        | Stores references to Shaders and Materials which HDRP uses.  When you build your Unity Project, HDRP embeds all of the resources that this Asset references. It allows you to set up multiple render pipelines in a Unity Project and, when you build the Project, Unity only embeds Shaders and Materials relevant for that pipeline. Unity creates an HDRP Resources Asset when you create an HDRP Asset and the HDRP Asset references it automatically. This is the Scriptable Render Pipeline equivalent of  Unity’s **Resources** folder mechanism. |
 | **Render Pipeline Editor Resources** | Stores reference resources for the Editor only. Unity does not include these when you build your Unity Project. Unity creates an HDRP Resources Asset when you create an HDRP Asset and the HDRP Asset references it automatically. |
 | **SPR Batcher**                      | Enable the checkbox to make HDRP use the SRP batcher optimization. The SRP batcher minimizes the number of parameters the Shaders receive between each draw call. This improves CPU performance. |
-| **Shader Variant Log Level**         | Use the drop-down to select what information HDRP logs about Shader variants when you build your Unity Project.<br />**Disabled**: Disables this feature, so HDRP doesn’t log any Shader variant information.<br />**Only HDRP Shaders**: Only logs Shader variant information for HDRP Shaders.<br />**All Shaders**: Logs Shader variant information for every Shader type. |
+| **Shader Variant Log Level**         | Use the drop-down to select what information HDRP logs about Shader variants when you build your Unity Project.<br />&#8226; **Disabled**: Disables this feature, so HDRP doesn’t log any Shader variant information.<br />&#8226; **Only HDRP Shaders**: Only logs Shader variant information for HDRP Shaders.<br />&#8226; **All Shaders**: Logs Shader variant information for every Shader type. |
 
 ## Rendering
 
