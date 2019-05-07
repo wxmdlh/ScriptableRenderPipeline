@@ -99,6 +99,7 @@ namespace UnityEditor.VFX
         protected SerializedProperty m_VisualEffectAsset;
         SerializedProperty m_ReseedOnPlay;
         SerializedProperty m_InitialEventName;
+        SerializedProperty m_InitialEventNameOverriden;
         SerializedProperty m_RandomSeed;
         SerializedProperty m_VFXPropertySheet;
 
@@ -125,6 +126,7 @@ namespace UnityEditor.VFX
             m_RandomSeed = serializedObject.FindProperty("m_StartSeed");
             m_ReseedOnPlay = serializedObject.FindProperty("m_ResetSeedOnPlay");
             m_InitialEventName = serializedObject.FindProperty("m_InitialEventName");
+            m_InitialEventNameOverriden = serializedObject.FindProperty("m_InitialEventNameOverriden");
             m_VisualEffectAsset = serializedObject.FindProperty("m_Asset");
             m_VFXPropertySheet = serializedObject.FindProperty("m_PropertySheet");
 
@@ -177,7 +179,7 @@ namespace UnityEditor.VFX
 
             var toggleRect = rect;
             toggleRect.x += EditorGUI.indentLevel * 16;
-            toggleRect.yMin += 1.0f;
+            toggleRect.yMin += 2.0f;
             toggleRect.width = 18;
             overridenProperty.boolValue = EditorGUI.Toggle(toggleRect, overridenProperty.hasMultipleDifferentValues ? false : overridenProperty.boolValue, overridenProperty.hasMultipleDifferentValues ? Styles.toggleMixedStyle : Styles.toggleStyle);
             rect.xMin += overrideWidth + EditorGUI.indentLevel * 16;
@@ -507,18 +509,21 @@ namespace UnityEditor.VFX
             EditorGUI.BeginChangeCheck();
             using (new GUILayout.HorizontalScope())
             {
-                EditorGUILayout.PropertyField(m_InitialEventName);
-                if (GUILayout.Button(Contents.resetInitialEvent, EditorStyles.miniButton, Styles.MiniButtonWidth))
-                {
-                    foreach (VisualEffect ve in targets)
-                    {
-                        var singleSerializedObject = new SerializedObject(ve);
-                        var singleProperty = singleSerializedObject.FindProperty("m_InitialEventName");
-                        singleProperty.stringValue = "OnPlay";
-                        singleSerializedObject.ApplyModifiedProperties();
-                    }
-                    serializedObject.Update();
-                }
+                var rect = EditorGUILayout.GetControlRect(false, overrideWidth);
+                var toggleRect = rect;
+                toggleRect.yMin += 2.0f;
+                toggleRect.width = overrideWidth;
+                EditorGUI.Toggle(toggleRect, m_InitialEventNameOverriden.hasMultipleDifferentValues ? false : m_InitialEventNameOverriden.boolValue, m_InitialEventNameOverriden.hasMultipleDifferentValues ? Styles.toggleMixedStyle : Styles.toggleStyle);
+                rect.xMin += overrideWidth;
+
+                var save = EditorGUI.indentLevel;
+                EditorGUI.indentLevel = 0;
+                EditorGUI.BeginProperty(rect, GUIContent.none, m_InitialEventName);
+                EditorGUI.LabelField(rect, new GUIContent("Initial Event Name"));
+                rect.xMin = rect.width / 2.0f;
+                EditorGUI.PropertyField(rect, m_InitialEventName, GUIContent.none);
+                EditorGUI.indentLevel = save;
+                EditorGUI.EndProperty();
             }
             return EditorGUI.EndChangeCheck();
         }
