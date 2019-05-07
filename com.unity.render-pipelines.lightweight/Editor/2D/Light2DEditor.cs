@@ -43,6 +43,7 @@ namespace UnityEditor.Experimental.Rendering.LWRP
                 for (var i = 0; i < shapeEditor.pointCount; ++i)
                     pointsProperty.GetArrayElementAtIndex(i).vector3Value = shapeEditor.GetPoint(i).position;
 
+                // This is untracked right now...
                 serializedObject.ApplyModifiedProperties();
             }
         }
@@ -145,6 +146,23 @@ namespace UnityEditor.Experimental.Rendering.LWRP
         int m_LastLightType = 0;
 
         HeaderModifier m_HeaderModifier;
+
+        Analytics._2DRendererAnalytics m_Analytics;
+        HashSet<Light2D> m_ModifiedLights;
+
+        private void AnalyticsTrackChanges(SerializedObject serializedObject)
+        {
+            if (serializedObject.hasModifiedProperties)
+            {
+                foreach (Object targetObj in serializedObject.targetObjects)
+                {
+                    Light2D light2d = (Light2D)targetObj;
+                    if(!m_ModifiedLights.Contains(light2d))
+                        m_ModifiedLights.Add(light2d);
+                }
+            }
+        }
+
         public override VisualElement CreateInspectorGUI()
         {
             m_HeaderModifier = new HeaderModifier(OnInspectorGUI, () =>
@@ -169,6 +187,8 @@ namespace UnityEditor.Experimental.Rendering.LWRP
 
         void OnEnable()
         {
+            m_Analytics = Analytics._2DRendererAnalytics.instance;
+            m_ModifiedLights = new HashSet<Light2D>();
             m_LightType = serializedObject.FindProperty("m_LightType");
             m_LightColor = serializedObject.FindProperty("m_Color");
             m_LightIntensity = serializedObject.FindProperty("m_Intensity");
@@ -244,6 +264,27 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             }
         }
 
+        internal void SendModifiedAnalytics(Analytics._2DRendererAnalytics analytics, Light2D light)
+        {
+            Analytics.Light2DData lightData = new Analytics.Light2DData();
+            lightData.event_type = Analytics.Light2DData.EventType.Modified;
+            lightData.instance_id = light.GetInstanceID();
+            lightData.light_type = light.lightType;
+            Analytics._2DRendererAnalytics.instance.SendData(Analytics.AnalyticsDataTypes.k_LightDataString, lightData);
+        }
+
+        private void OnDestroy()
+        {
+
+            if(m_ModifiedLights.Count > 0)
+            {
+                foreach (Light2D light in m_ModifiedLights)
+                {
+                    SendModifiedAnalytics(m_Analytics, light);
+                }
+            }
+        }
+
         void OnPointLight(SerializedObject serializedObject)
         {
             EditorGUI.BeginChangeCheck();
@@ -316,6 +357,7 @@ namespace UnityEditor.Experimental.Rendering.LWRP
                 m_ApplyToSortingLayers.GetArrayElementAtIndex(i).intValue = m_ApplyToSortingLayersList[i];
             }
 
+            AnalyticsTrackChanges(serializedObject);
             serializedObject.ApplyModifiedProperties();
 
             foreach (Light2D light in targets)
@@ -699,7 +741,9 @@ namespace UnityEditor.Experimental.Rendering.LWRP
                 DoSnappingInspector<FreeformShapeTool>();
             }
 
+            AnalyticsTrackChanges(serializedObject);
             serializedObject.ApplyModifiedProperties();
         }
+
     }
 }

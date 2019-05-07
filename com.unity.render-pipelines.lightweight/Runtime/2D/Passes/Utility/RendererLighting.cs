@@ -207,6 +207,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         {
             for (int i = 0; i < s_BlendStyles.Length; ++i)
             {
+
                 if (i >= k_UseBlendStyleKeywords.Length)
                     break;
 
@@ -330,6 +331,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         {
             for (int i = 0; i < s_BlendStyles.Length; ++i)
             {
+
                 if (!s_BlendStyles[i].enabled)
                     continue;
 

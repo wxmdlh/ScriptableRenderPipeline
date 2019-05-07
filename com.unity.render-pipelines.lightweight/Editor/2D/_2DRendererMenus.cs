@@ -3,10 +3,12 @@ using UnityEngine.Experimental.Rendering.LWRP;
 using UnityEngine.Rendering.LWRP;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.ProjectWindowCallback;
+using UnityEngine.Rendering;
 
 namespace UnityEditor.Experimental.Rendering.LWRP
 {
-    static class Lightweight2DMenus
+    static class _2DRendererMenus
     {
         internal static void PlaceGameObjectInFrontOfSceneView(GameObject go)
         {
@@ -59,6 +61,12 @@ namespace UnityEditor.Experimental.Rendering.LWRP
 
             var parent = menuCommand.context as GameObject;
             Place(go, parent);
+
+            Analytics.Light2DData lightData = new Analytics.Light2DData();
+            lightData.event_type = Analytics.Light2DData.EventType.Created;
+            lightData.instance_id = light2D.GetInstanceID();
+            lightData.light_type = light2D.lightType;
+            Analytics._2DRendererAnalytics.instance.SendData(Analytics.AnalyticsDataTypes.k_LightDataString, lightData);
         }
 
         static bool CreateLightValidation()
@@ -99,12 +107,12 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             return CreateLightValidation();
         }
 
-        [MenuItem("GameObject/Light/2D/Parametric Light2D", false, -100)]
+        [MenuItem("GameObject/Light/2D/Parametric Light 2D", false, -100)]
         static void CreateParametricLight2D(MenuCommand menuCommand)
         {
             CreateLight(menuCommand, "Parametric Light 2D", Light2D.LightType.Parametric);
         }
-        [MenuItem("GameObject/Light/2D/Parametric Light2D", true, -100)]
+        [MenuItem("GameObject/Light/2D/Parametric Light 2D", true, -100)]
         static bool CreateParametricLight2DValidation()
         {
             return CreateLightValidation();
@@ -122,15 +130,29 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             return CreateLightValidation();
         }
 
-        [MenuItem("GameObject/Light/2D/Global Light2D", false, -100)]
+        [MenuItem("GameObject/Light/2D/Global Light 2D", false, -100)]
         static void CreateGlobalLight2D(MenuCommand menuCommand)
         {
             CreateLight(menuCommand, "Global Light 2D", Light2D.LightType.Global);
         }
-        [MenuItem("GameObject/Light/2D/Global Light2D", true, -100)]
+        [MenuItem("GameObject/Light/2D/Global Light 2D", true, -100)]
         static bool CreateGlobalLight2DValidation()
         {
             return CreateLightValidation();
+        }
+
+        [MenuItem("Assets/Create/Rendering/Lightweight Render Pipeline/2D Renderer", priority = CoreUtils.assetCreateMenuPriority1 + 1)]
+        static void Create2DRendererData()
+        {
+            _2DRendererData.Create2DRendererData((instance) =>
+            {
+                Analytics.RendererAssetData modifiedData = new Analytics.RendererAssetData();
+                modifiedData.instance_id = instance.GetInstanceID();
+                modifiedData.event_type = Analytics.RendererAssetData.EventType.Created;
+                modifiedData.blending_layers_count = 1;
+                modifiedData.blending_modes_used = 2;
+                Analytics._2DRendererAnalytics.instance.SendData(Analytics.AnalyticsDataTypes.k_2DRendererDataString, modifiedData);
+            });
         }
     }
 }
