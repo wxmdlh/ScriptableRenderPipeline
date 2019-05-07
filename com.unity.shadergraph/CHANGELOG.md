@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Anti-aliasing (4x) is now enabled on Shader Graph windows.
 
 ### Fixed
+- When you change a Sub Graph, Shader Graph windows now correctly reload.
+- Saving a Shader Graph no longer causes all other Shader Graph windows to re-compile their preview shaders.
+
+### Fixed
 - When you perform an undo or redo to an inactive Shader Graph window, the window no longer breaks.
 - When you rapidly perform an undo or redo, Shader Graph windows no longer break.
 - Sub Graphs that contain references to non-existing Sub Graphs no longer break the Sub Graph Importer.
@@ -22,7 +26,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - When you set a Master Node as active, the Main Preview now shows the correct result.
 - When you save a graph that contains a Sub Graph node, the Shader Graph window no longer freezes.
 - Fixed an error that occured when using multiple Sampler State nodes with different parameters.
-- When you change a Sub Graph, Shader Graph windows now correctly reload.
 
 ## [6.6.0] - 2019-04-01
 ### Added
