@@ -712,6 +712,24 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void CollectShaderProperties(PropertyCollector collector, GenerationMode generationMode)
         {
+            // Hack to apply HDRP material keywords on preview material
+            UnityEditor.ShaderGraph.Drawing.HackedPreview.OnCompiled = (Material previewMaterial) => {
+                // Fixup the material settings:
+
+                // TODO: hardcoded value:
+                previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
+                previewMaterial.SetFloat("_DoubleSidedNormalMode", (int)doubleSidedMode);
+                previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
+                // TODO: alphaMode is a AlphaModeLit and does not match the BlendMode enum
+                previewMaterial.SetFloat("_BlendMode", (int)alphaMode);
+                previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
+                // No sorting priority for shader graph preview
+                var renderingPass = surfaceType == SurfaceType.Opaque ? HDRenderQueue.RenderQueueType.Opaque : HDRenderQueue.RenderQueueType.Transparent;
+                previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
+                
+                LitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
+            };
+
             // Trunk currently relies on checking material property "_EmissionColor" to allow emissive GI. If it doesn't find that property, or it is black, GI is forced off.
             // ShaderGraph doesn't use this property, so currently it inserts a dummy color (white). This dummy color may be removed entirely once the following PR has been merged in trunk: Pull request #74105
             // The user will then need to explicitly disable emissive GI if it is not needed.
@@ -723,6 +741,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 hidden = true,
                 value = new Color(1.0f, 1.0f, 1.0f, 1.0f)
             });
+
+            // Add all shader properties required by the inspector
+            HDSubShaderUtilities.AddStencilShaderProperties(collector);
+            HDSubShaderUtilities.AddBlendingStatesShaderProperties(collector, surfaceType, (BlendMode)alphaMode, sortPriority); // TODO: AlphaMode != BlendMode
 
             base.CollectShaderProperties(collector, generationMode);
         }

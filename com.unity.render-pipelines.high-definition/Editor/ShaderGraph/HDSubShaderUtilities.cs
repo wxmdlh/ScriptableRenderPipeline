@@ -856,8 +856,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 "// Stencil setup",
                 "Stencil",
                 "{",
-                "   WriteMask [_StencilWriteMaskMV]",
-                "   Ref [_StencilRefMV]",
+                "   WriteMask [_StencilWriteMaskDepth]",
+                "   Ref [_StencilRefDepth]",
                 "   Comp Always",
                 "   Pass Replace",
                 "}"
@@ -924,68 +924,24 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             };
         }
 
-        public static void SetZClipForShadowCaster(ref Pass pass)
-        {
-            pass.ZClipOverride = "ZClip [_ZClip]";
-        }
+        public static readonly string zClipShadowCaster = "ZClip [_ZClip]";
+        public static readonly string defaultCullMode = "Cull [_CullMode]";
+        public static readonly string cullModeForward = "Cull [_CullModeForward]";
 
-        public static void SetColorMaskOff(ref Pass pass)
-        {
-            pass.ColorMaskOverride = "ColorMask 0";
-        }
-
-        public static void SetColorMaskOffTarget0(ref Pass pass)
-        {
-            pass.ColorMaskOverride = "ColorMask 0 0";
-        }
-
-        public static void SetColorMaskOffTarget1(ref Pass pass)
-        {
-            pass.ColorMaskOverride = "ColorMask 0 1";
-        }
-
-        public static void SetColorMaskTransparentVelocity(ref Pass pass)
-        {
-            pass.ColorMaskOverride = "ColorMask [_ColorMaskTransparentVel] 1";
-        }
-
-        public static void SetCullMode(ref Pass pass)
-        {
-            pass.CullOverride = "Cull [_CullMode]";
-        }
-        
-        public static void SetCullModeOff(ref Pass pass)
-        {
-            pass.CullOverride = "Cull Off";
-        }
-
-        public static void SetBlendModeForDistortionVector(ref Pass pass)
-        {
-            pass.BlendOverride = "Blend [_DistortionSrcBlend] [_DistortionDstBlend], [_DistortionBlurSrcBlend] [_DistortionBlurDstBlend]";
-            pass.BlendOpOverride = "BlendOp Add, [_DistortionBlurBlendOp]";
-        }
-
+        public static void SetBlendModeForTransparentBackface(ref Pass pass) => SetBlendModeForForward(ref pass);
         public static void SetBlendModeForForward(ref Pass pass)
         {
             pass.BlendOverride = "Blend [_SrcBlend] [_DstBlend], [_AlphaSrcBlend] [_AlphaDstBlend]";
-            pass.BlendOpOverride = "BlendOp Add, [_DistortionBlurBlendOp]";
         }
 
-        public static void SetZWrite(ref Pass pass)
-        {
-            pass.ZWriteOverride = "ZWrite [_ZWrite]";
-        }
+        public static void SetZWrite(ref Pass pass) => pass.ZWriteOverride = "ZWrite [_ZWrite]";
 
-        public static void SetZWriteOff(ref Pass pass)
-        {
-            pass.ZWriteOverride = "ZWrite Off";
-        }
+        public static void SetZWriteOff(ref Pass pass) => pass.ZWriteOverride = "ZWrite Off";
 
-        public static void SetZWriteOn(ref Pass pass)
-        {
-            pass.ZWriteOverride = "ZWrite On";
-        }
+        public static void SetZWriteOn(ref Pass pass) => pass.ZWriteOverride = "ZWrite On";
 
+        public static void SetZTestForGBuffer(ref Pass pass) => pass.ZWriteOverride = "ZTest [_ZTestGBuffer]";
+        
         public static void AddTags(ShaderGenerator generator, string pipeline, HDRenderTypeTags renderType)
         {
             ShaderStringBuilder builder = new ShaderStringBuilder();
@@ -1070,8 +1026,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             collector.AddFloatProperty("_AlphaDstBlend", 0.0f);
             collector.AddFloatProperty("_ZWrite", 1.0f);
             collector.AddFloatProperty("_CullMode", 2.0f);
-            collector.AddIntProperty("_ZTestModeDistortion", 8);
             collector.AddIntProperty("_TransparentSortPriority", sortingPriority);
+            collector.AddFloatProperty("_CullModeForward", 2.0f);
         }
 
         public static void AddAlphaCutoffShaderProperties(PropertyCollector collector)

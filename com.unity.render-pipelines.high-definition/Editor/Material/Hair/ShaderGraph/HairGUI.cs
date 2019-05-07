@@ -1,13 +1,12 @@
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.HDPipeline;
-using System.Linq;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     /// <summary>
-    /// GUI for HDRP Fabric shader graphs
+    /// GUI for HDRP Hair shader graphs
     /// </summary>
-    class FabricGUI : HDShaderGUI
+    class HairGUI : HDShaderGUI
     {
         // For surface option shader graph we only want all unlit features but alpha clip
         const SurfaceOptionUIBlock.Features   surfaceOptionFeatures = SurfaceOptionUIBlock.Features.Unlit ^ SurfaceOptionUIBlock.Features.AlphaCutoff;
@@ -33,7 +32,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        // Currently Lit material keyword setup is enough for fabric so we don't have a function for it
+        // Currently Lit material keyword setup is enough for hair so we don't have a function for it
         protected override void SetupMaterialKeywordsAndPassInternal(Material material) => LitGUI.SetupMaterialKeywordsAndPass(material);
     }
 }

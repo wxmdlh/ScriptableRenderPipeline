@@ -13,7 +13,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     class HDUnlitGUI : HDShaderGUI
     {
         // For surface option shader graph we only want all unlit features but alpha clip
-        const SurfaceOptionUIBlock.Features   surfaceOptionFeatures = SurfaceOptionUIBlock.Features.Unlit ^ (SurfaceOptionUIBlock.Features.AlphaCutoff);        
+        const SurfaceOptionUIBlock.Features   surfaceOptionFeatures = SurfaceOptionUIBlock.Features.Unlit ^ SurfaceOptionUIBlock.Features.AlphaCutoff;
 
         MaterialUIBlockList uiBlocks = new MaterialUIBlockList
         {

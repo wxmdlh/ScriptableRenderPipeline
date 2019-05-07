@@ -50,6 +50,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Filter out properties we don't want to draw:
             PropertiesDefaultGUI(properties);
 
+            if (properties.Length > 0)
+                EditorGUILayout.Space();
+
             if ((m_Features & Features.DiffusionProfileAsset) != 0)
                 DrawDiffusionProfileUI();
 

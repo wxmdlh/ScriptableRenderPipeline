@@ -50,7 +50,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 //FabricMasterNode.PositionSlotId
             },
-            UseInPreview = false
+            UseInPreview = false,
         };
 
         Pass m_PassShadowCaster = new Pass()
@@ -63,6 +63,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             BlendOverride = "Blend One Zero",
             ZWriteOverride = "ZWrite On",
             ColorMaskOverride = "ColorMask 0",
+            ZClipOverride = HDSubShaderUtilities.zClipShadowCaster,
+            CullOverride = HDSubShaderUtilities.defaultCullMode,
             Includes = new List<string>()
             {
                 "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl\"",
@@ -77,7 +79,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 FabricMasterNode.PositionSlotId
             },
-            UseInPreview = false
+            UseInPreview = false,
         };
 
         Pass m_SceneSelectionPass = new Pass()
@@ -117,7 +119,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             MaterialName = "Fabric",
             ShaderPassName = "SHADERPASS_DEPTH_ONLY",
             ZWriteOverride = "ZWrite On",
-
+            CullOverride = HDSubShaderUtilities.defaultCullMode,
             ExtraDefines = HDSubShaderUtilities.s_ExtraDefinesForwardMaterialDepthOrMotion,
             
             Includes = new List<string>()
@@ -173,6 +175,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             MaterialName = "Fabric",
             ShaderPassName = "SHADERPASS_MOTION_VECTORS",
             ExtraDefines = HDSubShaderUtilities.s_ExtraDefinesForwardMaterialDepthOrMotion,
+            CullOverride = HDSubShaderUtilities.defaultCullMode,
             Includes = new List<string>()
             {
                 "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassMotionVectors.hlsl\"",
@@ -223,6 +226,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             TemplateName = "FabricPass.template",
             MaterialName = "Fabric",
             ShaderPassName = "SHADERPASS_FORWARD",
+            CullOverride = HDSubShaderUtilities.cullModeForward,
             // ExtraDefines are set when the pass is generated
             Includes = new List<string>()
             {
@@ -277,6 +281,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 var masterNode = node as FabricMasterNode;
                 HDSubShaderUtilities.SetStencilStateForForward(ref pass);
+                HDSubShaderUtilities.SetBlendModeForForward(ref pass);
+                HDSubShaderUtilities.SetZWrite(ref pass);
 
                 pass.ExtraDefines.Remove("#ifndef DEBUG_DISPLAY\n#define SHADERPASS_FORWARD_BYPASS_ALPHA_TEST\n#endif");                
 
@@ -499,11 +505,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 GenerateShaderPassLit(masterNode, m_SceneSelectionPass, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassLit(masterNode, m_PassShadowCaster, mode, subShader, sourceAssetDependencyPaths);
 
-                if (opaque)
-                {
-                    GenerateShaderPassLit(masterNode, m_PassDepthForwardOnly, mode, subShader, sourceAssetDependencyPaths);
-                    GenerateShaderPassLit(masterNode, m_PassMotionVectors, mode, subShader, sourceAssetDependencyPaths);
-                }
+                GenerateShaderPassLit(masterNode, m_PassDepthForwardOnly, mode, subShader, sourceAssetDependencyPaths);
+                GenerateShaderPassLit(masterNode, m_PassMotionVectors, mode, subShader, sourceAssetDependencyPaths);
 
                 // Assign define here based on opaque or transparent to save some variant
                 m_PassForwardOnly.ExtraDefines = opaque ? HDSubShaderUtilities.s_ExtraDefinesForwardOpaque : HDSubShaderUtilities.s_ExtraDefinesForwardTransparent;
