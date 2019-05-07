@@ -191,4 +191,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/068_xr_CenterLine.unity
     guid: 4eb297ef901e5c24fa0088510b645913
+  - enabled: 1
+    path: Assets/Scenes/069_2D_Lights_Shader_Graph.unity
+    guid: 381306730e4f1b141bf8e0e1c35f16e9
   m_configObjects: {}
