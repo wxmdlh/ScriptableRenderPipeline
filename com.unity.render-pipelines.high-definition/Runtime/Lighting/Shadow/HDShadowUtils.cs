@@ -80,7 +80,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
 #if UNITY_2019_3_OR_NEWER
             // This used to be fixed to .6f, but is now configureable.
-            //splitData.shadowCascadeBlendCullingFactor = .6f;
+            splitData.shadowCascadeBlendCullingFactor = .6f;
 #endif
 
             // get lightDir
