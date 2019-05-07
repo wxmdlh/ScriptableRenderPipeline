@@ -236,11 +236,12 @@ float3 SampleTransmittanceTexture(float cosChi, float height)
 }
 
 // Map: [cos(120 deg), 1] -> [0, 1].
+// Allocate more samples around (Pi/2).
 float MapCosineOfZenithAngle(float NdotL)
 {
     float x = max(NdotL, -0.5);
     float s = CopySign(sqrt(abs(x)), x);     // [-0.70710678, 1]
-    return saturate(0.585786 * x + 0.414214);
+    return saturate(0.585786 * s + 0.414214);
 }
 
 // Map: [0, 1] -> [-0.1975, 1].
