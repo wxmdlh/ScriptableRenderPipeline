@@ -22,6 +22,17 @@ namespace UnityEditor.ShaderGraph
             properties.Add(chunk);
         }
 
+        public void ConcretizePrecisions(ConcretePrecision graphPrecision)
+        {
+            foreach (var prop in properties)
+            {
+                if(prop.precision == Precision.Inherit)
+                    prop.concretePrecision = graphPrecision;
+                else
+                    prop.concretePrecision = prop.precision.ToConcrete();
+            }
+        }
+
         public string GetPropertiesBlock(int baseIndentLevel)
         {
             var sb = new StringBuilder();
@@ -37,21 +48,16 @@ namespace UnityEditor.ShaderGraph
             return sb.ToString();
         }
 
-        public string GetPropertiesDeclaration(int baseIndentLevel, GenerationMode mode)
-        {
-            var builder = new ShaderStringBuilder(baseIndentLevel);
-            GetPropertiesDeclaration(builder, mode);
-            return builder.ToString();
-        }
-
         public void GetPropertiesDeclaration(ShaderStringBuilder builder, GenerationMode mode)
         {
             var batchAll = mode == GenerationMode.Preview;
             builder.AppendLine("CBUFFER_START(UnityPerMaterial)");
             foreach (var prop in properties.Where(n => batchAll || (n.generatePropertyBlock && n.isBatchable)))
             {
+                builder.currentSource = prop;
                 builder.AppendLine(prop.GetPropertyDeclarationString());
             }
+            builder.currentSource = null;
             builder.AppendLine("CBUFFER_END");
             builder.AppendNewLine();
 
@@ -60,8 +66,10 @@ namespace UnityEditor.ShaderGraph
             
             foreach (var prop in properties.Where(n => !n.isBatchable || !n.generatePropertyBlock))
             {
+                builder.currentSource = prop;
                 builder.AppendLine(prop.GetPropertyDeclarationString());
             }
+            builder.currentSource = null;
         }
 
         public List<TextureInfo> GetConfiguredTexutres()

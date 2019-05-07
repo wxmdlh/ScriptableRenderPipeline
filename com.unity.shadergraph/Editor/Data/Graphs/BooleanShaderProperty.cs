@@ -48,7 +48,7 @@ namespace UnityEditor.ShaderGraph
 
         public override string GetPropertyDeclarationString(string delimiter = ";")
         {
-            return string.Format("float {0}{1}", referenceName, delimiter);
+            return string.Format("$precision {0}{1}", referenceName, delimiter);
         }
 
         public override PreviewProperty GetPreviewMaterialProperty()

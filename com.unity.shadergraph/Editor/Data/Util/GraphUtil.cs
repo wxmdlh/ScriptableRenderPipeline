@@ -959,6 +959,7 @@ namespace UnityEditor.ShaderGraph
             var results = new GenerationResults();
 
             var shaderProperties = new PropertyCollector();
+            var shaderPropertyUniforms = new ShaderStringBuilder();
             var functionBuilder = new ShaderStringBuilder();
             var functionRegistry = new FunctionRegistry(functionBuilder);
 
@@ -1044,6 +1045,11 @@ namespace UnityEditor.ShaderGraph
             // ----------------------------------------------------- //
 
             // -------------------------------------
+            // Property uniforms
+
+            shaderProperties.GetPropertiesDeclaration(shaderPropertyUniforms, mode);
+
+            // -------------------------------------
             // Generate Input structure for Vertex shader
 
             GenerateApplicationVertexInputs(requirements, vertexInputs);
@@ -1056,6 +1062,7 @@ namespace UnityEditor.ShaderGraph
             // Precision
 
             functionBuilder.DoReplacement(ReplacementProcessor.Precision);
+            shaderPropertyUniforms.DoReplacement(ReplacementProcessor.Precision);
             surfaceDescriptionStruct.DoReplacement(ReplacementProcessor.Precision);
             surfaceDescriptionFunction.DoReplacement(ReplacementProcessor.Precision);
 
@@ -1088,7 +1095,7 @@ namespace UnityEditor.ShaderGraph
                 finalShader.AppendLine(@"#include ""Packages/com.unity.shadergraph/ShaderGraphLibrary/Functions.hlsl""");
                 finalShader.AppendNewLine();
 
-                finalShader.AppendLines(shaderProperties.GetPropertiesDeclaration(0, mode));
+                finalShader.AppendLines(shaderPropertyUniforms.ToString());
                 finalShader.AppendNewLine();
 
                 finalShader.AppendLines(surfaceDescriptionInputStruct.ToString());
@@ -1215,6 +1222,7 @@ namespace UnityEditor.ShaderGraph
             GraphContext graphContext = new GraphContext(graphInputStructName);
 
             graph.CollectShaderProperties(shaderProperties, mode);
+            shaderProperties.ConcretizePrecisions(graph.precision);
 
             surfaceDescriptionFunction.AppendLine(String.Format("{0} {1}(SurfaceDescriptionInputs IN)", surfaceDescriptionName, functionName), false);
             using (surfaceDescriptionFunction.BlockScope())

@@ -64,6 +64,23 @@ namespace UnityEditor.ShaderGraph
             set { m_GeneratePropertyBlock = value; }
         }
 
+        private ConcretePrecision m_ConcretePrecision = ConcretePrecision.Float;
+
+        public ConcretePrecision concretePrecision
+        {
+            get => m_ConcretePrecision;
+            set => m_ConcretePrecision = value;
+        }
+
+        [SerializeField]
+        private Precision m_Precision = Precision.Inherit;
+
+        public Precision precision
+        {
+            get => m_Precision;
+            set => m_Precision = value;
+        }
+
         public abstract PropertyType propertyType { get; }
         
         public abstract Vector4 defaultValue { get; }

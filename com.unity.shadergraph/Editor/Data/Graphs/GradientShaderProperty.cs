@@ -218,9 +218,9 @@ namespace UnityEditor.ShaderGraph
             {
                 string[] colors = new string[8];
                 for (int i = 0; i < colors.Length; i++)
-                    colors[i] = string.Format("g.colors[{0}] = float4(0, 0, 0, 0);", i);
+                    colors[i] = string.Format("g.colors[{0}] = $precision4(0, 0, 0, 0);", i);
                 for (int i = 0; i < value.colorKeys.Length; i++)
-                    colors[i] = string.Format("g.colors[{0}] = float4({1}, {2}, {3}, {4});"
+                    colors[i] = string.Format("g.colors[{0}] = $precision4({1}, {2}, {3}, {4});"
                         , i
                         , value.colorKeys[i].color.r
                         , value.colorKeys[i].color.g
@@ -229,9 +229,9 @@ namespace UnityEditor.ShaderGraph
 
                 string[] alphas = new string[8];
                 for (int i = 0; i < alphas.Length; i++)
-                    alphas[i] = string.Format("g.alphas[{0}] = float2(0, 0);", i);
+                    alphas[i] = string.Format("g.alphas[{0}] = $precision2(0, 0);", i);
                 for (int i = 0; i < value.alphaKeys.Length; i++)
-                    alphas[i] = string.Format("g.alphas[{0}] = float2({1}, {2});"
+                    alphas[i] = string.Format("g.alphas[{0}] = $precision2({1}, {2});"
                         , i
                         , value.alphaKeys[i].alpha
                         , value.alphaKeys[i].time);
