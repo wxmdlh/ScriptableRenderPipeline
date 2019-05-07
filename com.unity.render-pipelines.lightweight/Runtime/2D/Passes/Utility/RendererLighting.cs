@@ -340,7 +340,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
 
                 bool rtDirty = false;
                 Color clearColor;
-                if (!Light2DManager.globalClearColors[i].TryGetValue(layerToRender, out clearColor))
+                if (!Light2DManager.GetGlobalColor(layerToRender, i, out clearColor))
                     clearColor = Color.black;
                 else
                     rtDirty = true;

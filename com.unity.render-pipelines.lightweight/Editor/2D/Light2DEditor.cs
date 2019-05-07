@@ -316,9 +316,13 @@ namespace UnityEditor.Experimental.Rendering.LWRP
                 m_ApplyToSortingLayers.GetArrayElementAtIndex(i).intValue = m_ApplyToSortingLayersList[i];
             }
 
-            RemoveSelectedGlobalLights(targets);
             serializedObject.ApplyModifiedProperties();
-            AddSelectedGlobalLights(targets);
+
+            foreach (Light2D light in targets)
+            {
+                if (light != null && light.lightType == Light2D.LightType.Global)
+                    light.ErrorIfDuplicateGlobalLight();
+            }
         }
 
         void OnNoSortingLayerSelected()
@@ -385,26 +389,6 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             }
 
             EditorGUILayout.EndHorizontal();
-        }
-
-        void RemoveSelectedGlobalLights(Object[] lights)
-        {
-            for (int i = 0; i < lights.Length; ++i)
-            {
-                Light2D light = lights[i] as Light2D;
-                if (light.lightType == Light2D.LightType.Global)
-                    Light2D.RemoveGlobalLight(light.blendStyleIndex, light);
-            }
-        }
-
-        void AddSelectedGlobalLights(Object[] lights)
-        {
-            for (int i = 0; i < lights.Length; ++i)
-            {
-                Light2D light = lights[i] as Light2D;
-                if (light != null && light.lightType == Light2D.LightType.Global)
-                    Light2D.AddGlobalLight(light);
-            }
         }
 
         Vector3 DrawAngleSlider2D(Transform transform, Quaternion rotation, float radius, float offset, Handles.CapFunction capFunc, float capSize, bool leftAngle, bool drawLine, bool useCapOffset, ref float angle)
@@ -719,13 +703,7 @@ namespace UnityEditor.Experimental.Rendering.LWRP
                 DoSnappingInspector<FreeformShapeTool>();
             }
 
-            if (updateGlobalLights)
-                RemoveSelectedGlobalLights(targets);
-
             serializedObject.ApplyModifiedProperties();
-
-            if (updateGlobalLights)
-                AddSelectedGlobalLights(targets);
         }
     }
 }

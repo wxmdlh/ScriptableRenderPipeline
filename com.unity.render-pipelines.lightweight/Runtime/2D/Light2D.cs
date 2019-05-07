@@ -17,11 +17,6 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         List<Light2D>[] m_Lights;
         CullingGroup m_CullingGroup;
         BoundingSphere[] m_BoundingSpheres;
-        Dictionary<int, Color>[] m_GlobalClearColors;
-
-#if UNITY_EDITOR
-        Dictionary<int, Color>[] m_GlobalClearColorsForPrefab;
-#endif
 
         internal static List<Light2D>[] lights => s_Instance.m_Lights;
 
@@ -37,16 +32,63 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             set => s_Instance.m_BoundingSpheres = value;
         }
 
-        internal static Dictionary<int, Color>[] globalClearColors
+        internal static bool GetGlobalColor(int sortingLayerIndex, int blendStyleIndex, out Color color)
         {
-            get
+            bool  foundGlobalColor = false;
+            color = Color.black;
+
+            // This should be rewritten to search only global lights
+            List<Light2D> lights = s_Instance.m_Lights[blendStyleIndex];
+            for (int i = 0; i < lights.Count; ++i)
             {
-#if UNITY_EDITOR
-                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
-                    return s_Instance.m_GlobalClearColorsForPrefab;
-#endif
-                return s_Instance.m_GlobalClearColors;
+                Light2D light = lights[i];
+                if (light.lightType == Light2D.LightType.Global && light.IsLitLayer(sortingLayerIndex))
+                {
+                    // If we found the first global light in our prefab stage
+                    if (PrefabStageUtility.GetPrefabStage(light.gameObject) == PrefabStageUtility.GetCurrentPrefabStage())
+                    {
+                        color = light.color * light.intensity;
+                        return true;
+                    }
+                    else
+                    {
+                        if (!foundGlobalColor)
+                        {
+                            color = light.color * light.intensity;
+                            foundGlobalColor = true;
+                        }
+                    }
+                }
             }
+
+            return foundGlobalColor;
+        }
+
+        internal static bool ContainsDuplicateGlobalLight(int sortingLayerIndex, int blendStyleIndex)
+        {
+            int globalLightCount = 0;
+
+            // This should be rewritten to search only global lights
+            List<Light2D> lights = s_Instance.m_Lights[blendStyleIndex];
+            for (int i = 0; i < lights.Count; i++)
+            {
+                Light2D light = lights[i];
+                if (light.lightType == Light2D.LightType.Global && light.IsLitLayer(sortingLayerIndex))
+                {
+#if UNITY_EDITOR
+                    // If we found the first global light in our prefab stage
+                    if (PrefabStageUtility.GetPrefabStage(light.gameObject) == PrefabStageUtility.GetCurrentPrefabStage())
+#endif
+                    {
+                        if (globalLightCount > 0)
+                            return true;
+
+                        globalLightCount++;
+                    }
+                }
+            }
+
+            return false;
         }
 
         internal Light2DManager()
@@ -57,27 +99,11 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             m_Lights = new List<Light2D>[k_BlendStyleCount];
             for (int i = 0; i < m_Lights.Length; ++i)
                 m_Lights[i] = new List<Light2D>();
-
-            m_GlobalClearColors = SetupGlobalClearColors();
-
-#if UNITY_EDITOR
-            m_GlobalClearColorsForPrefab = SetupGlobalClearColors();
-#endif
         }
 
         public void Dispose()
         {
             s_Instance = m_PrevInstance;
-        }
-
-        Dictionary<int, Color>[] SetupGlobalClearColors()
-        {
-            Dictionary<int, Color>[] colors = new Dictionary<int, Color>[k_BlendStyleCount];
-            for (int i = 0; i < k_BlendStyleCount; ++i)
-            {
-                colors[i] = new Dictionary<int, Color>();
-            }
-            return colors;
         }
     }
 
@@ -107,16 +133,15 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         [SerializeField, FormerlySerializedAs("m_LightOperationIndex")]
         int m_BlendStyleIndex = 0;
 
+
         [SerializeField]
         float m_FalloffIntensity = 0.5f;
             
         [ColorUsage(false, false)]
         [SerializeField]
         Color m_Color = Color.white;
-        Color m_PreviousColor = Color.white;
         [SerializeField]
         float m_Intensity = 1;
-        float m_PreviousIntensity = 1;
 
         [SerializeField] float m_LightVolumeOpacity = 0.0f;
         [SerializeField] int[] m_ApplyToSortingLayers = new int[1];     // These are sorting layer IDs. If we need to update this at runtime make sure we add code to update global lights
@@ -161,13 +186,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         public Color color
         {
             get { return m_Color; }
-            set
-            {
-                if (m_LightType == LightType.Global)
-                    AddGlobalLight(this, true);
-
-                m_Color = value;
-            }
+            set { m_Color = value; }
         }
 
         /// <summary>
@@ -176,13 +195,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
         public float intensity
         {
             get { return m_Intensity; }
-            set
-            {
-                if (m_LightType == LightType.Global)
-                    AddGlobalLight(this, true);
-
-                m_Intensity = value;
-            }
+            set { m_Intensity = value; }
         }
 
         /// <summary>
@@ -300,15 +313,12 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             if (m_BlendStyleIndex == m_PreviousBlendStyleIndex)
                 return;
 
-            if(m_LightType == LightType.Global)
-            {
-                RemoveGlobalLight(m_PreviousBlendStyleIndex, this);
-                AddGlobalLight(this);
-            }
-
             Light2DManager.lights[m_PreviousBlendStyleIndex].Remove(this);
             m_PreviousBlendStyleIndex = m_BlendStyleIndex;
             InsertLight();
+
+            if (m_LightType == LightType.Global)
+                ErrorIfDuplicateGlobalLight();
         }
 
         BoundingSphere GetBoundingSphere()
@@ -354,44 +364,14 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             return isVisible;
         }
 
-        static internal void AddGlobalLight(Light2D light2D, bool overwriteColor = false)
+        internal void ErrorIfDuplicateGlobalLight()
         {
-#if UNITY_EDITOR
-            if (PrefabStageUtility.GetPrefabStage(light2D.gameObject) != PrefabStageUtility.GetCurrentPrefabStage())
-                return;
-#endif
-
-            for (int i = 0; i < light2D.m_ApplyToSortingLayers.Length; i++)
+            for (int i = 0; i < m_ApplyToSortingLayers.Length; ++i)
             {
-                int sortingLayer = light2D.m_ApplyToSortingLayers[i];
-                Dictionary<int, Color> globalColorOp = Light2DManager.globalClearColors[light2D.m_BlendStyleIndex];
-                if (!globalColorOp.ContainsKey(sortingLayer))
-                {
-                    globalColorOp.Add(sortingLayer, light2D.m_Intensity * light2D.m_Color);
-                }
-                else
-                {
-                    if (overwriteColor)
-                        globalColorOp[sortingLayer] = light2D.m_Intensity * light2D.m_Color;
-                    else
-                        Debug.LogWarning("More than one global light on layer " + SortingLayer.IDToName(sortingLayer) + " for light blend style index " + light2D.m_BlendStyleIndex);
-                }
-            }
-        }
+                int sortingLayer = m_ApplyToSortingLayers[i];
 
-        static internal void RemoveGlobalLight(int blendStyleIndex, Light2D light2D)
-        {
-#if UNITY_EDITOR
-            if (PrefabStageUtility.GetPrefabStage(light2D.gameObject) != PrefabStageUtility.GetCurrentPrefabStage())
-                return;
-#endif
-
-            for (int i = 0; i < light2D.m_ApplyToSortingLayers.Length; i++)
-            {
-                int sortingLayer = light2D.m_ApplyToSortingLayers[i];
-                Dictionary<int, Color> globalColorOp = Light2DManager.globalClearColors[blendStyleIndex];
-                if (globalColorOp.ContainsKey(sortingLayer))
-                    globalColorOp.Remove(sortingLayer);
+                if(Light2DManager.ContainsDuplicateGlobalLight(sortingLayer, blendStyleIndex))
+                    Debug.LogError("More than one global light on layer " + SortingLayer.IDToName(sortingLayer) + " for light blend style index " + m_BlendStyleIndex);
             }
         }
 
@@ -418,7 +398,7 @@ namespace UnityEngine.Experimental.Rendering.LWRP
             m_PreviousBlendStyleIndex = m_BlendStyleIndex;
 
             if (m_LightType == LightType.Global)
-                AddGlobalLight(this);
+                ErrorIfDuplicateGlobalLight();
 
             m_PreviousLightType = m_LightType;
         }
@@ -441,9 +421,6 @@ namespace UnityEngine.Experimental.Rendering.LWRP
                 Light2DManager.cullingGroup = null;
                 RenderPipeline.beginCameraRendering -= SetupCulling;
             }
-
-            if (m_LightType == LightType.Global)
-                RemoveGlobalLight(m_BlendStyleIndex, this);
         }
 
         internal List<Vector2> GetFalloffShape()
@@ -500,11 +477,8 @@ namespace UnityEngine.Experimental.Rendering.LWRP
 
             if (m_LightType != m_PreviousLightType)
             {
-                if(m_PreviousLightType == LightType.Global)
-                    RemoveGlobalLight(m_BlendStyleIndex, this);
-
                 if (m_LightType == LightType.Global)
-                    AddGlobalLight(this);
+                    ErrorIfDuplicateGlobalLight();
                 else
                     rebuildMesh = true;
 
@@ -524,10 +498,6 @@ namespace UnityEngine.Experimental.Rendering.LWRP
 #endif
             if(rebuildMesh && m_LightType != LightType.Global)
                 UpdateMesh();
-
-            bool updateGlobalColor = LightUtility.CheckForChange(m_Color, ref m_PreviousColor) || LightUtility.CheckForChange(m_Intensity, ref m_PreviousIntensity);
-            if (updateGlobalColor && m_LightType == LightType.Global)
-                Light2D.AddGlobalLight(this, true);
         }
 
 
