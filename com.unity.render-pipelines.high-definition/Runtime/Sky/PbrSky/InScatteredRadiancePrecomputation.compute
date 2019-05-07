@@ -24,7 +24,7 @@ float2 IntersectRayCylinder(float3 cylOrigin, float3 cylAxis, float cylRadiusSqu
 
     // Solve: t^2 + 2 * (b / a) * t + (c / a) = 0.
     float a = 1.0 - c1 * c1;
-    float b = rcp(a) * (dot(start, rayDir) - c2 * c1);
+    float b = rcp(a) * (dot(start, rayDir) - c1 * c2);
     float c = rcp(a) * (dot(start, start) - c2 * c2 - cylRadiusSquared);
 
     float d = b * b - c;
@@ -55,11 +55,11 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     // The normal vector N points upwards (local Z).
     // The view vector V spans the local XZ plane.
     // The light vector is represented as {phiL, cosThataL} w.r.t. the XZ plane.
-    float cosChi = UnmapAerialPerspective(uvw.xy).x;
-    float height = UnmapAerialPerspective(uvw.xy).y;
-    float cosHor = GetCosineOfHorizonZenithAngle(height);
-    float phiL   = PI * saturate(texCoord * rcp(zTexSize - 1));
-    float NdotL  = UnmapCosineOfZenithAngle(saturate(texId * rcp(zTexCnt - 1)));
+    float cosChi = UnmapAerialPerspective(uvw.xy).x;                             // [-1, 1]
+    float height = UnmapAerialPerspective(uvw.xy).y;                             // [0, _AtmosphericDepth]
+    float cosHor = GetCosineOfHorizonZenithAngle(height);                        // [-?, 0]
+    float phiL   = PI * saturate(texCoord * rcp(zTexSize - 1));                  // [-Pi, Pi] w.r.t. N-V
+    float NdotL  = UnmapCosineOfZenithAngle(saturate(texId * rcp(zTexCnt - 1))); // [-0.5, 1]
 
     float NdotV  = -cosChi;
 
@@ -102,12 +102,12 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float2 tCyl = IntersectRayCylinder(0, L, _PlanetaryRadiusSquared, O, -V);
 
-    if (tCyl.y >= 0) // Exited?
+    if (tCyl.y >= 0) // Will exit?
     {
         // We found an intersection with the shadow volume.
         // It could be either the entry or the exit.
 
-        if (tCyl.x >= 0) // Entered?
+        if (tCyl.x >= 0) // Will enter?
         {
             float zHit = dot(L, O + tCyl.x * -V);
 
@@ -119,13 +119,15 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
                 tMax = min(tMax, tCyl.x);
             }
         }
-
-        bool inShadow = (L.z < 0);
-
-        if (inShadow)
+        else // Already entered?
         {
-            // Start the ray at the exit.
-            tMin = max(tMin, tCyl.y);
+            bool inShadow = (L.z < 0);
+
+            if (inShadow)
+            {
+                // Start the ray at the exit.
+                tMin = max(tMin, tCyl.y);
+            }
         }
     }
 
