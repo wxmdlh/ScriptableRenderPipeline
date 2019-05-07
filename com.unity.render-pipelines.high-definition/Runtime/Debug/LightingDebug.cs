@@ -20,7 +20,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     public enum ShadowMapDebugMode
     {
         None,
-        VisualizeAtlas,
+        VisualizePunctualLightAtlas,
+        VisualizeDirectionalLightAtlas,
+        VisualizeAreaLightAtlas,
         VisualizeShadowMap,
         SingleShadow,
     }

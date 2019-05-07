@@ -36,7 +36,7 @@ namespace UnityEditor.VFX.Test
                 AssetDatabase.DeleteAsset(testAssetName);
             }
 
-            VisualEffectAsset asset = VisualEffectResource.CreateNewAsset(testAssetName);
+            VisualEffectAsset asset = VisualEffectAssetEditorUtility.CreateNewAsset(testAssetName);
             VisualEffectResource resource = asset.GetResource(); // force resource creation
 
             m_ViewController = VFXViewController.GetController(resource);
@@ -318,6 +318,32 @@ namespace UnityEditor.VFX.Test
             Undo.PerformRedo();
 
             Assert.AreEqual(123, absOperator.inputPorts[0].value);
+        }
+
+        [Test]
+        public void UndoRedoChangeSpace()
+        {
+            var inlineOperatorDesc = VFXLibrary.GetOperators().FirstOrDefault(o => o.modelType == typeof(VFXInlineOperator));
+            var inlineOperator = m_ViewController.AddVFXOperator(new Vector2(0, 0), inlineOperatorDesc);
+
+            m_ViewController.ApplyChanges();
+            var allController = m_ViewController.allChildren.OfType<VFXNodeController>().ToArray();
+            var inlineOperatorController = allController.OfType<VFXOperatorController>().FirstOrDefault();
+            inlineOperator.SetSettingValue("m_Type", (SerializableType)typeof(Position));
+
+            Assert.AreEqual(inlineOperator.inputSlots[0].space, VFXCoordinateSpace.Local);
+            Assert.AreEqual((inlineOperatorController.model as VFXInlineOperator).inputSlots[0].space, VFXCoordinateSpace.Local);
+            Assert.AreEqual((inlineOperatorController.model as VFXInlineOperator).inputSlots[0].GetSpaceTransformationType(), SpaceableType.Position);
+
+            Undo.IncrementCurrentGroup();
+            inlineOperator.inputSlots[0].space = VFXCoordinateSpace.World;
+            Assert.AreEqual((inlineOperatorController.model as VFXInlineOperator).inputSlots[0].space, VFXCoordinateSpace.World);
+            Assert.AreEqual((inlineOperatorController.model as VFXInlineOperator).inputSlots[0].GetSpaceTransformationType(), SpaceableType.Position);
+
+            Undo.PerformUndo(); //Should go back to local
+            Assert.AreEqual((inlineOperatorController.model as VFXInlineOperator).inputSlots[0].space, VFXCoordinateSpace.Local);
+            Assert.AreEqual((inlineOperatorController.model as VFXInlineOperator).inputSlots[0].GetSpaceTransformationType(), SpaceableType.Position);
+
         }
 
         [Test]

@@ -50,6 +50,7 @@ namespace UnityEngine.Rendering.LWRP
         Standard,
         Particle,
         Terrain,
+        Sprite,
         UnityBuiltinDefault
     }
 
@@ -133,8 +134,7 @@ namespace UnityEngine.Rendering.LWRP
         [NonSerialized]
         internal LightweightRenderPipelineEditorResources m_EditorResourcesAsset;
 
-        static readonly string s_SearchPathProject = "Assets";
-        static readonly string s_SearchPathPackage = "Packages/com.unity.render-pipelines.lightweight";
+        public static readonly string packagePath = "Packages/com.unity.render-pipelines.lightweight";
 
         public static LightweightRenderPipelineAsset Create()
         {
@@ -143,19 +143,6 @@ namespace UnityEngine.Rendering.LWRP
             instance.LoadBuiltinRendererData();
             instance.m_EditorResourcesAsset = LoadResourceFile<LightweightRenderPipelineEditorResources>();
             return instance;
-        }
-
-        public ScriptableRendererData LoadBuiltinRendererData()
-        {
-            switch (m_RendererType)
-            {
-                // Forward Renderer is the fallback renderer that works on all platforms
-                default:
-                    m_RendererData = LoadResourceFile<ForwardRendererData>();
-                    break;
-            }
-
-            return m_RendererData;
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812")]
@@ -178,13 +165,14 @@ namespace UnityEngine.Rendering.LWRP
         static void CreateLightweightPipelineEditorResources()
         {
             var instance = CreateInstance<LightweightRenderPipelineEditorResources>();
+            ResourceReloader.ReloadAllNullIn(instance, packagePath);
             AssetDatabase.CreateAsset(instance, string.Format("Assets/{0}.asset", typeof(LightweightRenderPipelineEditorResources).Name));
         }
 
         static T LoadResourceFile<T>() where T : ScriptableObject
         {
             T resourceAsset = null;
-            var guids = AssetDatabase.FindAssets(typeof(T).Name + " t:scriptableobject", new[] {s_SearchPathProject});
+            var guids = AssetDatabase.FindAssets(typeof(T).Name + " t:scriptableobject", new[] { "Assets" });
             foreach (string guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -196,9 +184,13 @@ namespace UnityEngine.Rendering.LWRP
             // There's currently an issue that prevents FindAssets from find resources withing the package folder.
             if (resourceAsset == null)
             {
-                string path = s_SearchPathPackage + "/Runtime/Data/" + typeof(T).Name + ".asset";
+                string path = packagePath + "/Runtime/Data/" + typeof(T).Name + ".asset";
                 resourceAsset = AssetDatabase.LoadAssetAtPath<T>(path);
             }
+
+            // Validate the resource file
+            ResourceReloader.ReloadAllNullIn(resourceAsset, packagePath);
+
             return resourceAsset;
         }
 
@@ -213,13 +205,32 @@ namespace UnityEngine.Rendering.LWRP
             }
         }
 #endif
- 
+
+        public ScriptableRendererData LoadBuiltinRendererData()
+        {
+            switch (m_RendererType)
+            {
+                // Forward Renderer is the fallback renderer that works on all platforms
+                default:
+#if UNITY_EDITOR
+                    m_RendererData = LoadResourceFile<ForwardRendererData>();
+#else
+                    m_RendererData = null;
+#endif
+                    break;
+            }
+
+            return m_RendererData;
+        }
+
         protected override RenderPipeline CreatePipeline()
         {
-#if UNITY_EDITOR
             if (m_RendererData == null)
                 LoadBuiltinRendererData();
-#endif
+
+            // If no data we can't create pipeline instance
+            if (m_RendererData == null)
+                return null;
 
             m_Renderer = m_RendererData.InternalCreateRenderer();
             return new LightweightRenderPipeline(this);
@@ -228,19 +239,23 @@ namespace UnityEngine.Rendering.LWRP
         Material GetMaterial(DefaultMaterialType materialType)
         {
 #if UNITY_EDITOR
+            var material = scriptableRendererData.GetDefaultMaterial(materialType);
+            if (material != null)
+                return material;
+
             if (editorResources == null)
                 return null;
 
             switch (materialType)
             {
                 case DefaultMaterialType.Standard:
-                    return editorResources.litMaterial;
+                    return editorResources.materials.lit;
 
                 case DefaultMaterialType.Particle:
-                    return editorResources.particleLitMaterial;
+                    return editorResources.materials.particleLit;
 
                 case DefaultMaterialType.Terrain:
-                    return editorResources.terrainLitMaterial;
+                    return editorResources.materials.terrainLit;
 
                 // Unity Builtin Default
                 default:
@@ -255,11 +270,21 @@ namespace UnityEngine.Rendering.LWRP
         {
             get
             {
-                Debug.Assert(m_RendererData != null, "Invalid Renderer Data.");
-                if (m_RendererData.isInvalidated || m_Renderer == null)
-                    m_Renderer = m_RendererData.InternalCreateRenderer();
+                if (scriptableRendererData.isInvalidated || m_Renderer == null)
+                    m_Renderer = scriptableRendererData.InternalCreateRenderer();
 
                 return m_Renderer;
+            }
+        }
+
+        internal ScriptableRendererData scriptableRendererData
+        {
+            get
+            {
+                if (m_RendererData == null)
+                    CreatePipeline();
+
+                return m_RendererData;
             }
         }
 
@@ -433,7 +458,7 @@ namespace UnityEngine.Rendering.LWRP
 
         public override Material default2DMaterial
         {
-            get { return GetMaterial(DefaultMaterialType.UnityBuiltinDefault); }
+            get { return GetMaterial(DefaultMaterialType.Sprite); }
         }
 
         public override Shader defaultShader
@@ -449,32 +474,42 @@ namespace UnityEngine.Rendering.LWRP
 #if UNITY_EDITOR
         public override Shader autodeskInteractiveShader
         {
-            get { return editorResources.autodeskInteractiveShader; }
+            get { return editorResources.shaders.autodeskInteractivePS; }
         }
 
         public override Shader autodeskInteractiveTransparentShader
         {
-            get { return editorResources.autodeskInteractiveTransparentShader; }
+            get { return editorResources.shaders.autodeskInteractiveTransparentPS; }
         }
 
         public override Shader autodeskInteractiveMaskedShader
         {
-            get { return editorResources.autodeskInteractiveMaskedShader; }
+            get { return editorResources.shaders.autodeskInteractiveMaskedPS; }
         }
 
         public override Shader terrainDetailLitShader
         {
-            get { return editorResources.terrainDetailLitShader; }
+            get { return editorResources.shaders.terrainDetailLitPS; }
         }
 
         public override Shader terrainDetailGrassShader
         {
-            get { return editorResources.terrainDetailGrassShader; }
+            get { return editorResources.shaders.terrainDetailGrassPS; }
         }
 
         public override Shader terrainDetailGrassBillboardShader
         {
-            get { return editorResources.terrainDetailGrassBillboardShader; }
+            get { return editorResources.shaders.terrainDetailGrassBillboardPS; }
+        }
+
+        public override Shader defaultSpeedTree7Shader
+        {
+            get { return editorResources.shaders.defaultSpeedTree7PS; }
+        }
+
+        public override Shader defaultSpeedTree8Shader
+        {
+            get { return editorResources.shaders.defaultSpeedTree8PS; }
         }
 #endif
 

@@ -1,49 +1,68 @@
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.ProjectWindowCallback;
+#endif
+using System;
+
 namespace UnityEngine.Rendering.LWRP
-{
-    [CreateAssetMenu(fileName = "Custom Forward Renderer", menuName = "Rendering/Lightweight Render Pipeline/Forward Renderer", order = CoreUtils.assetCreateMenuPriority1)]
+{    
     public class ForwardRendererData : ScriptableRendererData
     {
-        [SerializeField] Shader m_BlitShader = null;
-        [SerializeField] Shader m_CopyDepthShader = null;
-        [SerializeField] Shader m_ScreenSpaceShadowShader = null;
-        [SerializeField] Shader m_SamplingShader = null;
+#if UNITY_EDITOR
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812")]
+        internal class CreateForwardRendererAsset : EndNameEditAction
+        {
+            public override void Action(int instanceId, string pathName, string resourceFile)
+            {
+                var instance = CreateInstance<ForwardRendererData>();
+                AssetDatabase.CreateAsset(instance, pathName);
+                Selection.activeObject = instance;
+            }
+        }
+
+        [MenuItem("Assets/Create/Rendering/Lightweight Render Pipeline/Forward Renderer", priority = CoreUtils.assetCreateMenuPriority1)]
+        static void CreateForwardRendererData()
+        {
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, CreateInstance<CreateForwardRendererAsset>(), "CustomForwardRendererData.asset", null, null);
+        }
+#endif
+
+        [Serializable, ReloadGroup]
+        public sealed class ShaderResources
+        {
+            [SerializeField, Reload("Shaders/Utils/Blit.shader")]
+            public Shader blitPS;
+
+            [SerializeField, Reload("Shaders/Utils/CopyDepth.shader")]
+            public Shader copyDepthPS;
+
+            [SerializeField, Reload("Shaders/Utils/ScreenSpaceShadows.shader")]
+            public Shader screenSpaceShadowPS;
+        
+            [SerializeField, Reload("Shaders/Utils/Sampling.shader")]
+            public Shader samplingPS;
+        }
+
+        public ShaderResources shaders;
 
         [SerializeField] LayerMask m_OpaqueLayerMask = -1;
         [SerializeField] LayerMask m_TransparentLayerMask = -1;
 
-        protected override ScriptableRenderer Create()
-        {
-            return new ForwardRenderer(this);
-        }
+        [SerializeField] StencilStateData m_DefaultStencilState = null;
 
-        internal Shader blitShader
+#if UNITY_EDITOR
+        protected override void OnEnable()
         {
-            get => m_BlitShader;
+            ResourceReloader.ReloadAllNullIn(this, LightweightRenderPipelineAsset.packagePath);
         }
+#endif
 
-        internal Shader copyDepthShader
-        {
-            get => m_CopyDepthShader;
-        }
+        protected override ScriptableRenderer Create() => new ForwardRenderer(this);
 
-        internal Shader screenSpaceShadowShader
-        {
-            get => m_ScreenSpaceShadowShader;
-        }
+        internal LayerMask opaqueLayerMask => m_OpaqueLayerMask;
 
-        internal Shader samplingShader
-        {
-            get => m_SamplingShader;
-        }
+        public LayerMask transparentLayerMask => m_TransparentLayerMask;
 
-        internal LayerMask opaqueLayerMask
-        {
-            get => m_OpaqueLayerMask;
-        }
-
-        public LayerMask transparentLayerMask
-        {
-            get => m_TransparentLayerMask;
-        }
+        public StencilStateData defaultStencilState => m_DefaultStencilState;
     }
 }
