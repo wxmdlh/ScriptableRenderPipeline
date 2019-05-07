@@ -121,7 +121,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         }
         else // Already entered?
         {
-            bool inShadow = (L.z < 0);
+            bool inShadow = (L.z < 0); // Inside the shadow volume?
 
             if (inShadow)
             {
@@ -130,10 +130,21 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
             }
         }
     }
+    else // Failed to intersect?
+    {
+        bool inShadow = (L.z < 0) && ((1 - Sq(dot(L, O))) < _PlanetaryRadiusSquared);
+
+        // If we are inside the shadow volume, we should terminate the ray.
+        if (inShadow)
+        {
+            tMax = -tMin;
+        }
+    }
+
+    tableEntry.a = max(0, tMax - tMin);
 
     if (tMin >= tMax)
     {
-        tableEntry.a = tMax - tMin;
         _InScatteredRadianceTable[tableCoord] = tableEntry; // Return 0
         return;
     }
@@ -265,7 +276,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     // }
 
     // TODO: deep compositing.
-    tableEntry = float4(radiance, tMax - tMin);
+    tableEntry.rgb = radiance;
     // tableEntry = float4(radiance, tMax);
     // tableEntry = float4(cosChi, h, NdotL, tMax);
     // tableEntry = float4(viewTransmX, tMax);
