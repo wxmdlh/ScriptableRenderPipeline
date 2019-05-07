@@ -8,7 +8,7 @@ namespace UnityEditor.ShaderGraph
 {
     struct ShaderStringMapping
     {
-        public AbstractMaterialNode node { get; set; }
+        public object source { get; set; }
         public int startIndex { get; set; }
         public int count { get; set; }
     }
@@ -30,15 +30,15 @@ namespace UnityEditor.ShaderGraph
 
         const string k_IndentationString = "    ";
 
-        internal AbstractMaterialNode currentNode
+        internal object currentSource
         {
-            get { return m_CurrentMapping.node; }
+            get { return m_CurrentMapping.source; }
             set
             {
                 m_CurrentMapping.count = m_StringBuilder.Length - m_CurrentMapping.startIndex;
                 if (m_CurrentMapping.count > 0)
                     m_Mappings.Add(m_CurrentMapping);
-                m_CurrentMapping.node = value;
+                m_CurrentMapping.source = value;
                 m_CurrentMapping.startIndex = m_StringBuilder.Length;
                 m_CurrentMapping.count = 0;
             }
@@ -189,12 +189,12 @@ namespace UnityEditor.ShaderGraph
             // First re-add all the mappings from `other`, such that their mappings are transformed.
             foreach (var mapping in other.m_Mappings)
             {
-                currentNode = mapping.node;
+                currentSource = mapping.source;
 
                 // Use `AppendLines` to indent according to the current indentation.
                 AppendLines(other.ToString(mapping.startIndex, mapping.count));
             }
-            currentNode = other.currentNode;
+            currentSource = other.currentSource;
             AppendLines(other.ToString(other.m_CurrentMapping.startIndex, other.length - other.m_CurrentMapping.startIndex));
         }
 
@@ -231,14 +231,14 @@ namespace UnityEditor.ShaderGraph
             set { m_StringBuilder.Length = value; }
         }
 
-        internal void DoReplacement(Action<AbstractMaterialNode, List<string>> replacementProcessor)
+        internal void DoReplacement(Action<object, List<string>> replacementProcessor)
         {
             // Get source map
-            var source = m_StringBuilder.ToString();
-            var sourceMap = new ShaderSourceMap(source, m_Mappings);
+            var builder = m_StringBuilder.ToString();
+            var sourceMap = new ShaderSourceMap(builder, m_Mappings);
 
             // Get a list of lines from the StringBuilder
-            var splitLines = source.Split('\n');
+            var splitLines = builder.Split('\n');
             var lineCount = splitLines.Length;
             var lastLine = splitLines[lineCount - 1];
             if (string.IsNullOrEmpty(lastLine) || lastLine == "\r")
@@ -253,15 +253,15 @@ namespace UnityEditor.ShaderGraph
             Clear();
             m_IndentationLevel = 0;
 
-            for (int i = 0; i < sourceMap.nodes.Count; i++)
+            for (int i = 0; i < sourceMap.sources.Count; i++)
             {
-                AbstractMaterialNode node = sourceMap.nodes[i];
+                object source = sourceMap.sources[i];
                 List<string> snippets = new List<string>();
 
                 // If this is the last node we cant get the line count from the next index
                 // Use the total line count
                 int lastLineIndex = lines.Count;
-                if (i < sourceMap.nodes.Count - 1)
+                if (i < sourceMap.sources.Count - 1)
                     lastLineIndex = sourceMap.lineStarts[i + 1] - 2;
 
                 // TODO: Why is the start line offset after the first entry
@@ -275,10 +275,10 @@ namespace UnityEditor.ShaderGraph
                 }
 
                 // Run replacement for this node
-                replacementProcessor(node, snippets);
+                replacementProcessor(source, snippets);
 
                 // Append lines back to StringBuilder
-                currentNode = node;
+                currentSource = source;
                 foreach (string snippet in snippets)
                     AppendLine(snippet);
             }

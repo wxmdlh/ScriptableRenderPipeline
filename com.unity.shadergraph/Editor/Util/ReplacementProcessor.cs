@@ -5,14 +5,14 @@ namespace UnityEditor.ShaderGraph
 {
     internal static class ReplacementProcessor
     {
-        internal static void Precision(AbstractMaterialNode node, List<string> snippets)
+        internal static void Precision(object source, List<string> snippets)
         {
-            if(node == null)
-                return;
-
-            for (int i = 0; i < snippets.Count; i++)
+            if(source is AbstractMaterialNode node)
             {
-                snippets[i] = snippets[i].Replace("$precision", node.concretePrecision.ToShaderString());
+                for (int i = 0; i < snippets.Count; i++)
+                {
+                    snippets[i] = snippets[i].Replace("$precision", node.concretePrecision.ToShaderString());
+                }
             }
         }
     }

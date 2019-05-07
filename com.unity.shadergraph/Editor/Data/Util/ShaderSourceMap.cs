@@ -8,16 +8,16 @@ namespace UnityEditor.ShaderGraph
     {
         // Indicates where a new node begins
         private List<int> m_LineStarts;
-        private List<AbstractMaterialNode> m_Nodes;
+        private List<object> m_Sources;
         private int m_LineCount;
 
         public List<int> lineStarts => m_LineStarts;
-        public List<AbstractMaterialNode> nodes => m_Nodes;
+        public List<object> sources => m_Sources;
 
         internal ShaderSourceMap(string source, List<ShaderStringMapping> mappings)
         {
             m_LineStarts = new List<int>();
-            m_Nodes = new List<AbstractMaterialNode>();
+            m_Sources = new List<object>();
 
             // File line numbers are 1-based
             var line = 1;
@@ -29,7 +29,7 @@ namespace UnityEditor.ShaderGraph
                     continue;
 
                 m_LineStarts.Add(line);
-                m_Nodes.Add(mapping.node);
+                m_Sources.Add(mapping.source);
 
                 while (currentIndex < stopIndex && currentIndex != -1)
                 {
@@ -45,7 +45,7 @@ namespace UnityEditor.ShaderGraph
         }
 
         // Binary search that behaves like C++'s std::lower_bound()
-        public AbstractMaterialNode FindNode(int line)
+        public object FindSource(int line)
         {
             // line is 1-based throughout this function
             if (line > m_LineCount || line <= 0)
@@ -62,7 +62,7 @@ namespace UnityEditor.ShaderGraph
                 else if (line < lineStart)
                     r = m - 1;
                 else
-                    return m_Nodes[m];
+                    return m_Sources[m];
             }
             throw new Exception("Something went wrong in binary search");
         }
