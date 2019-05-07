@@ -14,10 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_RendererFeatures: []
   m_HDREmulationScale: 1
-  m_LightOperations:
+  m_LightBlendStyles:
   - enabled: 1
     name: Op0
-    globalColor: {r: 0.0773407, g: 0.1266856, b: 0.20754719, a: 1}
     maskTextureChannel: 0
     renderTextureScale: 1
     blendMode: 1
@@ -26,7 +25,6 @@ MonoBehaviour:
       additive: 0
   - enabled: 1
     name: Op1
-    globalColor: {r: 0, g: 0, b: 0, a: 1}
     maskTextureChannel: 1
     renderTextureScale: 0.5
     blendMode: 0
@@ -35,7 +33,6 @@ MonoBehaviour:
       additive: 0
   - enabled: 0
     name: Disabled
-    globalColor: {r: 0, g: 0, b: 0, a: 1}
     maskTextureChannel: 0
     renderTextureScale: 1
     blendMode: 1
@@ -44,7 +41,6 @@ MonoBehaviour:
       additive: 0
   - enabled: 0
     name: Disabled
-    globalColor: {r: 0, g: 0, b: 0, a: 1}
     maskTextureChannel: 0
     renderTextureScale: 1
     blendMode: 1

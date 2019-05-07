@@ -150,7 +150,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LightType: 0
-  m_LightOperationIndex: 0
+  m_BlendStyleIndex: 0
   m_FalloffIntensity: 0.5
   m_Color: {r: 0.030893529, g: 0, b: 0.4056604, a: 1}
   m_Intensity: 2.74
@@ -158,8 +158,8 @@ MonoBehaviour:
   m_ApplyToSortingLayers: 00000000eb0feddf
   m_LightCookieSprite: {fileID: 0}
   m_UseNormalMap: 0
-  m_LightOrder: 0
-  m_LightOverlapMode: 0
+  m_LightOrder: 1
+  m_AlphaBlendOnOverlap: 1
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 0
@@ -415,7 +415,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LightType: 1
-  m_LightOperationIndex: 0
+  m_BlendStyleIndex: 0
   m_FalloffIntensity: 0.5
   m_Color: {r: 0, g: 1, b: 0.20634079, a: 1}
   m_Intensity: 1
@@ -424,7 +424,7 @@ MonoBehaviour:
   m_LightCookieSprite: {fileID: 0}
   m_UseNormalMap: 0
   m_LightOrder: 0
-  m_LightOverlapMode: 0
+  m_AlphaBlendOnOverlap: 0
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 0
@@ -489,7 +489,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LightType: 3
-  m_LightOperationIndex: 1
+  m_BlendStyleIndex: 1
   m_FalloffIntensity: 0.5
   m_Color: {r: 0.25162834, g: 0, b: 0.2735849, a: 1}
   m_Intensity: 1
@@ -498,13 +498,13 @@ MonoBehaviour:
   m_LightCookieSprite: {fileID: 0}
   m_UseNormalMap: 1
   m_LightOrder: 0
-  m_LightOverlapMode: 0
+  m_AlphaBlendOnOverlap: 0
   m_PointLightInnerAngle: 48.799995
   m_PointLightOuterAngle: 88.27
   m_PointLightInnerRadius: 1.2891586
   m_PointLightOuterRadius: 1.8542131
   m_PointLightDistance: 3
-  m_PointLightQuality: 1
+  m_PointLightQuality: 0
   m_ShapeLightParametricSides: 6
   m_ShapeLightParametricAngleOffset: 0
   m_ShapeLightParametricRadius: 1
@@ -640,7 +640,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LightType: 3
-  m_LightOperationIndex: 0
+  m_BlendStyleIndex: 0
   m_FalloffIntensity: 0.5
   m_Color: {r: 0.6509434, g: 0.6509434, b: 0.6509434, a: 1}
   m_Intensity: 4.75
@@ -650,7 +650,7 @@ MonoBehaviour:
     type: 3}
   m_UseNormalMap: 1
   m_LightOrder: 0
-  m_LightOverlapMode: 0
+  m_AlphaBlendOnOverlap: 0
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 0.65392894
@@ -711,7 +711,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LightType: 4
-  m_LightOperationIndex: 0
+  m_BlendStyleIndex: 0
   m_FalloffIntensity: 0.5
   m_Color: {r: 1, g: 0.15420003, b: 0, a: 1}
   m_Intensity: 1
@@ -720,7 +720,7 @@ MonoBehaviour:
   m_LightCookieSprite: {fileID: 0}
   m_UseNormalMap: 0
   m_LightOrder: 0
-  m_LightOverlapMode: 0
+  m_AlphaBlendOnOverlap: 0
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 0
@@ -781,7 +781,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LightType: 0
-  m_LightOperationIndex: 0
+  m_BlendStyleIndex: 0
   m_FalloffIntensity: 0.5
   m_Color: {r: 0.9150943, g: 0.11654504, b: 0.7928844, a: 1}
   m_Intensity: 2.74
@@ -790,7 +790,7 @@ MonoBehaviour:
   m_LightCookieSprite: {fileID: 0}
   m_UseNormalMap: 0
   m_LightOrder: 0
-  m_LightOverlapMode: 0
+  m_AlphaBlendOnOverlap: 1
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 0
@@ -1093,7 +1093,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LightType: 2
-  m_LightOperationIndex: 1
+  m_BlendStyleIndex: 1
   m_FalloffIntensity: 0.5
   m_Color: {r: 0.37983054, g: 0.8207547, b: 0.375534, a: 1}
   m_Intensity: 0.5
@@ -1103,7 +1103,7 @@ MonoBehaviour:
     type: 3}
   m_UseNormalMap: 0
   m_LightOrder: 0
-  m_LightOverlapMode: 0
+  m_AlphaBlendOnOverlap: 0
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 0
