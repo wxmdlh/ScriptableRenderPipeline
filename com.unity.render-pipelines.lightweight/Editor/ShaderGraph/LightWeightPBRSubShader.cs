@@ -402,20 +402,6 @@ namespace UnityEditor.Rendering.LWRP
                 faceSign.AppendLine(", half FaceSign : VFACE");
 
             // ----------------------------------------------------- //
-            //                     REPLACEMENTS                      //
-            // ----------------------------------------------------- //
-
-            // -------------------------------------
-            // Precision
-
-            functionBuilder.DoReplacement(ReplacementProcessor.Precision);
-            shaderPropertyUniforms.DoReplacement(ReplacementProcessor.Precision);
-            surfaceDescriptionStruct.DoReplacement(ReplacementProcessor.Precision);
-            surfaceDescriptionFunction.DoReplacement(ReplacementProcessor.Precision);
-            vertexDescriptionStruct.DoReplacement(ReplacementProcessor.Precision);
-            vertexDescriptionFunction.DoReplacement(ReplacementProcessor.Precision);
-
-            // ----------------------------------------------------- //
             //                      FINALIZE                         //
             // ----------------------------------------------------- //
 

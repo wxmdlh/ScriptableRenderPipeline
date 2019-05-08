@@ -677,15 +677,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     shaderPassIncludes.AddShaderChunk(include);
             }
 
-            // -------------------------------------
-            // Do replacements for precision
-            graphNodeFunctions.DoReplacement(ReplacementProcessor.Precision);
-            shaderPropertyUniforms.DoReplacement(ReplacementProcessor.Precision);
-            pixelGraphOutputs.DoReplacement(ReplacementProcessor.Precision);
-            pixelGraphEvalFunction.DoReplacement(ReplacementProcessor.Precision);
-            vertexGraphOutputs.DoReplacement(ReplacementProcessor.Precision);
-            vertexGraphEvalFunction.DoReplacement(ReplacementProcessor.Precision);
-
             // build graph code
             var graph = new ShaderGenerator();
             {

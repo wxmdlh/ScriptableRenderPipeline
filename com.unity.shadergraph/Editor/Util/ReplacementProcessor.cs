@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Text;
 using System.Linq;
 using UnityEngine;
 
@@ -6,29 +7,35 @@ namespace UnityEditor.ShaderGraph
 {
     internal static class ReplacementProcessor
     {
-        internal static void Precision(object source, List<string> snippets)
+        internal static void CalculateReplacements(ShaderStringBuilder builder)
         {
-            if(source is PropertyNode propertyNode)
+            ReplacePrecision(builder);
+        }
+
+        internal static void ReplacePrecision(ShaderStringBuilder builder)
+        {
+            ConcretePrecision GetPrecision()
             {
-                var property = propertyNode.owner.properties.FirstOrDefault(x => x.guid == propertyNode.propertyGuid);
-                for (int i = 0; i < snippets.Count; i++)
-                    snippets[i] = snippets[i].Replace("$precision", property.concretePrecision.ToShaderString());
-                return;
+                if(builder.currentSource is PropertyNode propertyNode)
+                {
+                    var property = propertyNode.owner.properties.FirstOrDefault(x => x.guid == propertyNode.propertyGuid);
+                    return property.concretePrecision;
+                }
+
+                if(builder.currentSource is AbstractMaterialNode node)
+                {
+                    return node.concretePrecision;
+                }
+
+                if(builder.currentSource is AbstractShaderProperty prop)
+                {
+                    return prop.concretePrecision;
+                }
+
+                return ConcretePrecision.Float;
             }
 
-            if(source is AbstractMaterialNode node)
-            {
-                for (int i = 0; i < snippets.Count; i++)
-                    snippets[i] = snippets[i].Replace("$precision", node.concretePrecision.ToShaderString());
-                return;
-            }
-
-            if(source is AbstractShaderProperty prop)
-            {
-                for (int i = 0; i < snippets.Count; i++)
-                    snippets[i] = snippets[i].Replace("$precision", prop.concretePrecision.ToShaderString());
-                return;
-            }
+            builder.ReplaceInCurrentMapping("$precision", GetPrecision().ToShaderString());
         }
     }
 }

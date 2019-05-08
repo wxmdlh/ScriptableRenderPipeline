@@ -198,6 +198,13 @@ namespace UnityEditor.ShaderGraph
             AppendLines(other.ToString(other.m_CurrentMapping.startIndex, other.length - other.m_CurrentMapping.startIndex));
         }
 
+        public void ReplaceInCurrentMapping(string oldValue, string newValue)
+        {
+            int start = m_CurrentMapping.startIndex;
+            int end = m_StringBuilder.Length - start;
+            m_StringBuilder.Replace(oldValue, newValue, start, end );
+        }
+
         public override string ToString()
         {
             return m_StringBuilder.ToString();
@@ -229,59 +236,6 @@ namespace UnityEditor.ShaderGraph
         {
             get { return m_StringBuilder.Length; }
             set { m_StringBuilder.Length = value; }
-        }
-
-        internal void DoReplacement(Action<object, List<string>> replacementProcessor)
-        {
-            // Get source map
-            var builder = m_StringBuilder.ToString();
-            var sourceMap = new ShaderSourceMap(builder, m_Mappings);
-
-            // Get a list of lines from the StringBuilder
-            var splitLines = builder.Split('\n');
-            var lineCount = splitLines.Length;
-            var lastLine = splitLines[lineCount - 1];
-            if (string.IsNullOrEmpty(lastLine) || lastLine == "\r")
-                lineCount--;
-            List<string> lines = new List<string>();
-            for (var j = 0; j < lineCount; j++)
-                lines.Add(splitLines[j].Trim('\r'));
-
-            // Reset StringBuilder so we can add lines back to it
-            m_CurrentMapping = new ShaderStringMapping();
-            m_Mappings.Clear();
-            Clear();
-            m_IndentationLevel = 0;
-
-            for (int i = 0; i < sourceMap.sources.Count; i++)
-            {
-                object source = sourceMap.sources[i];
-                List<string> snippets = new List<string>();
-
-                // If this is the last node we cant get the line count from the next index
-                // Use the total line count
-                int lastLineIndex = lines.Count;
-                if (i < sourceMap.sources.Count - 1)
-                    lastLineIndex = sourceMap.lineStarts[i + 1] - 2;
-
-                // TODO: Why is the start line offset after the first entry
-                // Is there an issue with the Source Map???
-                int startLine = i == 0 ? sourceMap.lineStarts[i] - 1 : sourceMap.lineStarts[i] - 2;
-
-                // Copy lines that belong to this node
-                for (int j = startLine; j < lastLineIndex; j++)
-                {
-                    snippets.Add(lines[j]);
-                }
-
-                // Run replacement for this node
-                replacementProcessor(source, snippets);
-
-                // Append lines back to StringBuilder
-                currentSource = source;
-                foreach (string snippet in snippets)
-                    AppendLine(snippet);
-            }
         }
     }
 }

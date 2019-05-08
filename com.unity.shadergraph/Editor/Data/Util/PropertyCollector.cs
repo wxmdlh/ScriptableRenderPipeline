@@ -56,6 +56,7 @@ namespace UnityEditor.ShaderGraph
             {
                 builder.currentSource = prop;
                 builder.AppendLine(prop.GetPropertyDeclarationString());
+                ReplacementProcessor.CalculateReplacements(builder);
             }
             builder.currentSource = null;
             builder.AppendLine("CBUFFER_END");
@@ -68,6 +69,7 @@ namespace UnityEditor.ShaderGraph
             {
                 builder.currentSource = prop;
                 builder.AppendLine(prop.GetPropertyDeclarationString());
+                ReplacementProcessor.CalculateReplacements(builder);
             }
             builder.currentSource = null;
         }
