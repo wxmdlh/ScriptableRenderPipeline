@@ -1,6 +1,6 @@
 {
     "dependencies": {
-        "com.unity.testframework.graphics": "ssh://git@github.cds.internal.unity3d.com/unity/com.unity.testframework.graphics.git",
+        "com.unity.testframework.graphics": "6.6.1",
         "com.unity.postprocessing": "2.1.6",
         "com.unity.modules.animation": "1.0.0",
         "com.unity.modules.assetbundle": "1.0.0",
