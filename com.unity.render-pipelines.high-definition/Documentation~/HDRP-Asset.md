@@ -142,7 +142,20 @@ These settings adjust the size of the shadow mask. Smaller values causes Unity t
 | **16-bit**                       | Enable the checkbox to force HDRP to use 16-bit shadow maps. |
 | **Dynamic Rescale**              | Enable the checkbox to allow HDRP to rescale the shadow atlas if all the shadows on the screen don’t currently fit onto it. |
 | **Maximum** **Shadow on Screen** | The maximum number of shadows you can have in view. A Spot Light casts a single shadow, a Point Light casts six shadows, and a Directional Light casts shadows equal to the number of cascades defined in the [HD Shadow Settings](Override-Shadows.html) override. |
-| **Filtering Quality**            | Use the drop-down to select the filtering quality for shadows. Higher values increase the shadow quality in HDRP as better filtering near the edges of shadows reduce aliasing effects. Shadow quality only works for Cameras that use [forward rendering](Forward-And-Deferred-Rendering.html). **Deferred** mode uses Low. For information on each filtering quality preset, see the [Shadows in HDRP](Shadows-in-HDRP.html#FilteringQualities) documentation. |
+| **Filtering Quality**            | Use the drop-down to select the filtering quality for shadows. Higher values increase the shadow quality in HDRP as better filtering near the edges of shadows reduce aliasing effects. Shadow quality only works for Cameras that use [forward rendering](Forward-And-Deferred-Rendering.html). **Deferred** mode uses Low. For information on each filtering quality preset, see the [Filtering Qualities table](#FilteringQualities). |
+
+<a name="FilteringQualities"></a>
+
+#### Filtering Qualities
+
+| **Filtering Quality** | **Algorithm**                                                |
+| --------------------- | ------------------------------------------------------------ |
+| **Low**               | &#8226; **Point/Spot Lights**: Percentage Closer Filtering (PCF) 3x3 (4 taps).<br />&#8226; **Directional Lights**: PCF Tent 5x5 (9 taps). |
+| **Medium**            | &#8226; **Point/Spot Lights**: PCF 5x5 (9 taps).<br />&#8226; **Directional Lights**: PCF Tent 5x5 (9 taps). |
+| **High**              | &#8226;**Point/Spot/Directional Lights**: Percentage Closer Soft Shadow (PCSS). You can change the sample count to decrease the quality of these shadows. This decreases the resource intensity of this algorithm. To change the sample count for shadows cast by that Light, set the **Filter Sample Count** in the Inspector of each Light component. |
+| **Very High**         | &#8226;**Point/Spot**: Use **High** for their **Filtering Quality**.<br />&#8226; **Directional Lights**: Improve Moment Shadows. |
+
+The PCF algorithm applies a fixed size blur. PCSS and Improved Moment Shadows algorithms apply a different blur size depending on the distance between the shadowed pixel and the shadow caster. This results in a more realistic shadow, that is also more resource intensive to compute.
 
 ### Light Loop
 
