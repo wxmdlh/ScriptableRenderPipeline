@@ -145,6 +145,7 @@ namespace UnityEditor.ShaderGraph.Drawing
                     GUILayout.Space(4);
                     if (EditorGUI.EndChangeCheck())
                     {
+                        graph.ValidateGraph();
                         foreach (var node in graph.GetNodes<AbstractMaterialNode>())
                             node.Dirty(ModificationScope.Graph);
                     }
