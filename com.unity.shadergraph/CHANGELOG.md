@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - When you save a graph that contains a Sub Graph node, the Shader Graph window no longer freezes.
 - Fixed an error that occured when using multiple Sampler State nodes with different parameters.
 - When you change a Sub Graph, Shader Graph windows now correctly reload.
-- Saving a Shader Graph no longer causes all other Shader Graph windows to re-compile their preview shaders.
+- When you save a Shader Graph, all other Shader Graph windows no longer re-compile their preview Shaders.
 
 ## [6.6.0] - 2019-04-01
 ### Added
