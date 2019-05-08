@@ -44,8 +44,13 @@ namespace UnityEngine.Experimental.Rendering.LWRP
                 Light2D light = lights[i];
                 if (light.lightType == Light2D.LightType.Global && light.IsLitLayer(sortingLayerIndex))
                 {
+                    bool inCurrentPrefabStage = true;
+#if UNITY_EDITOR
                     // If we found the first global light in our prefab stage
-                    if (PrefabStageUtility.GetPrefabStage(light.gameObject) == PrefabStageUtility.GetCurrentPrefabStage())
+                    inCurrentPrefabStage = PrefabStageUtility.GetPrefabStage(light.gameObject) == PrefabStageUtility.GetCurrentPrefabStage();
+#endif
+                    
+                    if (inCurrentPrefabStage)
                     {
                         color = light.color * light.intensity;
                         return true;
