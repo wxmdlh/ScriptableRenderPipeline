@@ -8,8 +8,7 @@ using UnityEditor.ShaderGraph;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.LWRP;
 
-
-namespace UnityEngine.Experimental.Rendering.LightweightPipeline
+namespace UnityEditor.Experimental.Rendering.LWRP
 {
     [Serializable]
     class LightWeightSpriteLitSubShader : ISpriteLitSubShader

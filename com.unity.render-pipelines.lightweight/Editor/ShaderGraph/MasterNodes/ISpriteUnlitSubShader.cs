@@ -1,6 +1,6 @@
-using System;
+using UnityEditor.ShaderGraph;
 
-namespace UnityEditor.ShaderGraph
+namespace UnityEditor.Experimental.Rendering.LWRP
 {
     interface ISpriteUnlitSubShader : ISubShader
     {}
