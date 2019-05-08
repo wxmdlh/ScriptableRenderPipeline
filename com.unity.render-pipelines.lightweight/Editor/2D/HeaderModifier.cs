@@ -1,48 +1,46 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.UIElements;
 using System;
 
-
-class HeaderModifier : IMGUIContainer
+namespace UnityEditor.Experimental.Rendering.LWRP
 {
-    Action m_OldHeaderGUIHandler;
-    Action m_ModifierGUIHandler;
-
-    public HeaderModifier(Action onGUIHandler, Action modifierGUIHandler) : base(onGUIHandler)
+    class HeaderModifier : IMGUIContainer
     {
-        m_ModifierGUIHandler = modifierGUIHandler;
-    }
+        Action m_OldHeaderGUIHandler;
+        Action m_ModifierGUIHandler;
 
-    public override void HandleEvent(EventBase evt)
-    {
-        if (evt is AttachToPanelEvent)
+        public HeaderModifier(Action onGUIHandler, Action modifierGUIHandler) : base(onGUIHandler)
         {
-            var root = parent.parent;
-            if (root.childCount > 0)
-            {
-                foreach(var child in root.Children())
-                {
-                    var header = child as IMGUIContainer;
-                    if (header != null && header.name.Contains("Header"))
-                    {
-                        if (m_OldHeaderGUIHandler == null)
-                        {
-                            m_OldHeaderGUIHandler = header.onGUIHandler;
-                            header.onGUIHandler = () =>
-                            {
-                                m_OldHeaderGUIHandler();
-                                m_ModifierGUIHandler();
-                            };
-                        }
-                    }
-
-                }
-            }
+            m_ModifierGUIHandler = modifierGUIHandler;
         }
 
-        base.HandleEvent(evt);
+        public override void HandleEvent(EventBase evt)
+        {
+            if (evt is AttachToPanelEvent)
+            {
+                var root = parent.parent;
+                if (root.childCount > 0)
+                {
+                    foreach (var child in root.Children())
+                    {
+                        var header = child as IMGUIContainer;
+                        if (header != null && header.name.Contains("Header"))
+                        {
+                            if (m_OldHeaderGUIHandler == null)
+                            {
+                                m_OldHeaderGUIHandler = header.onGUIHandler;
+                                header.onGUIHandler = () =>
+                                {
+                                    m_OldHeaderGUIHandler();
+                                    m_ModifierGUIHandler();
+                                };
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            base.HandleEvent(evt);
+        }
     }
 }
-

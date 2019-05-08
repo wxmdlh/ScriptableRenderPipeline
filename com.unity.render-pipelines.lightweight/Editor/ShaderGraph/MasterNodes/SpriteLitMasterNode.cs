@@ -2,10 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEditor.Graphing;
-using UnityEditor.ShaderGraph.Drawing;
-using UnityEditor.ShaderGraph.Drawing.Controls;
 using UnityEngine;
-using UnityEngine.UIElements;
 using UnityEditor.ShaderGraph;
 
 namespace UnityEditor.Experimental.Rendering.LWRP
@@ -50,22 +47,6 @@ namespace UnityEditor.Experimental.Rendering.LWRP
                 NormalSlotId,
             });
         }
-
-        //public NeededCoordinateSpace RequiresNormal(ShaderStageCapability stageCapability)
-        //{
-        //    List<MaterialSlot> slots = new List<MaterialSlot>();
-        //    GetSlots(slots);
-
-        //    List<MaterialSlot> validSlots = new List<MaterialSlot>();
-        //    for (int i = 0; i < slots.Count; i++)
-        //    {
-        //        if (slots[i].stageCapability != ShaderStageCapability.All && slots[i].stageCapability != stageCapability)
-        //            continue;
-
-        //        validSlots.Add(slots[i]);
-        //    }
-        //    return validSlots.OfType<IMayRequireNormal>().Aggregate(NeededCoordinateSpace.None, (mask, node) => mask | node.RequiresNormal(stageCapability));
-        //}
 
         public NeededCoordinateSpace RequiresPosition(ShaderStageCapability stageCapability = ShaderStageCapability.All)
         {

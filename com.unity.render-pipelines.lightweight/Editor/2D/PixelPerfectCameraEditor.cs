@@ -5,7 +5,7 @@ using UnityEngine.Experimental.Rendering.LWRP;
 namespace UnityEditor.Experimental.Rendering.LWRP
 {
     [CustomEditor(typeof(PixelPerfectCamera))]
-    public class PixelPerfectCameraEditor : Editor
+    class PixelPerfectCameraEditor : Editor
     {
         private class Style
         {
