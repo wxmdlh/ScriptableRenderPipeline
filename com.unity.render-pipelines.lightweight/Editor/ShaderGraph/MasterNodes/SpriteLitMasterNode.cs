@@ -8,7 +8,7 @@ using UnityEditor.ShaderGraph;
 namespace UnityEditor.Experimental.Rendering.LWRP
 {
     [Serializable]
-    [Title("Master", "Sprite Unlit")]
+    [Title("Master", "Sprite lit")]
     class SpriteLitMasterNode : MasterNode<ISpriteLitSubShader>, IMayRequirePosition
     {
         public const string PositionName = "Position";
