@@ -58,7 +58,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     // The light vector is represented as {phiL, cosThataL} w.r.t. the XZ plane.
     float cosChi = UnmapAerialPerspective(uvw.xy).x;                             // [-1, 1]
     float height = UnmapAerialPerspective(uvw.xy).y;                             // [0, _AtmosphericDepth]
-    float phiL   = PI * saturate(texCoord * rcp(zTexSize - 1));                  // [-Pi, Pi] w.r.t. N-V
+    float phiL   = PI * saturate(texCoord * rcp(zTexSize - 1));                  // [-Pi, Pi]
     float NdotL  = UnmapCosineOfZenithAngle(saturate(texId * rcp(zTexCnt - 1))); // [-0.5, 1]
 
     float NdotV  = -cosChi;
@@ -137,7 +137,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     }
     else // Failed to intersect?
     {
-        bool inShadow = (L.z < 0) && ((1 - Sq(dot(L, O))) < _PlanetaryRadiusSquared);
+        bool inShadow = (L.z < 0) && ((1 - Sq(L.z)) < (R * rcp(r)));
 
         // If we are inside the shadow volume, we should terminate the ray.
         if (inShadow)
