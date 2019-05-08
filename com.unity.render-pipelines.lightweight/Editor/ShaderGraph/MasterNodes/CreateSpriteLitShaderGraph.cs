@@ -1,24 +1,13 @@
-using System.IO;
-using UnityEditor.ProjectWindowCallback;
 using UnityEditor.ShaderGraph;
 
 namespace UnityEditor.Experimental.Rendering.LWRP
 {
-    public class CreateSpriteLitShaderGraph : EndNameEditAction
+    class CreateSpriteLitShaderGraph
     {
         [MenuItem("Assets/Create/Shader/2D Renderer/Lit Sprite Graph", false, 208)]
         public static void CreateMaterialGraph()
         {
-            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, CreateInstance<CreateSpriteLitShaderGraph>(),
-                "New Shader Graph.ShaderGraph", null, null);
-        }
-
-        public override void Action(int instanceId, string pathName, string resourceFile)
-        {
-            var graph = new GraphData();
-            graph.AddNode(new SpriteLitMasterNode());
-            File.WriteAllText(pathName, EditorJsonUtility.ToJson(graph));
-            AssetDatabase.Refresh();
+            GraphUtil.CreateNewGraph(new SpriteLitMasterNode());
         }
     }
 }
