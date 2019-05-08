@@ -39,9 +39,6 @@ Shader "Hidden/HDRP/Sky/PbrSky"
 
     float4 RenderSky(Varyings input)
     {
-        const uint zTexSize = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_Z;
-        const uint zTexCnt  = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_W;
-
         // Convention:
         // V points towards the camera.
         // The normal vector N points upwards (local Z).
@@ -83,24 +80,21 @@ Shader "Hidden/HDRP/Sky/PbrSky"
             }
         }
 
-        float3 radiance = 0;
 
-        float NdotL  = dot(N, L);
-        float NdotV  = dot(N, V);
-        float cosChi = -NdotV;
-
+        float  NdotL = dot(N, L);
+        float  NdotV = dot(N, V);
         float3 projL = L - N * NdotL;
         float3 projV = V - N * NdotV;
         float  phiL  = acos(clamp(dot(projL, projV) * rsqrt(max(dot(projL, projL) * dot(projV, projV), FLT_EPS)), -1, 1));
 
+        TexCoord4D tc = ConvertPositionAndOrientationToTexCoords(h, NdotV, NdotL, phiL);
+
+        float cosChi = -NdotV;
         float cosHor = GetCosineOfHorizonZenithAngle(h);
 
         bool lookAboveHorizon = (cosChi > cosHor);
 
-        float u = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).x;
-        float v = MapAerialPerspective(cosChi, h, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).y;
-        float w = (0.5 + (INV_PI * phiL) * (zTexSize - 1)) * rcp(zTexSize); // [0.5 * zts, 1 - 0.5 * zts]
-        float k = MapCosineOfZenithAngle(NdotL) * (zTexCnt - 1);            // [0, ztc - 1]
+        float3 radiance = 0;
 
         if (!lookAboveHorizon) // See the ground?
         {
@@ -114,20 +108,17 @@ Shader "Hidden/HDRP/Sky/PbrSky"
             radiance += transm * gBrdf * SampleGroundIrradianceTexture(dot(gN, L));
         }
 
-        // Shrink by the 'zTexCount' and offset according to the above/below horizon direction and phiV.
-        float w0 = (floor(k) + w) * rcp(zTexCnt);
-        float w1 = (ceil(k)  + w) * rcp(zTexCnt);
 
         // Apply the phase function.
         float LdotV = dot(L, V);
 
-        radiance += lerp(SAMPLE_TEXTURE3D(_AirSingleScatteringTexture,     s_linear_clamp_sampler, float3(u, v, w0)),
-                         SAMPLE_TEXTURE3D(_AirSingleScatteringTexture,     s_linear_clamp_sampler, float3(u, v, w1)),
-                         frac(k)).rgb * AirPhase(LdotV);
+        radiance += lerp(SAMPLE_TEXTURE3D(_AirSingleScatteringTexture,     s_linear_clamp_sampler, float3(tc.u, tc.v, tc.w0)),
+                         SAMPLE_TEXTURE3D(_AirSingleScatteringTexture,     s_linear_clamp_sampler, float3(tc.u, tc.v, tc.w1)),
+                         tc.a).rgb * AirPhase(LdotV);
 
-        radiance += lerp(SAMPLE_TEXTURE3D(_AerosolSingleScatteringTexture, s_linear_clamp_sampler, float3(u, v, w0)),
-                         SAMPLE_TEXTURE3D(_AerosolSingleScatteringTexture, s_linear_clamp_sampler, float3(u, v, w1)),
-                         frac(k)).rgb * AerosolPhase(LdotV);
+        radiance += lerp(SAMPLE_TEXTURE3D(_AerosolSingleScatteringTexture, s_linear_clamp_sampler, float3(tc.u, tc.v, tc.w0)),
+                         SAMPLE_TEXTURE3D(_AerosolSingleScatteringTexture, s_linear_clamp_sampler, float3(tc.u, tc.v, tc.w1)),
+                         tc.a).rgb * AerosolPhase(LdotV);
 
         if (earlyOut)
         {

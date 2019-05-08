@@ -261,3 +261,33 @@ float3 SampleGroundIrradianceTexture(float NdotL)
 
     return SAMPLE_TEXTURE2D_LOD(_GroundIrradianceTexture, s_linear_clamp_sampler, uv, 0).rgb;
 }
+
+struct TexCoord4D
+{
+    float u, v, w0, w1, a;
+};
+
+TexCoord4D ConvertPositionAndOrientationToTexCoords(float height, float NdotV, float NdotL, float phiL)
+{
+    const uint zTexSize = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_Z;
+    const uint zTexCnt  = PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_W;
+
+    float cosChi = -NdotV;
+
+    float u = MapAerialPerspective(cosChi, height, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).x;
+    float v = MapAerialPerspective(cosChi, height, rcp(PBRSKYCONFIG_IN_SCATTERED_RADIANCE_TABLE_SIZE_X)).y;
+    float w = (0.5 + (INV_PI * phiL) * (zTexSize - 1)) * rcp(zTexSize); // [0.5 / zts, 1 - 0.5 / zts]
+    float k = MapCosineOfZenithAngle(NdotL) * (zTexCnt - 1);            // [0, ztc - 1]
+
+    TexCoord4D texCoord;
+
+    texCoord.u  = u;
+    texCoord.v  = v;
+
+    // Emulate a 4D texture with a "deep" 3D texture.
+    texCoord.w0 = (floor(k) + w) * rcp(zTexCnt);
+    texCoord.w1 = (ceil(k)  + w) * rcp(zTexCnt);
+    texCoord.a  = frac(k);
+
+    return texCoord;
+}
