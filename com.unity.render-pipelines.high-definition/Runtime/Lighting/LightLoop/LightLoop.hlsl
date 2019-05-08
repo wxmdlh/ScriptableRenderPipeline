@@ -67,7 +67,7 @@ void ApplyDebug(LightLoopContext lightLoopContext, PositionInputs posInput, BSDF
         specularLighting = 0.0f;
         float3 normalVS = mul((float3x3)UNITY_MATRIX_V, bsdfData.normalWS).xyz;
         float2 UV = saturate(normalVS.xy * 0.5f + 0.5f);
-        diffuseLighting = SAMPLE_TEXTURE2D_LOD(_DebugMatCapTexture, s_linear_repeat_sampler, UV, 0) * (_MatcapMixAlbedo > 0  ? bsdfData.diffuseColor * _MatcapViewScale : 1.0f);
+        diffuseLighting = SAMPLE_TEXTURE2D_LOD(_DebugMatCapTexture, s_linear_repeat_sampler, UV, 0).rgb * (_MatcapMixAlbedo > 0  ? bsdfData.diffuseColor * _MatcapViewScale : 1.0f);
     }
 
     // We always apply exposure when in debug mode. The exposure value will be at a neutral 0.0 when not needed.
@@ -86,6 +86,12 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     context.vxShadowValue    = 1; //seongdae;vxsm
     context.shadowValue      = 1;
     context.sampleReflection = 0;
+
+    // With XR single-pass instancing and camera-relative: offset position to do lighting computations from the combined center view (original camera matrix).
+    // This is required because there is only one list of lights generated on the CPU. Shadows are also generated once and shared between the instanced views.
+#if (SHADEROPTIONS_CAMERA_RELATIVE_RENDERING != 0) && defined(USING_STEREO_MATRICES)
+    posInput.positionWS += _WorldSpaceCameraPosViewOffset;
+#endif
 
     // Initialize the contactShadow and contactShadowFade fields
     InitContactShadow(posInput, context);
