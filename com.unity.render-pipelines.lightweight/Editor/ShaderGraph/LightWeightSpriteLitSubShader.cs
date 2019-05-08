@@ -201,11 +201,16 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             using (vertexDescriptionInputStruct.BlockSemicolonScope())
             {
                 ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(NeededCoordinateSpace.Tangent, InterpolatorType.Normal, vertexDescriptionInputStruct);
+                ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(vertexRequirements.requiresNormal, InterpolatorType.Normal, vertexDescriptionInputStruct);
+                ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(vertexRequirements.requiresBitangent, InterpolatorType.BiTangent, vertexDescriptionInputStruct);
+                ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(vertexRequirements.requiresViewDir, InterpolatorType.ViewDirection, vertexDescriptionInputStruct);
                 ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(vertexRequirements.requiresPosition, InterpolatorType.Position, vertexDescriptionInputStruct);
 
                 if (vertexRequirements.requiresVertexColor)
                     vertexDescriptionInputStruct.AppendLine("float4 {0};", ShaderGeneratorNames.VertexColor);
 
+                if (vertexRequirements.requiresScreenPosition)
+                    vertexDescriptionInputStruct.AppendLine("float4 {0};", ShaderGeneratorNames.ScreenPosition);
 
                 foreach (var channel in vertexRequirements.requiresMeshUVs.Distinct())
                     vertexDescriptionInputStruct.AppendLine("half4 {0};", channel.GetUVName());
@@ -240,9 +245,19 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             using (surfaceDescriptionInputStruct.BlockSemicolonScope())
             {
                 ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(NeededCoordinateSpace.Tangent, InterpolatorType.Normal, surfaceDescriptionInputStruct);
+                ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(surfaceRequirements.requiresNormal, InterpolatorType.Normal, surfaceDescriptionInputStruct);
+                ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(surfaceRequirements.requiresBitangent, InterpolatorType.BiTangent, surfaceDescriptionInputStruct);
+                ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(surfaceRequirements.requiresViewDir, InterpolatorType.ViewDirection, surfaceDescriptionInputStruct);
+                ShaderGenerator.GenerateSpaceTranslationSurfaceInputs(surfaceRequirements.requiresPosition, InterpolatorType.Position, surfaceDescriptionInputStruct);
 
                 if (surfaceRequirements.requiresVertexColor)
-                     surfaceDescriptionInputStruct.AppendLine("float4 {0};", ShaderGeneratorNames.VertexColor);
+                    surfaceDescriptionInputStruct.AppendLine("float4 {0};", ShaderGeneratorNames.VertexColor);
+
+                if (surfaceRequirements.requiresScreenPosition)
+                    surfaceDescriptionInputStruct.AppendLine("float4 {0};", ShaderGeneratorNames.ScreenPosition);
+
+                if (surfaceRequirements.requiresFaceSign)
+                    surfaceDescriptionInputStruct.AppendLine("float {0};", ShaderGeneratorNames.FaceSign);
 
                 foreach (var channel in surfaceRequirements.requiresMeshUVs.Distinct())
                     surfaceDescriptionInputStruct.AppendLine("half4 {0};", channel.GetUVName());
