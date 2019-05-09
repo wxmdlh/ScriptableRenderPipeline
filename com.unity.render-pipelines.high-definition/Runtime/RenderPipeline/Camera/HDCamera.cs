@@ -62,7 +62,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool colorPyramidHistoryIsValid = false;
         public bool volumetricHistoryIsValid   = false; // Contains garbage otherwise
         public int  colorPyramidHistoryMipCount = 0;
-        public VolumetricLightingSystem.VBufferParameters[] vBufferParams; // Double-buffered
+        public VBufferParameters[] vBufferParams; // Double-buffered
 
         // XR instanced views (hardware-accelerated single-pass instancing or multiview)
         ViewConstants[] xrViewConstants;
@@ -250,7 +250,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // That way you will never update an HDCamera and forget to update the dependent system.
         // NOTE: This function must be called only once per rendering (not frame, as a single camera can be rendered multiple times with different parameters during the same frame)
         // Otherwise, previous frame view constants will be wrong.
-        public void Update(FrameSettings currentFrameSettings, VolumetricLightingSystem vlSys, MSAASamples msaaSamples, int frameIndex)
+        public void Update(FrameSettings currentFrameSettings, HDRenderPipeline hdrp, MSAASamples msaaSamples, int frameIndex)
         {
             // store a shortcut on HDAdditionalCameraData (done here and not in the constructor as
             // we don't create HDCamera at every frame and user can change the HDAdditionalData later (Like when they create a new scene).
@@ -273,7 +273,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 {
                     // Reinit the system.
                     colorPyramidHistoryIsValid = false;
-                    vlSys.DeinitializePerCameraData(this);
+                    hdrp.DeinitializeVolumetricLightingPerCameraData(this);
 
                     // The history system only supports the "nuke all" option.
                     m_HistoryRTSystem.Dispose();
@@ -285,7 +285,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         colorPyramidHistoryIsValid = false;
                     }
 
-                    vlSys.InitializePerCameraData(this, numVolumetricBuffersRequired);
+                    hdrp.InitializeVolumetricLightingPerCameraData(this, numVolumetricBuffersRequired);
 
                     // Mark as init.
                     m_NumColorPyramidBuffersAllocated = numColorPyramidBuffersRequired;
@@ -322,10 +322,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             UpdateAllViewConstants();
             isFirstFrame = false;
 
-            if (vlSys != null)
-            {
-                vlSys.UpdatePerCameraData(this);
-            }
+            hdrp.UpdateVolumetricLightingPerCameraData(this);
 
             UpdateVolumeParameters();
 

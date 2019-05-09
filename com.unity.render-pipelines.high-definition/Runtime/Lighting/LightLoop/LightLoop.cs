@@ -130,35 +130,35 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float unused2;
     };
 
-    public class LightLoop
+    public enum TileClusterDebug : int
     {
-        public enum TileClusterDebug : int
-        {
-            None,
-            Tile,
-            Cluster,
-            MaterialFeatureVariants
-        };
+        None,
+        Tile,
+        Cluster,
+        MaterialFeatureVariants
+    };
 
-        public enum LightVolumeDebug : int
-        {
-            Gradient,
-            ColorAndEdge
-        };
+    public enum LightVolumeDebug : int
+    {
+        Gradient,
+        ColorAndEdge
+    };
 
-        public enum TileClusterCategoryDebug : int
-        {
-            Punctual = 1,
-            Area = 2,
-            AreaAndPunctual = 3,
-            Environment = 4,
-            EnvironmentAndPunctual = 5,
-            EnvironmentAndArea = 6,
-            EnvironmentAndAreaAndPunctual = 7,
-            Decal = 8,
-            DensityVolumes = 16
-        };
+    public enum TileClusterCategoryDebug : int
+    {
+        Punctual = 1,
+        Area = 2,
+        AreaAndPunctual = 3,
+        Environment = 4,
+        EnvironmentAndPunctual = 5,
+        EnvironmentAndArea = 6,
+        EnvironmentAndAreaAndPunctual = 7,
+        Decal = 8,
+        DensityVolumes = 16
+    };
 
+    public partial class HDRenderPipeline
+    {
         internal const int k_MaxCacheSize = 2000000000; //2 GigaByte
         public const int k_MaxDirectionalLightsOnScreen = 16;
         public const int k_MaxPunctualLightsOnScreen    = 512;
@@ -295,18 +295,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public int areaLightCount { get { return m_areaLightCount; } }
         public ComputeBuffer lightDatas { get { return m_LightDatas; } }
 
-        private ComputeShader buildScreenAABBShader { get { return m_Resources.shaders.buildScreenAABBCS; } }
-        private ComputeShader buildPerTileLightListShader { get { return m_Resources.shaders.buildPerTileLightListCS; } }
-        private ComputeShader buildPerBigTileLightListShader { get { return m_Resources.shaders.buildPerBigTileLightListCS; } }
-        private ComputeShader buildPerVoxelLightListShader { get { return m_Resources.shaders.buildPerVoxelLightListCS; } }
+        private ComputeShader buildScreenAABBShader { get { return asset.renderPipelineResources.shaders.buildScreenAABBCS; } }
+        private ComputeShader buildPerTileLightListShader { get { return asset.renderPipelineResources.shaders.buildPerTileLightListCS; } }
+        private ComputeShader buildPerBigTileLightListShader { get { return asset.renderPipelineResources.shaders.buildPerBigTileLightListCS; } }
+        private ComputeShader buildPerVoxelLightListShader { get { return asset.renderPipelineResources.shaders.buildPerVoxelLightListCS; } }
 
-        private ComputeShader buildMaterialFlagsShader { get { return m_Resources.shaders.buildMaterialFlagsCS; } }
-        private ComputeShader buildDispatchIndirectShader { get { return m_Resources.shaders.buildDispatchIndirectCS; } }
-        private ComputeShader clearDispatchIndirectShader { get { return m_Resources.shaders.clearDispatchIndirectCS; } }
-        private ComputeShader deferredComputeShader { get { return m_Resources.shaders.deferredCS; } }
-        private ComputeShader screenSpaceShadowComputeShader { get { return m_Resources.shaders.screenSpaceShadowCS; } }
+        private ComputeShader buildMaterialFlagsShader { get { return asset.renderPipelineResources.shaders.buildMaterialFlagsCS; } }
+        private ComputeShader buildDispatchIndirectShader { get { return asset.renderPipelineResources.shaders.buildDispatchIndirectCS; } }
+        private ComputeShader clearDispatchIndirectShader { get { return asset.renderPipelineResources.shaders.clearDispatchIndirectCS; } }
+        private ComputeShader deferredComputeShader { get { return asset.renderPipelineResources.shaders.deferredCS; } }
+        private ComputeShader screenSpaceShadowComputeShader { get { return asset.renderPipelineResources.shaders.screenSpaceShadowCS; } }
 
-        private Shader deferredTilePixelShader { get { return m_Resources.shaders.deferredTilePS; } }
+        private Shader deferredTilePixelShader { get { return asset.renderPipelineResources.shaders.deferredTilePS; } }
 
 
         static int s_GenAABBKernel;
@@ -396,7 +396,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         static int[] s_TempScreenDimArray = new int[2]; // Used to avoid GC stress when calling SetComputeIntParams
 
         FrameSettings m_FrameSettings;
-        RenderPipelineResources m_Resources = null;
 
         ContactShadows m_ContactShadows = null;
         bool m_EnableContactShadow = false;
@@ -420,10 +419,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // shadow related stuff
         HDShadowManager                     m_ShadowManager;
         HDShadowInitParameters              m_ShadowInitParameters;
-
-#if ENABLE_RAYTRACING
-        HDRaytracingManager                 m_RayTracingManager;
-#endif
 
         Material m_CopyStencil;
         // We need a copy for SSR because setting render states through uniform constants does not work with MaterialPropertyBlocks so it would override values set for the regular copy
@@ -500,22 +495,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             && m_FrameSettings.IsEnabled(FrameSettingsField.ComputeLightEvaluation)
             && (m_FrameSettings.IsEnabled(FrameSettingsField.ComputeLightVariants) || m_FrameSettings.IsEnabled(FrameSettingsField.ComputeMaterialVariants));
 
-        public LightLoop()
-        {}
-
         int GetDeferredLightingMaterialIndex(int outputSplitLighting, int lightLoopDisableTileAndCluster, int shadowMask, int debugDisplay)
         {
             return (outputSplitLighting) | (lightLoopDisableTileAndCluster << 1) | (shadowMask << 2) | (debugDisplay << 3);
         }
 
-        public void Build(HDRenderPipelineAsset hdAsset, IBLFilterBSDF[] iBLFilterBSDFArray)
+        public void InitializeLightLoop(IBLFilterBSDF[] iBLFilterBSDFArray)
         {
-            m_Resources = hdAsset.renderPipelineResources;
-            var lightLoopSettings = hdAsset.currentPlatformRenderPipelineSettings.lightLoopSettings;
+            var lightLoopSettings = asset.currentPlatformRenderPipelineSettings.lightLoopSettings;
 
-            m_DebugViewTilesMaterial = CoreUtils.CreateEngineMaterial(m_Resources.shaders.debugViewTilesPS);
-            m_DebugHDShadowMapMaterial = CoreUtils.CreateEngineMaterial(m_Resources.shaders.debugHDShadowMapPS);
-            m_CubeToPanoMaterial = CoreUtils.CreateEngineMaterial(m_Resources.shaders.cubeToPanoPS);
+            m_DebugViewTilesMaterial = CoreUtils.CreateEngineMaterial(asset.renderPipelineResources.shaders.debugViewTilesPS);
+            m_DebugHDShadowMapMaterial = CoreUtils.CreateEngineMaterial(asset.renderPipelineResources.shaders.debugHDShadowMapPS);
+            m_CubeToPanoMaterial = CoreUtils.CreateEngineMaterial(asset.renderPipelineResources.shaders.cubeToPanoPS);
 
             m_MaxDirectionalLightsOnScreen = lightLoopSettings.maxDirectionalLightsOnScreen;
             m_MaxPunctualLightsOnScreen = lightLoopSettings.maxPunctualLightsOnScreen;
@@ -536,42 +527,40 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_Env2DCaptureForward.Add(0);
             }
 
-            GlobalLightLoopSettings gLightLoopSettings = hdAsset.currentPlatformRenderPipelineSettings.lightLoopSettings;
             m_CookieTexArray = new TextureCache2D("Cookie");
-            int coockieSize = gLightLoopSettings.cookieTexArraySize;
-            int coockieResolution = (int)gLightLoopSettings.cookieSize;
+            int coockieSize = lightLoopSettings.cookieTexArraySize;
+            int coockieResolution = (int)lightLoopSettings.cookieSize;
             if (TextureCache2D.GetApproxCacheSizeInByte(coockieSize, coockieResolution, 1) > k_MaxCacheSize)
                 coockieSize = TextureCache2D.GetMaxCacheSizeForWeightInByte(k_MaxCacheSize, coockieResolution, 1);
             m_CookieTexArray.AllocTextureArray(coockieSize, coockieResolution, coockieResolution, TextureFormat.RGBA32, true);
             m_CubeCookieTexArray = new TextureCacheCubemap("Cookie");
-            int coockieCubeSize = gLightLoopSettings.cubeCookieTexArraySize;
-            int coockieCubeResolution = (int)gLightLoopSettings.pointCookieSize;
+            int coockieCubeSize = lightLoopSettings.cubeCookieTexArraySize;
+            int coockieCubeResolution = (int)lightLoopSettings.pointCookieSize;
             if (TextureCacheCubemap.GetApproxCacheSizeInByte(coockieCubeSize, coockieCubeResolution, 1) > k_MaxCacheSize)
                 coockieCubeSize = TextureCacheCubemap.GetMaxCacheSizeForWeightInByte(k_MaxCacheSize, coockieCubeResolution, 1);
             m_CubeCookieTexArray.AllocTextureArray(coockieCubeSize, coockieCubeResolution, TextureFormat.RGBA32, true, m_CubeToPanoMaterial);
 
             // Create the cookie manager
-            m_AreaLightCookieManager = new LTCAreaLightCookieManager(hdAsset, k_MaxCacheSize);
+            m_AreaLightCookieManager = new LTCAreaLightCookieManager(asset, k_MaxCacheSize);
 
             // For regular reflection probes, we need to convolve with all the BSDF functions
-            TextureFormat probeCacheFormat = gLightLoopSettings.reflectionCacheCompressed ? TextureFormat.BC6H : TextureFormat.RGBAHalf;
-            int reflectionCubeSize = gLightLoopSettings.reflectionProbeCacheSize;
-            int reflectionCubeResolution = (int)gLightLoopSettings.reflectionCubemapSize;
+            TextureFormat probeCacheFormat = lightLoopSettings.reflectionCacheCompressed ? TextureFormat.BC6H : TextureFormat.RGBAHalf;
+            int reflectionCubeSize = lightLoopSettings.reflectionProbeCacheSize;
+            int reflectionCubeResolution = (int)lightLoopSettings.reflectionCubemapSize;
             if (ReflectionProbeCache.GetApproxCacheSizeInByte(reflectionCubeSize, reflectionCubeResolution, iBLFilterBSDFArray.Length) > k_MaxCacheSize)
                 reflectionCubeSize = ReflectionProbeCache.GetMaxCacheSizeForWeightInByte(k_MaxCacheSize, reflectionCubeResolution, iBLFilterBSDFArray.Length);
-            m_ReflectionProbeCache = new ReflectionProbeCache(hdAsset, iBLFilterBSDFArray, reflectionCubeSize, reflectionCubeResolution, probeCacheFormat, true);
+            m_ReflectionProbeCache = new ReflectionProbeCache(asset, iBLFilterBSDFArray, reflectionCubeSize, reflectionCubeResolution, probeCacheFormat, true);
 
             // For planar reflection we only convolve with the GGX filter, otherwise it would be too expensive
-            TextureFormat planarProbeCacheFormat = gLightLoopSettings.planarReflectionCacheCompressed ? TextureFormat.BC6H : TextureFormat.RGBAHalf;
-            int reflectionPlanarSize = gLightLoopSettings.planarReflectionProbeCacheSize;
-            int reflectionPlanarResolution = (int)gLightLoopSettings.planarReflectionTextureSize;
+            TextureFormat planarProbeCacheFormat = lightLoopSettings.planarReflectionCacheCompressed ? TextureFormat.BC6H : TextureFormat.RGBAHalf;
+            int reflectionPlanarSize = lightLoopSettings.planarReflectionProbeCacheSize;
+            int reflectionPlanarResolution = (int)lightLoopSettings.planarReflectionTextureSize;
             if (ReflectionProbeCache.GetApproxCacheSizeInByte(reflectionPlanarSize, reflectionPlanarResolution, 1) > k_MaxCacheSize)
                 reflectionPlanarSize = ReflectionProbeCache.GetMaxCacheSizeForWeightInByte(k_MaxCacheSize, reflectionPlanarResolution, 1);
-            m_ReflectionPlanarProbeCache = new PlanarReflectionProbeCache(hdAsset, (IBLFilterGGX)iBLFilterBSDFArray[0], reflectionPlanarSize, reflectionPlanarResolution, planarProbeCacheFormat, true);
+            m_ReflectionPlanarProbeCache = new PlanarReflectionProbeCache(asset, (IBLFilterGGX)iBLFilterBSDFArray[0], reflectionPlanarSize, reflectionPlanarResolution, planarProbeCacheFormat, true);
 
             s_GenAABBKernel = buildScreenAABBShader.FindKernel("ScreenBoundsAABB");
             s_GenAABBKernel_Oblique = buildScreenAABBShader.FindKernel("ScreenBoundsAABB_Oblique");
-
 
             // Cluster
             {
@@ -604,7 +593,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 s_shadeOpaqueIndirectShadowMaskFptlKernels[variant] = deferredComputeShader.FindKernel("Deferred_Indirect_ShadowMask_Fptl_Variant" + variant);
             }
 
-            // All the allocation of the compute buffers need to happend after the kernel finding in order to avoid the leek loop when a shader does not compile or is not available
+            // All the allocation of the compute buffers need to happened after the kernel finding in order to avoid the leek loop when a shader does not compile or is not available
             m_DirectionalLightDatas = new ComputeBuffer(m_MaxDirectionalLightsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(DirectionalLightData)));
             m_LightDatas = new ComputeBuffer(m_MaxPunctualLightsOnScreen + m_MaxAreaLightsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(LightData)));
             m_EnvLightDatas = new ComputeBuffer(m_MaxEnvLightsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(EnvLightData)));
@@ -629,8 +618,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         {
                             int index = GetDeferredLightingMaterialIndex(outputSplitLighting, lightLoopDisableTileAndCluster, shadowMask, debugDisplay);
 
-                            m_deferredLightingMaterial[index] = CoreUtils.CreateEngineMaterial(m_Resources.shaders.deferredPS);
-                            m_deferredLightingMaterial[index].name = string.Format("{0}_{1}", m_Resources.shaders.deferredPS.name, index);
+                            m_deferredLightingMaterial[index] = CoreUtils.CreateEngineMaterial(asset.renderPipelineResources.shaders.deferredPS);
+                            m_deferredLightingMaterial[index].name = string.Format("{0}_{1}", asset.renderPipelineResources.shaders.deferredPS.name, index);
                             CoreUtils.SetKeyword(m_deferredLightingMaterial[index], "OUTPUT_SPLIT_LIGHTING", outputSplitLighting == 1);
                             CoreUtils.SetKeyword(m_deferredLightingMaterial[index], "LIGHTLOOP_DISABLE_TILE_AND_CLUSTER", lightLoopDisableTileAndCluster == 1);
                             CoreUtils.SetKeyword(m_deferredLightingMaterial[index], "SHADOWS_SHADOWMASK", shadowMask == 1);
@@ -672,22 +661,22 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_DefaultTextureCube.Apply();
 
             // Setup shadow algorithms
-            var shadowParams = hdAsset.currentPlatformRenderPipelineSettings.hdShadowInitParams;
+            var shadowParams = asset.currentPlatformRenderPipelineSettings.hdShadowInitParams;
             var shadowKeywords = new[]{"SHADOW_LOW", "SHADOW_MEDIUM", "SHADOW_HIGH", "SHADOW_VERY_HIGH"};
             foreach (var p in shadowKeywords)
                 Shader.DisableKeyword(p);
             Shader.EnableKeyword(shadowKeywords[(int)shadowParams.shadowQuality]);
 
-            InitShadowSystem(hdAsset);
+            InitShadowSystem(asset);
 
             s_lightVolumes = new DebugLightVolumes();
-            s_lightVolumes.InitData(m_Resources);
+            s_lightVolumes.InitData(asset.renderPipelineResources);
 
-            m_CopyStencil = CoreUtils.CreateEngineMaterial(hdAsset.renderPipelineResources.shaders.copyStencilBufferPS);
-            m_CopyStencilForSSR = CoreUtils.CreateEngineMaterial(hdAsset.renderPipelineResources.shaders.copyStencilBufferPS);
+            m_CopyStencil = CoreUtils.CreateEngineMaterial(asset.renderPipelineResources.shaders.copyStencilBufferPS);
+            m_CopyStencilForSSR = CoreUtils.CreateEngineMaterial(asset.renderPipelineResources.shaders.copyStencilBufferPS);
         }
 
-        public void Cleanup()
+        public void CleanupLightLoop()
         {
             s_lightVolumes.ReleaseData();
 
@@ -728,7 +717,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_AreaLightCookieManager = null;
             }
 
-            ReleaseResolutionDependentBuffers();
+            LightLoopReleaseResolutionDependentBuffers();
 
             // enableClustered
             CoreUtils.SafeRelease(s_GlobalLightListAtomic);
@@ -760,14 +749,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.Destroy(m_CopyStencilForSSR);
         }
 
-#if ENABLE_RAYTRACING
-        public void InitRaytracing(HDRaytracingManager raytracingManager)
-        {
-            m_RayTracingManager = raytracingManager;
-        }
-#endif
-
-        public void NewFrame(FrameSettings frameSettings)
+        public void LightLoopNewFrame(FrameSettings frameSettings)
         {
             m_FrameSettings = frameSettings;
 
@@ -813,7 +795,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_ReflectionPlanarProbeCache.NewFrame();
         }
 
-        public bool NeedResize(int viewCount)
+        public bool LightLoopNeedResize(int viewCount)
         {
             return s_LightList == null || s_TileList == null || s_TileFeatureFlags == null ||
                 s_AABBBoundsBuffer == null || s_ConvexBoundsBuffer == null || s_LightVolumeDataBuffer == null ||
@@ -822,7 +804,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 (s_PerVoxelLightLists == null) || (viewCount > m_MaxViewCount);
         }
 
-        public void ReleaseResolutionDependentBuffers()
+        public void LightLoopReleaseResolutionDependentBuffers()
         {
             m_MaxViewCount = 1;
 
@@ -850,7 +832,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return 32 * (1 << k_Log2NumClusters);       // total footprint for all layers of the tile (measured in light index entries)
         }
 
-        public void AllocResolutionDependentBuffers(int width, int height, int viewCount)
+        public void LightLoopAllocResolutionDependentBuffers(int width, int height, int viewCount)
         {
             m_MaxViewCount = Math.Max(viewCount, m_MaxViewCount);
             var nrTilesX = (width + LightDefinitions.s_TileSizeFptl - 1) / LightDefinitions.s_TileSizeFptl;
@@ -1708,7 +1690,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return m_ShadowManager.GetShadowRequestCount();
         }
 
-        public void UpdateCullingParameters(ref ScriptableCullingParameters cullingParams)
+        public void LightLoopUpdateCullingParameters(ref ScriptableCullingParameters cullingParams)
         {
             m_ShadowManager.UpdateCullingParameters(ref cullingParams);
 
@@ -2373,7 +2355,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool isOrthographic = camera.orthographic;
             bool isProjectionOblique = GeometryUtils.IsProjectionMatrixOblique(m_LightListProjMatrices[0]);
 
-            // If we don't need to run the light list, we still run it for the first frame that is not needed in order to keep the lists in a clean state. 
+            // If we don't need to run the light list, we still run it for the first frame that is not needed in order to keep the lists in a clean state.
             if (!runLightList && m_hasRunLightListPrevFrame)
             {
                 m_hasRunLightListPrevFrame = false;
@@ -2576,7 +2558,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             cmd.SetRenderTarget(BuiltinRenderTextureType.None);
 
             BuildGPULightListsCommon(hdCamera, cmd, cameraDepthBufferRT, stencilTextureRT, skyEnabled);
-            PushGlobalParams(hdCamera, cmd);
+            PushLightLoopGlobalParams(hdCamera, cmd);
         }
         void UpdateDataBuffers()
         {
@@ -2601,7 +2583,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return add;
         }
 
-        public void PushGlobalParams(HDCamera hdCamera, CommandBuffer cmd)
+        public void PushLightLoopGlobalParams(HDCamera hdCamera, CommandBuffer cmd)
         {
             using (new ProfilingSample(cmd, "Push Global Parameters", CustomSamplerId.TPPushGlobalParameters.GetSampler()))
             {
@@ -2714,7 +2696,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             if (!contactShadowEnabled)
                 return 0;
-            
+
             // We have 24 max contact shadow light per frame
             if (m_ContactShadowIndex >= LightDefinitions.s_LightListMaxPrunedEntries)
                 return 0;
@@ -2722,7 +2704,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return 1 << m_ContactShadowIndex++;
         }
 
-        public void RenderScreenSpaceShadows(HDCamera hdCamera, RTHandleSystem.RTHandle deferredShadowRT, RenderTargetIdentifier depthTexture, int firstMipOffsetY, CommandBuffer cmd)
+        protected void RenderScreenSpaceShadows(HDCamera hdCamera, RTHandleSystem.RTHandle deferredShadowRT, RenderTargetIdentifier depthTexture, int firstMipOffsetY, CommandBuffer cmd)
         {
             // if there is no need to compute contact shadows, we just quit
             if (!WillRenderContactShadow())
@@ -2757,7 +2739,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetComputeIntParam(screenSpaceShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, m_ContactShadows.sampleCount.value);
                 cmd.SetComputeBufferParam(screenSpaceShadowComputeShader, kernel, HDShaderIDs._DirectionalLightDatas, m_DirectionalLightDatas);
 
-                // Send light list to the compute 
+                // Send light list to the compute
                 cmd.SetComputeBufferParam(screenSpaceShadowComputeShader, kernel, HDShaderIDs._LightDatas, m_LightDatas);
                 cmd.SetComputeBufferParam(screenSpaceShadowComputeShader, kernel, HDShaderIDs.g_vLightListGlobal, s_LightList);
 
@@ -3028,11 +3010,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        public void RenderDebugOverlay(HDCamera hdCamera, CommandBuffer cmd, DebugDisplaySettings debugDisplaySettings, ref float x, ref float y, float overlaySize, float width, CullingResults cullResults, RTHandleSystem.RTHandle finalRT)
+        public void RenderLightLoopDebugOverlay(HDCamera hdCamera, CommandBuffer cmd, DebugDisplaySettings debugDisplaySettings, ref float x, ref float y, float overlaySize, float width, CullingResults cullResults, RTHandleSystem.RTHandle finalRT)
         {
             LightingDebugSettings lightingDebug = debugDisplaySettings.data.lightingDebugSettings;
 
-            if (lightingDebug.tileClusterDebug != LightLoop.TileClusterDebug.None)
+            if (lightingDebug.tileClusterDebug != TileClusterDebug.None)
             {
                 using (new ProfilingSample(cmd, "Tiled/cluster Lighting Debug", CustomSamplerId.TPTiledLightingDebug.GetSampler()))
                 {
@@ -3043,7 +3025,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     int numTiles = numTilesX * numTilesY;
 
                     // Debug tiles
-                    if (lightingDebug.tileClusterDebug == LightLoop.TileClusterDebug.MaterialFeatureVariants)
+                    if (lightingDebug.tileClusterDebug == TileClusterDebug.MaterialFeatureVariants)
                     {
                         if (GetFeatureVariantsEnabled())
                         {
@@ -3063,7 +3045,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     }
                     else // tile or cluster
                     {
-                        bool bUseClustered = lightingDebug.tileClusterDebug == LightLoop.TileClusterDebug.Cluster;
+                        bool bUseClustered = lightingDebug.tileClusterDebug == TileClusterDebug.Cluster;
 
                         // lightCategories
                         m_DebugViewTilesMaterial.SetInt(HDShaderIDs._ViewTilesFlags, (int)lightingDebug.tileClusterDebugByCategory);
