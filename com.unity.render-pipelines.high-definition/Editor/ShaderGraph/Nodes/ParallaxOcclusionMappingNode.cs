@@ -77,7 +77,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         string GetFunctionName()
         {
-            return "Unity_HDRP_ParallaxOcclusionMapping";
+            return "Unity_HDRP_ParallaxOcclusionMapping_" + concretePrecision.ToShaderString();
         }
 
         public override void ValidateNode()

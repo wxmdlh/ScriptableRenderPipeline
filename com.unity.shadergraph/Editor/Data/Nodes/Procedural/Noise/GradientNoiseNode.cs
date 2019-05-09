@@ -40,7 +40,7 @@ namespace UnityEditor.ShaderGraph
 
         public override void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)
         {
-            registry.ProvideFunction("Unity_GradientNoise_Dir_$precision", s => s.Append(@"
+            registry.ProvideFunction("Unity_GradientNoise_Dir_" + concretePrecision.ToShaderString(), s => s.Append(@"
 $precision2 Unity_GradientNoise_Dir_$precision($precision2 p)
 {
     // Permutation and hashing used in webgl-nosie goo.gl/pX7HtC

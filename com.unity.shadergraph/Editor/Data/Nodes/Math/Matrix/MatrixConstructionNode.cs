@@ -49,7 +49,7 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionName()
         {
-            return string.Format("Unity_MatrixConstruction_{0}_$precision", axis);
+            return string.Format("Unity_MatrixConstruction_{0}_{1}", axis, concretePrecision.ToShaderString());
         }
 
         public sealed override void UpdateNodeAfterDeserialization()

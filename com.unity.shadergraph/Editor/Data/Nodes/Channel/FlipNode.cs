@@ -28,7 +28,9 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionName()
         {
-            return "Unity_Flip_" + FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToShaderString();
+            return string.Format("Unity_Flip_{0}{1}"
+                , concretePrecision.ToShaderString()
+                , NodeUtils.GetSlotDimension(FindSlot<MaterialSlot>(OutputSlotId).concreteValueType));
         }
 
         public sealed override void UpdateNodeAfterDeserialization()

@@ -63,10 +63,11 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionName()
         {
-            return string.Format("{0}_{1}_{2}",
-                GetFunctionHeader(),
-                FindInputSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToShaderString(),
-                FindInputSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToShaderString());
+            return string.Format("Unity_Multiply_{0}{1}_{2}{3}",
+                , concretePrecision.ToShaderString()
+                , NodeUtils.GetSlotDimension(FindSlot<MaterialSlot>(Input1SlotId).concreteValueType)
+                , concretePrecision.ToShaderString()
+                , NodeUtils.GetSlotDimension(FindSlot<MaterialSlot>(Input2SlotId).concreteValueType)
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)
