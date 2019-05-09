@@ -266,5 +266,27 @@ namespace UnityEditor.ShaderGraph
         {
             UpdateNode();
         }
+
+        public override bool ValidateConcretePrecision(ref string errorMessage)
+        {
+            // Get precision from Property
+            var property = owner.properties.FirstOrDefault(x => x.guid == propertyGuid);
+            if (property == null)
+                return true;
+
+            precision = property.precision;
+
+            // If Property has a precision override use that
+            if (precision != Precision.Inherit)
+            {
+                concretePrecision = precision.ToConcrete();
+                return false;
+            }
+            else
+            {
+                concretePrecision = owner.concretePrecision;
+                return false;
+            }
+        }
     }
 }

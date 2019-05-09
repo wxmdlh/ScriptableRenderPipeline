@@ -255,6 +255,14 @@ namespace UnityEditor.ShaderGraph
             subGraphData.inputs = graph.properties.ToList();
             subGraphData.concretePrecision = graph.concretePrecision;
 
+            foreach (var prop in subGraphData.inputs)
+            {
+                if(prop.precision == Precision.Inherit)
+                    prop.concretePrecision = subGraphData.concretePrecision;
+                else
+                    prop.concretePrecision = prop.precision.ToConcrete();
+            }
+
             foreach (var node in nodes)
             {
                 if (node.hasError)

@@ -99,7 +99,11 @@ namespace UnityEditor.ShaderGraph
 
         private ConcretePrecision m_ConcretePrecision = ConcretePrecision.Float;
 
-        public ConcretePrecision concretePrecision => m_ConcretePrecision;
+        public ConcretePrecision concretePrecision
+        {
+            get => m_ConcretePrecision;
+            set => m_ConcretePrecision = value;
+        }
 
         [SerializeField]
         private Precision m_Precision = Precision.Inherit;
@@ -310,7 +314,7 @@ namespace UnityEditor.ShaderGraph
 
         protected const string k_validationErrorMessage = "Error found during node validation";
 
-        public bool ValidateConcretePrecision(ref string errorMessage)
+        public virtual bool ValidateConcretePrecision(ref string errorMessage)
         {
             // If Node has a precision override use that
             if (precision != Precision.Inherit)
