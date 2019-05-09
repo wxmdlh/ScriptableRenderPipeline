@@ -2970,7 +2970,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 HDRaytracingEnvironment currentEnv = m_RayTracingManager.CurrentEnvironment();
                 if (currentEnv != null && currentEnv.raytracedObjects)
                 {
-                    var rendererListRT = CreateTransparentRendererList(cullResults, hdCamera.camera, m_TransparentDepthPostpassNames, HDRenderQueue.k_RenderQueue_AllTransparentRaytracing);
+                    var rendererListRT = CreateTransparentRendererList(cullResults, hdCamera.camera, m_TransparentDepthPostpassNames, renderQueueRange: HDRenderQueue.k_RenderQueue_AllTransparentRaytracing);
                     DrawTransparentRendererList(renderContext, cmd, hdCamera.frameSettings, rendererListRT);
                 }
 #endif
