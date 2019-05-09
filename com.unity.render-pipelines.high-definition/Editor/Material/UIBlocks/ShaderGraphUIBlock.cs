@@ -25,7 +25,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         protected static class Styles
         {
-            public static readonly string header = "Shader Graph";
+            public static readonly string header = "Exposed Properties";
         }
 
         Expandable  m_ExpandableBit;

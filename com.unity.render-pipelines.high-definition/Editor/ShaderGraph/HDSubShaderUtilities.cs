@@ -1053,11 +1053,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 hidden = true,
                 value = (int)mode
             });
-            // collector.AddShaderProperty(new Vector4ShaderProperty{
-            //     overrideReferenceName = "_DoubleSidedConstants",
-            //     hidden = true,
-            //     value = new Vector4(1, 1, -1, 0)
-            // });
+            collector.AddShaderProperty(new Vector4ShaderProperty{
+                overrideReferenceName = "_DoubleSidedConstants",
+                hidden = true,
+                value = new Vector4(1, 1, -1, 0)
+            });
         }
 
         public static string RenderQueueName(HDRenderQueue.RenderQueueType value)

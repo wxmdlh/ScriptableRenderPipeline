@@ -856,26 +856,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             if (masterNode.surfaceType != SurfaceType.Opaque)
             {
-                activeFields.Add("SurfaceType.Transparent");
-
-                if (masterNode.alphaMode == AlphaMode.Alpha)
-                {
-                    activeFields.Add("BlendMode.Alpha");
-                }
-                else if (masterNode.alphaMode == AlphaMode.Premultiply)
-                {
-                    activeFields.Add("BlendMode.Premultiply");
-                }
-                else if (masterNode.alphaMode == AlphaMode.Additive)
-                {
-                    activeFields.Add("BlendMode.Add");
-                }
-
-                if (masterNode.blendPreserveSpecular.isOn)
-                {
-                    activeFields.Add("BlendMode.PreserveSpecular");
-                }
-
                 if (masterNode.transparencyFog.isOn)
                 {
                     activeFields.Add("AlphaFog");

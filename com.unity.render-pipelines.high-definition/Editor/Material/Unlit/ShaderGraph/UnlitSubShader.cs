@@ -231,28 +231,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 activeFields.Add("AlphaTest");
             }
 
-            // Keywords for transparent
-            // #pragma shader_feature _SURFACE_TYPE_TRANSPARENT
-            if (masterNode.surfaceType != UnityEditor.ShaderGraph.SurfaceType.Opaque)
-            {
-                // transparent-only defines
-                activeFields.Add("SurfaceType.Transparent");
-
-                // #pragma shader_feature _ _BLENDMODE_ALPHA _BLENDMODE_ADD _BLENDMODE_PRE_MULTIPLY
-                if (masterNode.alphaMode == AlphaMode.Alpha)
-                {
-                    activeFields.Add("BlendMode.Alpha");
-                }
-                else if (masterNode.alphaMode == AlphaMode.Additive)
-                {
-                    activeFields.Add("BlendMode.Add");
-                }
-            }
-            else
-            {
-                // opaque-only defines
-            }
-
             return activeFields;
         }
 
