@@ -1,6 +1,6 @@
 # Linear Fog
 
-The High Definition Render Pipeline (HDRP) provides a type of [fog](Fog-Overview.html) called Linear Fog). Linear Fog enables you to linearly increase the density of fog at a certain distance from the Camera. The fog density increases until it reaches a maximum density at a further distance.
+The High Definition Render Pipeline (HDRP) provides a type of [fog](HDRP-Features.html#FogOverview.html) called Linear Fog). Linear Fog enables you to linearly increase the density of fog at a certain distance from the Camera. The fog density increases until it reaches a maximum density at a further distance.
 
 ## Using Linear Fog
 

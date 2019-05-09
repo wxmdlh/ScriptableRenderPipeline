@@ -1,4 +1,5 @@
 * [High Definition Render Pipeline](index)
+* [Feature Overview](HDRP-Features)
 * Getting started
   * [Getting Started with HDRP](Getting-started-with-HDRP)
   * [Upgrading to HDRP](Upgrading-To-HDRP)
@@ -6,10 +7,6 @@
   * [Forward and Deferred Rendering](Forward-And-Deferred-Rendering)
   * [Exposing Advanced Properties](Advanced-Properties)
   * [VR in HDRP](VR-in-HDRP)
-  * Overviews
-    * [Materials Overview](Materials-Shaders-Overview)
-    * [Fog Overview](Fog-Overview)
-    * [Sky Overview](Sky-Overview)
 * Volume Framework
   * [Volumes](Volumes)
   * [Volume Profiles](Volume-Profile)

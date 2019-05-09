@@ -1,6 +1,6 @@
 # Exponential Fog
 
-The High Definition Render Pipeline (HDRP) provides a type of [fog](Fog-Overview.html) called Exponential Fog. Exponential Fog enables you to increase the density of the fog exponentially from the Camera position until it reaches a maximum density at a distance which you can customize. This produces more realistic fog effects than [Linear Fog](Override-Linear-Fog.html).
+The High Definition Render Pipeline (HDRP) provides a type of [fog](HDRP-Features.html#FogOverview.html) called Exponential Fog. Exponential Fog enables you to increase the density of the fog exponentially from the Camera position until it reaches a maximum density at a distance which you can customize. This produces more realistic fog effects than [Linear Fog](Override-Linear-Fog.html).
 
 ## Using Exponential Fog
 

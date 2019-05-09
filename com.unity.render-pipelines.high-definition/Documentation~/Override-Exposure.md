@@ -85,7 +85,7 @@ The **Curve Mapping Mode** is a variant of [**Automatic**](#AutomaticProperties)
 
 ### Use Physical Camera
 
-This mode mainly relies on the [Camera’s](<https://docs.unity3d.com/Manual/class-Camera.html>) **Physical Settings**. The only property this **Mode** exposes allows you to over or under expose the Scene.
+This mode mainly relies on the [Camera’s](https://docs.unity3d.com/Manual/class-Camera.html) **Physical Settings**. The only property this **Mode** exposes allows you to over or under expose the Scene.
 
 #### Properties
 
