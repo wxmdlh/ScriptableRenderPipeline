@@ -253,6 +253,7 @@ namespace UnityEditor.ShaderGraph
 
             subGraphData.requirements = ShaderGraphRequirements.FromNodes(nodes, subGraphData.effectiveShaderStage, false);
             subGraphData.inputs = graph.properties.ToList();
+            subGraphData.concretePrecision = graph.concretePrecision;
 
             foreach (var node in nodes)
             {
@@ -277,7 +278,9 @@ namespace UnityEditor.ShaderGraph
                 }
                 else if (node is IGeneratesFunction generatesFunction)
                 {
+                    registry.builder.currentSource = node;
                     generatesFunction.GenerateNodeFunction(registry, new GraphContext(subGraphData.inputStructName), GenerationMode.ForReals);
+                    ReplacementProcessor.CalculateReplacements(registry.builder);
                 }
             }
 
@@ -288,22 +291,37 @@ namespace UnityEditor.ShaderGraph
                 GraphUtil.GenerateSurfaceInputStruct(sb, subGraphData.requirements, subGraphData.inputStructName);
                 sb.AppendNewLine();
 
+                // Start the function prototype generation
+                sb.AppendIndentation();
+                sb.Append("void {0}("
+                    , subGraphData.functionName);
+
                 // Generate arguments... first INPUTS
-                var arguments = new List<string>();
                 foreach (var prop in subGraphData.inputs)
-                    arguments.Add(string.Format("{0}", prop.GetPropertyAsArgumentString()));
+                {
+                    sb.currentSource = prop;
+                    sb.Append("{0}, ", prop.GetPropertyAsArgumentString());
+                    ReplacementProcessor.CalculateReplacements(sb);
+                }
 
                 // now pass surface inputs
-                arguments.Add(string.Format("{0} IN", subGraphData.inputStructName));
+                sb.Append(string.Format("{0} IN", subGraphData.inputStructName));
+                if(subGraphData.outputs.Count != 0)
+                    sb.Append(", ");
 
                 // Now generate outputs
-                foreach (var output in subGraphData.outputs)
-                    arguments.Add($"out {output.concreteValueType.ToShaderString()} {output.shaderOutputName}");
+                for (int i = 0; i < subGraphData.outputs.Count; i++)
+                {
+                    sb.currentSource = outputNode;
+                    sb.Append($"out {subGraphData.outputs[i].concreteValueType.ToShaderString()} {subGraphData.outputs[i].shaderOutputName}");
+                    if(i < subGraphData.outputs.Count - 1)
+                        sb.Append(", ");
+                    ReplacementProcessor.CalculateReplacements(sb);
+                }
 
-                // Create the function prototype from the arguments
-                sb.AppendLine("void {0}({1})"
-                    , subGraphData.functionName
-                    , arguments.Aggregate((current, next) => $"{current}, {next}"));
+                // Finalise function prototype
+                sb.Append(")");
+                sb.AppendNewLine();
 
                 // now generate the function
                 using (sb.BlockScope())
@@ -312,11 +330,19 @@ namespace UnityEditor.ShaderGraph
                     foreach (var node in nodes)
                     {
                         if (node is IGeneratesBodyCode)
+                        {
+                            sb.currentSource = node;
                             (node as IGeneratesBodyCode).GenerateNodeCode(sb, graphContext, GenerationMode.ForReals);
+                            ReplacementProcessor.CalculateReplacements(sb);
+                        }
                     }
 
                     foreach (var slot in subGraphData.outputs)
+                    {
+                        sb.currentSource = outputNode;
                         sb.AppendLine("{0} = {1};", slot.shaderOutputName, outputNode.GetSlotValue(slot.id, GenerationMode.ForReals));
+                        ReplacementProcessor.CalculateReplacements(sb);
+                    }
                 }
             });
             
@@ -328,6 +354,7 @@ namespace UnityEditor.ShaderGraph
             {
                 node.CollectShaderProperties(collector, GenerationMode.ForReals);
             }
+            collector.ConcretizePrecisions(subGraphData.concretePrecision);
             
             subGraphData.OnBeforeSerialize();
         }

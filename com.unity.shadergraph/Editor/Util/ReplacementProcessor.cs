@@ -12,7 +12,7 @@ namespace UnityEditor.ShaderGraph
             ReplacePrecision(builder);
         }
 
-        internal static void ReplacePrecision(ShaderStringBuilder builder)
+        private static void ReplacePrecision(ShaderStringBuilder builder)
         {
             ConcretePrecision GetPrecision()
             {
