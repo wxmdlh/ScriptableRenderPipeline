@@ -344,7 +344,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             {
                 if (node is MaterialNodeView materialNodeView)
                 {
-                    materialNodeView.UpdatePortInputVisibilities();
+                    materialNodeView.OnModified(ModificationScope.Topological);
                 }
             }
 
@@ -562,7 +562,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             {
                 if (node is MaterialNodeView materialNodeView)
                 {
-                    materialNodeView.UpdatePortInputVisibilities();
+                    materialNodeView.OnModified(ModificationScope.Topological);
                 }
 
             }
@@ -628,7 +628,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             {
                 var materialNodeView = new MaterialNodeView {userData = materialNode};
                 m_GraphView.AddElement(materialNodeView);
-                materialNodeView.Initialize(materialNode, m_PreviewManager, m_EdgeConnectorListener);
+                materialNodeView.Initialize(materialNode, m_PreviewManager, m_EdgeConnectorListener, graphView);
                 m_ColorManager.SetColor(materialNodeView);
                 nodeView = materialNodeView;
             }

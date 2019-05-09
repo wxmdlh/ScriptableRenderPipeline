@@ -34,7 +34,9 @@ namespace UnityEditor.ShaderGraph.Drawing
         VisualElement m_Settings;
         VisualElement m_NodeSettingsView;
 
-        public void Initialize(AbstractMaterialNode inNode, PreviewManager previewManager, IEdgeConnectorListener connectorListener)
+        GraphView m_GraphView;
+
+        public void Initialize(AbstractMaterialNode inNode, PreviewManager previewManager, IEdgeConnectorListener connectorListener, GraphView graphView)
         {
             styleSheets.Add(Resources.Load<StyleSheet>("Styles/MaterialNodeView"));
             styleSheets.Add(Resources.Load<StyleSheet>("Styles/NodeColors"));
@@ -44,6 +46,8 @@ namespace UnityEditor.ShaderGraph.Drawing
                 return;
 
             var contents = this.Q("contents");
+
+            m_GraphView = graphView;
 
             m_ConnectorListener = connectorListener;
             node = inNode;
@@ -284,14 +288,22 @@ namespace UnityEditor.ShaderGraph.Drawing
         {
             if (evt.target is Node)
             {
-                var canViewShader = node.hasPreview || node is IMasterNode;
+                var isMaster = node is IMasterNode;
+                var isActive = node.guid == node.owner.activeOutputNodeGuid;
+                if (isMaster)
+                {
+                    evt.menu.AppendAction("Set Active", SetMasterAsActive,
+                        _ => isActive ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+                }
+
+                var canViewShader = node.hasPreview || node is IMasterNode || node is SubGraphOutputNode;
                 evt.menu.AppendAction("Copy Shader", CopyToClipboard,
                     _ => canViewShader ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Hidden,
                     GenerationMode.ForReals);
                 evt.menu.AppendAction("Show Generated Code", ShowGeneratedCode,
                     _ => canViewShader ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Hidden,
                     GenerationMode.ForReals);
-                
+
                 if (Unsupported.IsDeveloperMode())
                 {
                     evt.menu.AppendAction("Show Preview Code", ShowGeneratedCode,
@@ -301,6 +313,11 @@ namespace UnityEditor.ShaderGraph.Drawing
             }
 
             base.BuildContextualMenu(evt);
+        }
+
+        void SetMasterAsActive(DropdownMenuAction action)
+        {
+            node.owner.activeOutputNodeGuid = node.guid;
         }
 
         void CopyToClipboard(DropdownMenuAction action)
@@ -352,6 +369,8 @@ namespace UnityEditor.ShaderGraph.Drawing
             {
                 m_NodeSettingsView.Add(m_Settings);
                 m_NodeSettingsView.visible = true;
+                m_GraphView.ClearSelection();
+                m_GraphView.AddToSelection(this);
 
                 m_SettingsButton.AddToClassList("clicked");
                 RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
@@ -436,7 +455,14 @@ namespace UnityEditor.ShaderGraph.Drawing
                     {
                         port.slot = newSlot;
                         var portInputView = m_PortInputContainer.Children().OfType<PortInputView>().FirstOrDefault(x => x.slot.id == currentSlot.id);
-                        portInputView.UpdateSlot(newSlot);
+                        if (newSlot.isConnected)
+                        {
+                            portInputView?.RemoveFromHierarchy();
+                        }
+                        else
+                        {
+                            portInputView?.UpdateSlot(newSlot);
+                        }
 
                         slots.Remove(newSlot);
                     }
@@ -500,19 +526,19 @@ namespace UnityEditor.ShaderGraph.Drawing
         {
             foreach (var port in inputContainer.Children().OfType<ShaderPort>())
             {
-                if (!m_PortInputContainer.Children().OfType<PortInputView>().Any(a => Equals(a.slot, port.slot)))
+                if (port.slot.isConnected)
                 {
-                    var portInputView = new PortInputView(port.slot) { style = { position = Position.Absolute } };
-                    m_PortInputContainer.Add(portInputView);
-                    if (float.IsNaN(port.layout.width))
-                    {
-                        port.RegisterCallback<GeometryChangedEvent>(UpdatePortInput);
-                    }
-                    else
-                    {
-                        SetPortInputPosition(port, portInputView);
-                    }
+                    continue;
                 }
+
+                var portInputView = m_PortInputContainer.Children().OfType<PortInputView>().FirstOrDefault(a => Equals(a.slot, port.slot));
+                if (portInputView == null)
+                {
+                    portInputView = new PortInputView(port.slot) { style = { position = Position.Absolute } };
+                    m_PortInputContainer.Add(portInputView);
+                }
+                
+                port.RegisterCallback<GeometryChangedEvent>(UpdatePortInput);
             }
         }
 
@@ -530,12 +556,15 @@ namespace UnityEditor.ShaderGraph.Drawing
             inputView.parent.style.height = inputContainer.layout.height;
         }
 
-        public void UpdatePortInputVisibilities()
+        void UpdatePortInputVisibilities()
         {
-            foreach (var portInputView in m_PortInputContainer.Children().OfType<PortInputView>().ToList())
+            if (expanded)
             {
-                var slot = portInputView.slot;
-                portInputView.style.display = expanded && !node.owner.GetEdges(node.GetSlotReference(slot.id)).Any() ? DisplayStyle.Flex : DisplayStyle.None;
+                m_PortInputContainer.style.display = StyleKeyword.Null;
+            }
+            else
+            {
+                m_PortInputContainer.style.display = DisplayStyle.None;
             }
         }
 
