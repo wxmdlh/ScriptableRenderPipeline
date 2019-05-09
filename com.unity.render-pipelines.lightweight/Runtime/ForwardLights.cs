@@ -1,4 +1,4 @@
-using UnityEngine;
+using System.Runtime.InteropServices;
 using UnityEngine.Experimental.GlobalIllumination;
 using Unity.Collections;
 
@@ -6,6 +6,16 @@ namespace UnityEngine.Rendering.LWRP
 {
     internal class ForwardLights
     {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct LightShaderData
+        {
+            public Vector4 position;
+            public Vector4 color;
+            public Vector4 attenuation;
+            public Vector4 spotDirection;
+            public Vector4 occlusionProbeChannels;
+        }
+
         static class LightConstantBuffer
         {
             public static int _MainLightPosition;
@@ -20,6 +30,9 @@ namespace UnityEngine.Rendering.LWRP
             public static int _AdditionalLightOcclusionProbeChannel;
         }
         
+        int _AdditionalLightsBufferId;
+        ComputeBuffer m_AdditionalLightsBuffer;
+
         const string k_SetupLightConstants = "Setup Light Constants";
         MixedLightingSetup m_MixedLightingSetup;
 
@@ -34,6 +47,8 @@ namespace UnityEngine.Rendering.LWRP
         Vector4[] m_AdditionalLightAttenuations;
         Vector4[] m_AdditionalLightSpotDirections;
         Vector4[] m_AdditionalLightOcclusionProbeChannels;
+
+        bool m_UseStructuredBuffer;
         
         public ForwardLights()
         {
@@ -46,12 +61,18 @@ namespace UnityEngine.Rendering.LWRP
             LightConstantBuffer._AdditionalLightsSpotDir = Shader.PropertyToID("_AdditionalLightsSpotDir");
             LightConstantBuffer._AdditionalLightOcclusionProbeChannel = Shader.PropertyToID("_AdditionalLightsOcclusionProbes");
 
+            _AdditionalLightsBufferId = Shader.PropertyToID("_AdditionalLightsBuffer");
+
             int maxLights = LightweightRenderPipeline.maxVisibleAdditionalLights;
             m_AdditionalLightPositions = new Vector4[maxLights];
             m_AdditionalLightColors = new Vector4[maxLights];
             m_AdditionalLightAttenuations = new Vector4[maxLights];
             m_AdditionalLightSpotDirections = new Vector4[maxLights];
             m_AdditionalLightOcclusionProbeChannels = new Vector4[maxLights];
+
+            GraphicsDeviceType gfxDeviceType = SystemInfo.graphicsDeviceType;
+            m_UseStructuredBuffer = !(gfxDeviceType == GraphicsDeviceType.OpenGLES3 ||
+                                      gfxDeviceType == GraphicsDeviceType.OpenGLES2);
         }
 
         public void Setup(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -209,23 +230,63 @@ namespace UnityEngine.Rendering.LWRP
 
         void SetupAdditionalLightConstants(CommandBuffer cmd, ref LightData lightData)
         {
-            int maxVisibleAdditionalLights = LightweightRenderPipeline.maxVisibleAdditionalLights;
             var lights = lightData.visibleLights;
-            if (lightData.additionalLightsCount > 0)
+            int additionalLightsCount = lightData.additionalLightsCount;
+            if (additionalLightsCount > 0)
             {
-                int additionalLightsCount = 0;
-                for (int i = 0; i < lights.Length && additionalLightsCount < maxVisibleAdditionalLights; ++i)
+                if (m_UseStructuredBuffer)
                 {
-                    VisibleLight light = lights[i];
-                    if (light.lightType != LightType.Directional)
+                    NativeArray<LightShaderData> additionalLightsData = new NativeArray<LightShaderData>(additionalLightsCount, Allocator.Temp);
+                    if (m_AdditionalLightsBuffer == null || additionalLightsCount > m_AdditionalLightsBuffer.count)
                     {
-                        InitializeLightConstants(lights, i, out m_AdditionalLightPositions[additionalLightsCount],
-                            out m_AdditionalLightColors[additionalLightsCount],
-                            out m_AdditionalLightAttenuations[additionalLightsCount],
-                            out m_AdditionalLightSpotDirections[additionalLightsCount],
-                            out m_AdditionalLightOcclusionProbeChannels[additionalLightsCount]);
-                        additionalLightsCount++;
+                        int stride;
+                        unsafe
+                        {
+                            stride = sizeof(LightShaderData);
+                        }
+
+                        if (m_AdditionalLightsBuffer != null)
+                            m_AdditionalLightsBuffer.Release();
+                        m_AdditionalLightsBuffer = new ComputeBuffer(additionalLightsCount, stride);
                     }
+
+                    for (int i = 0; i < additionalLightsCount; ++i)
+                    {
+                        VisibleLight light = lights[i];
+                        if (light.lightType != LightType.Directional)
+                        {
+                            LightShaderData data;
+                            InitializeLightConstants(lights, i,
+                                out data.position, out data.color, out data.attenuation,
+                                out data.spotDirection, out data.occlusionProbeChannels);
+                            additionalLightsData[i] = data;
+                        }
+                    }
+
+                    m_AdditionalLightsBuffer.SetData(additionalLightsData);
+                    additionalLightsData.Dispose();
+                    cmd.SetGlobalBuffer(_AdditionalLightsBufferId, m_AdditionalLightsBuffer);
+                }
+                else
+                {
+                    for (int i = 0; i < additionalLightsCount; ++i)
+                    {
+                        VisibleLight light = lights[i];
+                        if (light.lightType != LightType.Directional)
+                        {
+                                InitializeLightConstants(lights, i, out m_AdditionalLightPositions[additionalLightsCount],
+                                    out m_AdditionalLightColors[additionalLightsCount],
+                                    out m_AdditionalLightAttenuations[additionalLightsCount],
+                                    out m_AdditionalLightSpotDirections[additionalLightsCount],
+                                    out m_AdditionalLightOcclusionProbeChannels[additionalLightsCount]);
+                        }
+                    }
+
+                    cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsPosition, m_AdditionalLightPositions);
+                    cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsColor, m_AdditionalLightColors);
+                    cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsAttenuation, m_AdditionalLightAttenuations);
+                    cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsSpotDir, m_AdditionalLightSpotDirections);
+                    cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightOcclusionProbeChannel, m_AdditionalLightOcclusionProbeChannels);
                 }
 
                 cmd.SetGlobalVector(LightConstantBuffer._AdditionalLightsCount, new Vector4(lightData.maxPerObjectAdditionalLightsCount,
@@ -235,12 +296,6 @@ namespace UnityEngine.Rendering.LWRP
             {
                 cmd.SetGlobalVector(LightConstantBuffer._AdditionalLightsCount, Vector4.zero);
             }
-
-            cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsPosition, m_AdditionalLightPositions);
-            cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsColor, m_AdditionalLightColors);
-            cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsAttenuation, m_AdditionalLightAttenuations);
-            cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsSpotDir, m_AdditionalLightSpotDirections);
-            cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightOcclusionProbeChannel, m_AdditionalLightOcclusionProbeChannels);
         }
         
         void SetupPerObjectLightIndices(CullingResults cullResults, ref LightData lightData)

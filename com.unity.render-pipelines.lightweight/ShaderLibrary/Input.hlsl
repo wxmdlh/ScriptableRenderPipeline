@@ -3,17 +3,11 @@
 
 #define MAX_VISIBLE_LIGHTS 16
 
-// TODO: Graphics Emulation are breaking structured buffers for now disabling it until we have a fix
+#if defined(SHADER_API_GLES) || defined(SHADER_API_GLES3)
 #define USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA 0
-
-// Must match check of use compute buffer in LightweightRenderPipeline.cs
-// GLES check here because of WebGL 1.0 support
-// TODO: check performance of using StructuredBuffer on mobile as well
-// #if defined(SHADER_API_MOBILE) || defined(SHADER_API_GLES) || defined(SHADER_API_GLCORE)
-// #define USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA 0
-// #else
-// #define USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA 1
-// #endif
+#else
+#define USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA 1
+#endif
 
 struct InputData
 {
@@ -45,12 +39,26 @@ float4 _MainLightPosition;
 half4 _MainLightColor;
 
 half4 _AdditionalLightsCount;
+#if !USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
 float4 _AdditionalLightsPosition[MAX_VISIBLE_LIGHTS];
 half4 _AdditionalLightsColor[MAX_VISIBLE_LIGHTS];
 half4 _AdditionalLightsAttenuation[MAX_VISIBLE_LIGHTS];
 half4 _AdditionalLightsSpotDir[MAX_VISIBLE_LIGHTS];
 half4 _AdditionalLightsOcclusionProbes[MAX_VISIBLE_LIGHTS];
+#endif
 CBUFFER_END
+
+#if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
+struct LightShaderData
+{
+    float4 position;
+    float4 color;
+    float4 attenuation;
+    float4 spotDirection;
+    float4 occlusionProbeChannels;
+};
+StructuredBuffer<LightShaderData> _AdditionalLightsBuffer;
+#endif
 
 #define UNITY_MATRIX_M     unity_ObjectToWorld
 #define UNITY_MATRIX_I_M   unity_WorldToObject

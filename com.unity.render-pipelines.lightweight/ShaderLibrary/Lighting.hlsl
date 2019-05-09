@@ -129,14 +129,20 @@ Light GetAdditionalLight(int i, float3 positionWS)
 {
     int perObjectLightIndex = GetPerObjectLightIndex(i);
 
-    // The following code will turn into a branching madhouse on platforms that don't support
-    // dynamic indexing. Ideally we need to configure light data at a cluster of
-    // objects granularity level. We will only be able to do that when scriptable culling kicks in.
-    // TODO: Use StructuredBuffer on PC/Console and profile access speed on mobile that support it.
     // Abstraction over Light input constants
+#if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
+    float3 lightPositionWS = _AdditionalLightsBuffer[perObjectLightIndex].position.xyz;
+    half3 color = _AdditionalLightsBuffer[perObjectLightIndex].color.rgb;
+    half4 distanceAndSpotAttenuation = _AdditionalLightsBuffer[perObjectLightIndex].attenuation;
+    half4 spotDirection = _AdditionalLightsBuffer[perObjectLightIndex].spotDirection;
+    half4 lightOcclusionProbeInfo = _AdditionalLightsBuffer[perObjectLightIndex].occlusionProbeChannels;
+#else
     float3 lightPositionWS = _AdditionalLightsPosition[perObjectLightIndex].xyz;
+    half3 color = _AdditionalLightsColor[perObjectLightIndex].rgb;
     half4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
     half4 spotDirection = _AdditionalLightsSpotDir[perObjectLightIndex];
+    half4 lightOcclusionProbeInfo = _AdditionalLightsOcclusionProbes[perObjectLightIndex];
+#endif
 
     float3 lightVector = lightPositionWS - positionWS;
     float distanceSqr = max(dot(lightVector, lightVector), HALF_MIN);
@@ -148,15 +154,13 @@ Light GetAdditionalLight(int i, float3 positionWS)
     light.direction = lightDirection;
     light.distanceAttenuation = attenuation;
     light.shadowAttenuation = AdditionalLightRealtimeShadow(perObjectLightIndex, positionWS);
-    light.color = _AdditionalLightsColor[perObjectLightIndex].rgb;
+    light.color = color;
 
     // In case we're using light probes, we can sample the attenuation from the `unity_ProbesOcclusion`
 #if defined(LIGHTMAP_ON)
     // First find the probe channel from the light.
     // Then sample `unity_ProbesOcclusion` for the baked occlusion.
     // If the light is not baked, the channel is -1, and we need to apply no occlusion.
-    half4 lightOcclusionProbeInfo = _AdditionalLightsOcclusionProbes[perObjectLightIndex];
-
     // probeChannel is the index in 'unity_ProbesOcclusion' that holds the proper occlusion value.
     int probeChannel = lightOcclusionProbeInfo.x;
 
