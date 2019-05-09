@@ -75,7 +75,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                                       enableRandomWrite: true, xrInstancing: false, useDynamicScale: false,
                                                       name: "GroundIrradianceTable");
 
-            m_InScatteredRadianceTables = new RTHandleSystem.RTHandle[2];
+            m_InScatteredRadianceTables = new RTHandleSystem.RTHandle[4];
 
             for (int i = 0; i < 4; i++)
             {

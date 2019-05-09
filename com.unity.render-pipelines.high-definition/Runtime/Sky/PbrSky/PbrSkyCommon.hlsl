@@ -102,6 +102,22 @@ float2 IntersectSphere(float sphereRadius, float cosChi, float radialDistance)
                                      -cosChi + sqrt(d)));
 }
 
+// rayOrigin = {0, 0, r}.
+float2 IntersectRayCylinder(float3 cylAxis, float cylRadius,
+                            float  r, float3 rayDir)
+{
+    float x = dot(cylAxis, rayDir);
+
+    // Solve: t^2 + 2 * (b / a) * t + (c / a) = 0.
+    float a = saturate(1.0 - x * x);
+    float b = rcp(a) * (rayDir.z - x * cylAxis.z);
+    float c = rcp(a) * (saturate(1 - cylAxis.z * cylAxis.z) - Sq(cylRadius * rcp(r)));
+    float d = b * b - c;
+
+    return ((abs(a) < FLT_EPS) || (d < 0)) ? -1 : r * float2(-b - sqrt(d),
+                                                             -b + sqrt(d));
+}
+
 float MapQuadraticHeight(float height)
 {
     // TODO: we should adjust sub-texel coordinates

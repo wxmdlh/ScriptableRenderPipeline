@@ -15,25 +15,6 @@
 RW_TEXTURE3D(float4, _AirSingleScatteringTable);
 RW_TEXTURE3D(float4, _AerosolSingleScatteringTable);
 
-float2 IntersectRayCylinder(float3 cylOrigin, float3 cylAxis, float cylRadiusSquared,
-                            float3 rayOrigin, float3 rayDir)
-{
-    float3 start = rayOrigin - cylOrigin;
-
-    float c1 = dot(cylAxis, rayDir);
-    float c2 = dot(cylAxis, start);
-
-    // Solve: t^2 + 2 * (b / a) * t + (c / a) = 0.
-    float a = 1.0 - c1 * c1;
-    float b = rcp(a) * (dot(start, rayDir) - c1 * c2);
-    float c = rcp(a) * (dot(start, start) - c2 * c2 - cylRadiusSquared);
-
-    float d = b * b - c;
-
-    return ((abs(a) < FLT_EPS) || (d < 0)) ? -1 : float2(-b - sqrt(d),
-                                                         -b + sqrt(d));
-}
-
 [numthreads(4, 4, 4)]
 void main(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
@@ -105,7 +86,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     // which is shaped like a cylinder with the planet's radius, aligned with the light direction.
     // We can use it to optimize the integration process, as the shadowed region has 0 contribution.
 
-    float2 tCyl = IntersectRayCylinder(0, L, _PlanetaryRadiusSquared, O, -V);
+    float2 tCyl = IntersectRayCylinder(L, _PlanetaryRadius, r, -V);
 
     if (tCyl.y >= 0) // Will exit?
     {
