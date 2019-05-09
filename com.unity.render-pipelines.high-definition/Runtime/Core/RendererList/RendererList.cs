@@ -49,7 +49,7 @@ namespace UnityEngine.Experimental.Rendering
 
             var filterSettings = new FilteringSettings(desc.renderQueueRange)
             {
-                excludeMotionVectorObjects = desc.excludeMotionVectors
+                excludeMotionVectorObjects = desc.excludeObjectMotionVectors
             };
 
             newRenderList.isValid = true;
@@ -69,7 +69,7 @@ namespace UnityEngine.Experimental.Rendering
         public RenderQueueRange renderQueueRange;
         public RenderStateBlock? stateBlock;
         public Material overrideMaterial;
-        public bool excludeMotionVectors;
+        public bool excludeObjectMotionVectors;
 
         // Mandatory parameters passed through constructors
         public CullingResults cullingResult { get; private set; }

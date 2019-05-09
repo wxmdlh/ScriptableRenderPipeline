@@ -2350,7 +2350,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderQueueRange? renderQueueRange = null,
             RenderStateBlock? stateBlock = null,
             Material overrideMaterial = null,
-            bool excludeMotionVectorObjects = false
+            bool excludeObjectMotionVectors = false
         )
         {
             return RendererList.Create(new RendererListDesc(passName, cull, camera)
@@ -2360,7 +2360,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 sortingCriteria = SortingCriteria.CommonOpaque,
                 stateBlock = stateBlock,
                 overrideMaterial = overrideMaterial,
-                excludeMotionVectors = excludeMotionVectorObjects
+                excludeObjectMotionVectors = excludeObjectMotionVectors
             });
         }
 
@@ -2372,7 +2372,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderQueueRange? renderQueueRange = null,
             RenderStateBlock? stateBlock = null,
             Material overrideMaterial = null,
-            bool excludeMotionVectorObjects = false
+            bool excludeObjectMotionVectors = false
         )
         {
             return RendererList.Create(new RendererListDesc(passNames, cull, camera)
@@ -2382,7 +2382,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 sortingCriteria = SortingCriteria.CommonOpaque,
                 stateBlock = stateBlock,
                 overrideMaterial = overrideMaterial,
-                excludeMotionVectors = excludeMotionVectorObjects
+                excludeObjectMotionVectors = excludeObjectMotionVectors
             });
         }
 
@@ -2394,7 +2394,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderQueueRange? renderQueueRange = null,
             RenderStateBlock? stateBlock = null,
             Material overrideMaterial = null,
-            bool excludeMotionVectorObjects = false
+            bool excludeObjectMotionVectors = false
         )
         {
             return RendererList.Create(new RendererListDesc(passName, cull, camera)
@@ -2404,7 +2404,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 sortingCriteria = SortingCriteria.CommonTransparent | SortingCriteria.RendererPriority,
                 stateBlock = stateBlock,
                 overrideMaterial = overrideMaterial,
-                excludeMotionVectors = excludeMotionVectorObjects
+                excludeObjectMotionVectors = excludeObjectMotionVectors
             });
         }
 
@@ -2416,7 +2416,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderQueueRange? renderQueueRange = null,
             RenderStateBlock? stateBlock = null,
             Material overrideMaterial = null,
-            bool excludeMotionVectorObjects = false
+            bool excludeObjectMotionVectors = false
         )
         {
             return RendererList.Create(new RendererListDesc(passNames, cull, camera)
@@ -2426,7 +2426,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 sortingCriteria = SortingCriteria.CommonTransparent | SortingCriteria.RendererPriority,
                 stateBlock = stateBlock,
                 overrideMaterial = overrideMaterial,
-                excludeMotionVectors = excludeMotionVectorObjects
+                excludeObjectMotionVectors = excludeObjectMotionVectors
             });
         }
 
@@ -2529,7 +2529,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                         // Full forward: Output normal buffer for both forward and forwardOnly
                         // Exclude object that render motion vectors (if motion vector are enabled)
-                        var rendererList = CreateOpaqueRendererList(cull, hdCamera.camera, m_DepthOnlyAndDepthForwardOnlyPassNames, excludeMotionVectorObjects: objectMotionEnabled);
+                        var rendererList = CreateOpaqueRendererList(cull, hdCamera.camera, m_DepthOnlyAndDepthForwardOnlyPassNames, excludeObjectMotionVectors: objectMotionEnabled);
                         DrawOpaqueRendererList(renderContext, cmd, hdCamera.frameSettings, rendererList);
                     }
                     break;
@@ -2544,10 +2544,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     var rendererList1 = CreateOpaqueRendererList(
                         cull, hdCamera.camera, m_DepthOnlyPassNames,
                         renderQueueRange: fullDeferredPrepass ? HDRenderQueue.k_RenderQueue_AllOpaque : partialPrepassRenderQueueRange,
-                        excludeMotionVectorObjects: objectMotionEnabled);
+                        excludeObjectMotionVectors: objectMotionEnabled);
 
                     // Then forward only material that output normal buffer
-                    var rendererList2 = CreateOpaqueRendererList(cull, hdCamera.camera, m_DepthForwardOnlyPassNames, excludeMotionVectorObjects: objectMotionEnabled);
+                    var rendererList2 = CreateOpaqueRendererList(cull, hdCamera.camera, m_DepthForwardOnlyPassNames, excludeObjectMotionVectors: objectMotionEnabled);
 
                     using (new ProfilingSample(cmd, passName, CustomSamplerId.DepthPrepass.GetSampler()))
                     {
