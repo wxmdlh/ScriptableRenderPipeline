@@ -54,6 +54,8 @@ namespace UnityEditor.ShaderGraph
 
         public ConcretePrecision concretePrecision;
 
+        public ConcretePrecision outputPrecision;
+
         public ShaderStageCapability effectiveShaderStage;
 
         public void Reset()

@@ -16,12 +16,6 @@ namespace UnityEditor.ShaderGraph
         {
             ConcretePrecision GetPrecision()
             {
-                if(builder.currentSource is PropertyNode propertyNode)
-                {
-                    var property = propertyNode.owner.properties.FirstOrDefault(x => x.guid == propertyNode.propertyGuid);
-                    return property.concretePrecision;
-                }
-
                 if(builder.currentSource is AbstractMaterialNode node)
                 {
                     return node.concretePrecision;

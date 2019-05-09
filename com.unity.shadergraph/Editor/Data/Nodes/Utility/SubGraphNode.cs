@@ -179,32 +179,48 @@ namespace UnityEditor.ShaderGraph
             GraphUtil.GenerateSurfaceInputTransferCode(sb, subGraphData.requirements, subGraphData.inputStructName, inputVariableName);
 
             foreach (var outSlot in subGraphData.outputs)
-                sb.AppendLine("{0} {1};", outSlot.concreteValueType.ToShaderString(), GetVariableNameForSlot(outSlot.id));
+                sb.AppendLine("{0} {1};", outSlot.concreteValueType.ToShaderString().Replace("$precision", subGraphData.outputPrecision.ToShaderString()), GetVariableNameForSlot(outSlot.id));
 
-            var arguments = new List<string>();
+            sb.AppendIndentation();
+            sb.Append("{0}(", subGraphData.functionName);
+
             foreach (var prop in subGraphData.inputs)
             {
+                if(prop.precision == Precision.Inherit)
+                    prop.concretePrecision = subGraphData.concretePrecision;
+                else
+                    prop.concretePrecision = prop.precision.ToConcrete();
+
+                sb.currentSource = prop;
                 var inSlotId = m_PropertyIds[m_PropertyGuids.IndexOf(prop.guid.ToString())];
 
                 if (prop is TextureShaderProperty)
-                    arguments.Add(string.Format("TEXTURE2D_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode)));
+                    sb.Append("TEXTURE2D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
                 else if (prop is Texture2DArrayShaderProperty)
-                    arguments.Add(string.Format("TEXTURE2D_ARRAY_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode)));
+                    sb.Append("TEXTURE2D_ARRAY_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
                 else if (prop is Texture3DShaderProperty)
-                    arguments.Add(string.Format("TEXTURE3D_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode)));
+                    sb.Append("TEXTURE3D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
                 else if (prop is CubemapShaderProperty)
-                    arguments.Add(string.Format("TEXTURECUBE_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode)));
+                    sb.Append("TEXTURECUBE_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
                 else
-                    arguments.Add(GetSlotValue(inSlotId, generationMode));
+                    sb.Append("{0}, ", GetSlotValue(inSlotId, generationMode));
+                ReplacementProcessor.CalculateReplacements(sb);
             }
 
             // pass surface inputs through
-            arguments.Add(inputVariableName);
+            sb.Append(inputVariableName);
+            if(subGraphData.outputs.Count != 0)
+                sb.Append(", ");
 
-            foreach (var outSlot in subGraphData.outputs)
-                arguments.Add(GetVariableNameForSlot(outSlot.id));
+            for (int i = 0; i < subGraphData.outputs.Count; i++)
+            {
+                sb.Append(GetVariableNameForSlot(subGraphData.outputs[i].id));
+                if(i < subGraphData.outputs.Count - 1)
+                    sb.Append(", ");
+            }
 
-            sb.AppendLine("{0}({1});", subGraphData.functionName, arguments.Aggregate((current, next) => string.Format("{0}, {1}", current, next)));
+            sb.Append(");");
+            sb.AppendNewLine();
         }
 
         public void OnEnable()
