@@ -475,9 +475,8 @@ namespace UnityEditor.VFX
             EditorGUILayout.PropertyField(m_VisualEffectAsset, Contents.assetPath);
         }
 
-        bool SeedField()
+        void SeedField()
         {
-            EditorGUI.BeginChangeCheck();
             using (new GUILayout.HorizontalScope())
             {
                 using (new EditorGUI.DisabledGroupScope(m_ReseedOnPlay.boolValue || m_ReseedOnPlay.hasMultipleDifferentValues))
@@ -498,13 +497,12 @@ namespace UnityEditor.VFX
                 }
             }
             EditorGUILayout.PropertyField(m_ReseedOnPlay, Contents.reseedOnPlay);
-            return EditorGUI.EndChangeCheck();
         }
 
-        bool InitialEventField()
+        void InitialEventField()
         {
             if (m_InitialEventName == null)
-                return false;
+                return;
 
             bool changed = false;
             using (new GUILayout.HorizontalScope())
@@ -552,7 +550,6 @@ namespace UnityEditor.VFX
             {
                 serializedObject.ApplyModifiedProperties();
             }
-            return changed;
         }
 
         bool ShowCategory(GUIContent nameContent, bool foldoutState)
