@@ -141,7 +141,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
                     EditorGUI.BeginChangeCheck();
                     GUILayout.Label("Precision");
-                    graph.precision = (ConcretePrecision)EditorGUILayout.EnumPopup(graph.precision, GUILayout.Width(100f));
+                    graph.concretePrecision = (ConcretePrecision)EditorGUILayout.EnumPopup(graph.concretePrecision, GUILayout.Width(100f));
                     GUILayout.Space(4);
                     if (EditorGUI.EndChangeCheck())
                     {

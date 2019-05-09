@@ -229,12 +229,12 @@ namespace UnityEditor.ShaderGraph
         public bool isSubGraph { get; set; }
 
         [SerializeField]
-        private ConcretePrecision m_Precision = ConcretePrecision.Float;
+        private ConcretePrecision m_ConcretePrecision = ConcretePrecision.Float;
 
-        public ConcretePrecision precision
+        public ConcretePrecision concretePrecision
         {
-            get => m_Precision;
-            set => m_Precision = value;
+            get => m_ConcretePrecision;
+            set => m_ConcretePrecision = value;
         }
 
         [NonSerialized]

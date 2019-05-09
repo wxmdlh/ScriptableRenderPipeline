@@ -1267,7 +1267,7 @@ namespace UnityEditor.ShaderGraph
                 ReplacementProcessor.CalculateReplacements(surfaceDescriptionFunction);
                 surfaceDescriptionFunction.AppendLine("return surface;");
                 
-                shaderProperties.ConcretizePrecisions(graph.precision);
+                shaderProperties.ConcretizePrecisions(graph.concretePrecision);
 
                 functionRegistry.builder.currentSource = null;
                 surfaceDescriptionFunction.currentSource = null;
@@ -1354,7 +1354,7 @@ namespace UnityEditor.ShaderGraph
 
                 builder.AppendLine("return description;");
 
-                shaderProperties.ConcretizePrecisions(graph.precision);
+                shaderProperties.ConcretizePrecisions(graph.concretePrecision);
 
                 functionRegistry.builder.currentSource = null;
                 builder.currentSource = null; 

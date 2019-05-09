@@ -327,7 +327,7 @@ namespace UnityEditor.ShaderGraph
             // This can be removed when parameters are considered as true inputs
             if (s_TempSlots.Count == 0)
             {
-                m_ConcretePrecision = owner.precision;
+                m_ConcretePrecision = owner.concretePrecision;
                 return false;
             }
 
@@ -341,7 +341,7 @@ namespace UnityEditor.ShaderGraph
                 var edges = owner.GetEdges(inputSlot.slotReference).ToList();
                 if (!edges.Any())
                 {
-                    precisionsToCompare.Add((int)owner.precision);
+                    precisionsToCompare.Add((int)owner.concretePrecision);
                     continue;
                 }
 
