@@ -267,7 +267,7 @@ namespace UnityEditor.Experimental.Rendering.LWRP
         internal void SendModifiedAnalytics(Analytics._2DRendererAnalytics analytics, Light2D light)
         {
             Analytics.Light2DData lightData = new Analytics.Light2DData();
-            lightData.event_type = Analytics.Light2DData.EventType.Modified;
+            lightData.was_create_event = false;
             lightData.instance_id = light.GetInstanceID();
             lightData.light_type = light.lightType;
             Analytics._2DRendererAnalytics.instance.SendData(Analytics.AnalyticsDataTypes.k_LightDataString, lightData);

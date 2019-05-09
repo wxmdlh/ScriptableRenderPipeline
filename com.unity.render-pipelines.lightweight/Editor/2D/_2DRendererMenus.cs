@@ -63,7 +63,7 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             Place(go, parent);
 
             Analytics.Light2DData lightData = new Analytics.Light2DData();
-            lightData.event_type = Analytics.Light2DData.EventType.Created;
+            lightData.was_create_event = true;
             lightData.instance_id = light2D.GetInstanceID();
             lightData.light_type = light2D.lightType;
             Analytics._2DRendererAnalytics.instance.SendData(Analytics.AnalyticsDataTypes.k_LightDataString, lightData);
@@ -148,7 +148,7 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             {
                 Analytics.RendererAssetData modifiedData = new Analytics.RendererAssetData();
                 modifiedData.instance_id = instance.GetInstanceID();
-                modifiedData.event_type = Analytics.RendererAssetData.EventType.Created;
+                modifiedData.was_create_event = true;
                 modifiedData.blending_layers_count = 1;
                 modifiedData.blending_modes_used = 2;
                 Analytics._2DRendererAnalytics.instance.SendData(Analytics.AnalyticsDataTypes.k_2DRendererDataString, modifiedData);

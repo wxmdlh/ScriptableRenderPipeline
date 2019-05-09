@@ -68,7 +68,7 @@ namespace UnityEditor.Experimental.Rendering.LWRP
             {
                 Analytics.RendererAssetData modifiedData = new Analytics.RendererAssetData();
                 modifiedData.instance_id = m_2DRendererData.GetInstanceID();
-                modifiedData.event_type = Analytics.RendererAssetData.EventType.Modified;
+                modifiedData.was_create_event = false;
                 modifiedData.blending_layers_count = GetNumberOfUsedBlendingLayers(m_2DRendererData);
                 modifiedData.blending_modes_used = GetBlendingModesUsed(m_2DRendererData);
                 analytics.SendData(Analytics.AnalyticsDataTypes.k_2DRendererDataString, modifiedData);

@@ -16,14 +16,8 @@ namespace UnityEditor.Experimental.Rendering.LWRP.Analytics
     [Serializable]
     internal struct Light2DData : IAnalyticsData
     {
-        public enum EventType
-        {
-            Created,
-            Modified
-        }
-
         [SerializeField]
-        public EventType event_type;
+        public bool was_create_event;
         [SerializeField]
         public int instance_id;
         [SerializeField]
@@ -34,14 +28,8 @@ namespace UnityEditor.Experimental.Rendering.LWRP.Analytics
     [Serializable]
     internal struct RendererAssetData : IAnalyticsData
     {
-        public enum EventType
-        {
-            Created,
-            Modified
-        }
-
         [SerializeField]
-        public EventType event_type;
+        public bool was_create_event;
         [SerializeField]
         public int instance_id;
         [SerializeField]
