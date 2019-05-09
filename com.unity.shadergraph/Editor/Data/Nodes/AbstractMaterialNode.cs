@@ -97,6 +97,11 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
+        public virtual bool canSetPrecision
+        {
+            get { return true; }
+        }
+
         private ConcretePrecision m_ConcretePrecision = ConcretePrecision.Float;
 
         public ConcretePrecision concretePrecision

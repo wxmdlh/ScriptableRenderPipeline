@@ -158,7 +158,11 @@ namespace UnityEditor.ShaderGraph
         {
             get { return true; }
         }
-
+        
+        public override bool canSetPrecision
+        {
+            get { return false; }
+        }
 
         public void GenerateNodeCode(ShaderStringBuilder sb, GraphContext graphContext, GenerationMode generationMode)
         {

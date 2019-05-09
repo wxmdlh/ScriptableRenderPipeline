@@ -21,6 +21,10 @@ namespace UnityEditor.ShaderGraph
             UpdateNodeAfterDeserialization();
         }
 
+        public override bool canSetPrecision
+        {
+            get { return false; }
+        }
 
         private void UpdateNode()
         {

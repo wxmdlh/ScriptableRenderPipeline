@@ -172,7 +172,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             m_SettingsButton.Add(new VisualElement { name = "icon" });
             m_Settings = new VisualElement();
 
-            m_Settings.Add(AddDefaultSettings());
+            AddDefaultSettings();
 
             // Add Node type specific settings
             var nodeTypeSettings = node as IHasSettings;
@@ -185,11 +185,14 @@ namespace UnityEditor.ShaderGraph.Drawing
                     UpdateSettingsExpandedState();
                 }));
 
-            m_ButtonContainer = new VisualElement { name = "button-container" };
-            m_ButtonContainer.style.flexDirection = FlexDirection.Row;
-            m_ButtonContainer.Add(m_SettingsButton);
-            m_ButtonContainer.Add(m_CollapseButton);
-            m_TitleContainer.Add(m_ButtonContainer);
+            if(m_Settings.childCount != 0)
+            {
+                m_ButtonContainer = new VisualElement { name = "button-container" };
+                m_ButtonContainer.style.flexDirection = FlexDirection.Row;
+                m_ButtonContainer.Add(m_SettingsButton);
+                m_ButtonContainer.Add(m_CollapseButton);
+                m_TitleContainer.Add(m_ButtonContainer);
+            }
         }
 
         public void AttachMessage(string errString, ShaderCompilerMessageSeverity severity)
@@ -318,27 +321,31 @@ namespace UnityEditor.ShaderGraph.Drawing
             return node.owner.GetShader(node, mode, node.name).shader;
         }
 
-        VisualElement AddDefaultSettings()
+        void AddDefaultSettings()
         {
             PropertySheet ps = new PropertySheet();
 
-            ps.Add(new PropertyRow(new Label("Precision")), (row) =>
+            if(node.canSetPrecision)
             {
-                row.Add(new EnumField(node.precision), (field) =>
+                ps.Add(new PropertyRow(new Label("Precision")), (row) =>
                 {
-                    field.RegisterValueChangedCallback(evt =>
+                    row.Add(new EnumField(node.precision), (field) =>
                     {
-                        if (evt.newValue.Equals(node.precision))
-                            return;
-                        node.owner.owner.RegisterCompleteObjectUndo("Change precision");
-                        node.precision = (Precision)evt.newValue;
-                        node.owner.ValidateGraph();
-                        node.Dirty(ModificationScope.Graph);
+                        field.RegisterValueChangedCallback(evt =>
+                        {
+                            if (evt.newValue.Equals(node.precision))
+                                return;
+                            node.owner.owner.RegisterCompleteObjectUndo("Change precision");
+                            node.precision = (Precision)evt.newValue;
+                            node.owner.ValidateGraph();
+                            node.Dirty(ModificationScope.Graph);
+                        });
                     });
                 });
-            });
+            }
 
-            return ps;
+            if(ps.childCount > 1)
+                m_Settings.Add(ps);
         }
 
         void RecreateSettings()
@@ -347,7 +354,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             m_Settings = new PropertySheet();
 
             // Add default settings
-            m_Settings.Add(AddDefaultSettings());
+            AddDefaultSettings();
 
             // Add Node type specific settings
             var nodeTypeSettings = node as IHasSettings;
