@@ -434,8 +434,8 @@ namespace UnityEditor.ShaderGraph.Drawing
                 }
             }
 
-            File.WriteAllText(path, EditorJsonUtility.ToJson(subGraph));
-            AssetDatabase.ImportAsset(path);
+            if(FileUtilities.WriteShaderGraphToDisk(path, subGraph))
+                AssetDatabase.ImportAsset(path);
 
             var loadedSubGraph = AssetDatabase.LoadAssetAtPath(path, typeof(SubGraphAsset)) as SubGraphAsset;
             if (loadedSubGraph == null)
@@ -467,8 +467,8 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         void UpdateShaderGraphOnDisk(string path)
         {
-            File.WriteAllText(path, EditorJsonUtility.ToJson(graphObject.graph, true));
-            AssetDatabase.ImportAsset(path);
+            if(FileUtilities.WriteShaderGraphToDisk(path, graphObject.graph))
+                AssetDatabase.ImportAsset(path);
         }
 
         private void Rebuild()
