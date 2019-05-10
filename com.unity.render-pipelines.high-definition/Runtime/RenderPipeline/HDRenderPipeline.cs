@@ -2388,15 +2388,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         }
 
         protected static void DrawOpaqueRendererList(in ScriptableRenderContext renderContext, CommandBuffer cmd, in FrameSettings frameSettings, RendererList rendererList)
-            {
+        {
             if (!frameSettings.IsEnabled(FrameSettingsField.OpaqueObjects))
                 return;
 
             HDUtils.DrawRendererList(renderContext, cmd, rendererList);
-            }
+        }
 
         protected static void DrawTransparentRendererList(in ScriptableRenderContext renderContext, CommandBuffer cmd, in FrameSettings frameSettings, RendererList rendererList)
-            {
+        {
             if (!frameSettings.IsEnabled(FrameSettingsField.TransparentObjects))
                 return;
 
