@@ -2311,7 +2311,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         )
         {
             return RendererList.Create(new RendererListDesc(passName, cull, camera)
-        {
+            {
                 rendererConfiguration = rendererConfiguration,
                 renderQueueRange = renderQueueRange != null ? renderQueueRange.Value : HDRenderQueue.k_RenderQueue_AllOpaque,
                 sortingCriteria = SortingCriteria.CommonOpaque,
@@ -2341,7 +2341,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 overrideMaterial = overrideMaterial,
                 excludeObjectMotionVectors = excludeObjectMotionVectors
             });
-            }
+        }
 
         protected static RendererList CreateTransparentRendererList(
             CullingResults cull,
