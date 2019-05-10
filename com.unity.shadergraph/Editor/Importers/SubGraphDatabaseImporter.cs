@@ -296,7 +296,7 @@ namespace UnityEditor.ShaderGraph
                 var arguments = new List<string>();
                 foreach (var prop in subGraphData.inputs)
                 {
-                    prop.MakePrecisionConcrete(subGraphData.graphPrecision);
+                    prop.SetConcretePrecision(subGraphData.graphPrecision);
                     arguments.Add(string.Format("{0}", prop.GetPropertyAsArgumentString()));
                 }
 
@@ -327,11 +327,7 @@ namespace UnityEditor.ShaderGraph
                     }
 
                     foreach (var slot in subGraphData.outputs)
-                    {
-                        sb.currentNode = outputNode;
-                        sb.AppendLine("{0} = {1};", slot.shaderOutputName, outputNode.GetSlotValue(slot.id, GenerationMode.ForReals));
-                        sb.ReplaceInCurrentMapping(PrecisionUtil.Token, outputNode.concretePrecision.ToShaderString());
-                    }
+                        sb.AppendLine("{0} = {1};", slot.shaderOutputName, outputNode.GetSlotValue(slot.id, GenerationMode.ForReals, subGraphData.outputPrecision));
                 }
             });
             

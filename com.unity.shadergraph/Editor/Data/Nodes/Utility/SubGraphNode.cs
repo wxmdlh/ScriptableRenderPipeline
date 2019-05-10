@@ -185,40 +185,31 @@ namespace UnityEditor.ShaderGraph
             foreach (var outSlot in subGraphData.outputs)
                 sb.AppendLine("{0} {1};", outSlot.concreteValueType.ToShaderString(subGraphData.outputPrecision), GetVariableNameForSlot(outSlot.id));
 
-            sb.AppendIndentation();
-            sb.Append("{0}(", subGraphData.functionName);
-
+            var arguments = new List<string>();
             foreach (var prop in subGraphData.inputs)
             {
-                prop.MakePrecisionConcrete(subGraphData.graphPrecision);
+                prop.SetConcretePrecision(subGraphData.graphPrecision);
                 var inSlotId = m_PropertyIds[m_PropertyGuids.IndexOf(prop.guid.ToString())];
 
                 if (prop is TextureShaderProperty)
-                    sb.Append("TEXTURE2D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
+                    arguments.Add(string.Format("TEXTURE2D_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode, prop.concretePrecision)));
                 else if (prop is Texture2DArrayShaderProperty)
-                    sb.Append("TEXTURE2D_ARRAY_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
+                    arguments.Add(string.Format("TEXTURE2D_ARRAY_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode, prop.concretePrecision)));
                 else if (prop is Texture3DShaderProperty)
-                    sb.Append("TEXTURE3D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
+                    arguments.Add(string.Format("TEXTURE3D_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode, prop.concretePrecision)));
                 else if (prop is CubemapShaderProperty)
-                    sb.Append("TEXTURECUBE_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
+                    arguments.Add(string.Format("TEXTURECUBE_ARGS({0}, sampler{0})", GetSlotValue(inSlotId, generationMode, prop.concretePrecision)));
                 else
-                    sb.Append("{0}, ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
+                    arguments.Add(string.Format("{0}", GetSlotValue(inSlotId, generationMode, prop.concretePrecision)));
             }
 
             // pass surface inputs through
-            sb.Append(inputVariableName);
-            if(subGraphData.outputs.Count != 0)
-                sb.Append(", ");
+            arguments.Add(inputVariableName);
 
-            for (int i = 0; i < subGraphData.outputs.Count; i++)
-            {
-                sb.Append(GetVariableNameForSlot(subGraphData.outputs[i].id));
-                if(i < subGraphData.outputs.Count - 1)
-                    sb.Append(", ");
-            }
+            foreach (var outSlot in subGraphData.outputs)
+                arguments.Add(GetVariableNameForSlot(outSlot.id));
 
-            sb.Append(");");
-            sb.AppendNewLine();
+            sb.AppendLine("{0}({1});", subGraphData.functionName, arguments.Aggregate((current, next) => string.Format("{0}, {1}", current, next)));
         }
 
         public void OnEnable()
@@ -402,6 +393,8 @@ namespace UnityEditor.ShaderGraph
             }
 
             ValidateShaderStage();
+
+            concretePrecision = subGraphData.outputPrecision;
         }
 
         public override void CollectShaderProperties(PropertyCollector visitor, GenerationMode generationMode)

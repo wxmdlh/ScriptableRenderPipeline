@@ -41,7 +41,7 @@ namespace UnityEditor.ShaderGraph
         {
             foreach (var prop in properties)
             {
-                prop.MakePrecisionConcrete(inheritedPrecision);
+                prop.SetConcretePrecision(inheritedPrecision);
             }
 
             var batchAll = mode == GenerationMode.Preview;

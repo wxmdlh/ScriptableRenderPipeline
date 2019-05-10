@@ -119,7 +119,7 @@ namespace UnityEditor.ShaderGraph
             return type.ToShaderString(precisionString);
         }
 
-        public static string ToShaderString(this ConcreteSlotValueType type, string precisionToken = "$precision")
+        public static string ToShaderString(this ConcreteSlotValueType type, string precisionToken = PrecisionUtil.Token)
         {
             switch (type)
             {

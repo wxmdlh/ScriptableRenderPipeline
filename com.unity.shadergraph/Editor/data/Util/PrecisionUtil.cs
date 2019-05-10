@@ -2,7 +2,7 @@
 {
     internal static class PrecisionUtil
     {
-        internal static string Token = "$precision";
+        internal const string Token = "$precision";
 
         internal static string ToShaderString(this ConcretePrecision precision)
         {

@@ -66,11 +66,7 @@ namespace UnityEditor.ShaderGraph
 
         private ConcretePrecision m_ConcretePrecision = ConcretePrecision.Float;
 
-        public ConcretePrecision concretePrecision
-        {
-            get => m_ConcretePrecision;
-            set => m_ConcretePrecision = value;
-        }
+        public ConcretePrecision concretePrecision => m_ConcretePrecision;
 
         [SerializeField]
         private Precision m_Precision = Precision.Inherit;
@@ -94,12 +90,9 @@ namespace UnityEditor.ShaderGraph
             return GetPropertyDeclarationString(string.Empty);
         }
 
-        public void MakePrecisionConcrete(ConcretePrecision inheritedPrecision)
+        public void SetConcretePrecision(ConcretePrecision inheritedPrecision)
         {
-            if(precision == Precision.Inherit)
-                m_ConcretePrecision = inheritedPrecision;
-            else
-                m_ConcretePrecision = precision.ToConcrete();
+            m_ConcretePrecision = (precision == Precision.Inherit) ? inheritedPrecision : precision.ToConcrete();
         }
 
         public abstract PreviewProperty GetPreviewMaterialProperty();
