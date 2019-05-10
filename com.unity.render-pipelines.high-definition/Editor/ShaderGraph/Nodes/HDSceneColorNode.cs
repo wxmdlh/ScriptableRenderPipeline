@@ -61,7 +61,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         string GetFunctionName()
         {
-            return "Unity_HDRP_SampleSceneColor_" + concretePrecision.ToShaderString();
+            return $"Unity_HDRP_SampleSceneColor_{concretePrecision.ToShaderString()}";
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)

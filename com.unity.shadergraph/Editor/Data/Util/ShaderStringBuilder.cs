@@ -8,7 +8,7 @@ namespace UnityEditor.ShaderGraph
 {
     struct ShaderStringMapping
     {
-        public object source { get; set; }
+        public AbstractMaterialNode node { get; set; }
         public int startIndex { get; set; }
         public int count { get; set; }
     }
@@ -30,15 +30,15 @@ namespace UnityEditor.ShaderGraph
 
         const string k_IndentationString = "    ";
 
-        internal object currentSource
+        internal AbstractMaterialNode currentNode
         {
-            get { return m_CurrentMapping.source; }
+            get { return m_CurrentMapping.node; }
             set
             {
                 m_CurrentMapping.count = m_StringBuilder.Length - m_CurrentMapping.startIndex;
                 if (m_CurrentMapping.count > 0)
                     m_Mappings.Add(m_CurrentMapping);
-                m_CurrentMapping.source = value;
+                m_CurrentMapping.node = value;
                 m_CurrentMapping.startIndex = m_StringBuilder.Length;
                 m_CurrentMapping.count = 0;
             }
@@ -189,12 +189,12 @@ namespace UnityEditor.ShaderGraph
             // First re-add all the mappings from `other`, such that their mappings are transformed.
             foreach (var mapping in other.m_Mappings)
             {
-                currentSource = mapping.source;
+                currentNode = mapping.node;
 
                 // Use `AppendLines` to indent according to the current indentation.
                 AppendLines(other.ToString(mapping.startIndex, mapping.count));
             }
-            currentSource = other.currentSource;
+            currentNode = other.currentNode;
             AppendLines(other.ToString(other.m_CurrentMapping.startIndex, other.length - other.m_CurrentMapping.startIndex));
         }
 

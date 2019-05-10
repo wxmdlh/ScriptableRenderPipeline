@@ -34,7 +34,7 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionName()
         {
-            return "Unity_Flipbook_" + concretePrecision.ToShaderString();
+            return $"Unity_Flipbook_{concretePrecision.ToShaderString()}";
         }
 
         public sealed override void UpdateNodeAfterDeserialization()

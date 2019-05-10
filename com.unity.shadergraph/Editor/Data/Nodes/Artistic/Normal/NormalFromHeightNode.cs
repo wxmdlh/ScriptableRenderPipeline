@@ -51,9 +51,7 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionName()
         {
-            return string.Format("Unity_NormalFromHeight_{0}_{1}"
-                , outputSpace.ToString()
-                , concretePrecision.ToShaderString());
+            return $"Unity_NormalFromHeight_{outputSpace.ToString()}_{concretePrecision.ToShaderString()}";
         }
 
         public sealed override void UpdateNodeAfterDeserialization()

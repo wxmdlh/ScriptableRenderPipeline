@@ -317,6 +317,12 @@ namespace UnityEditor.ShaderGraph
             return stageCapability == ShaderStageCapability.All || candidateStage == stageCapability;
         }
 
+        public string GetDefaultValue(GenerationMode generationMode, ConcretePrecision concretePrecision)
+        {
+            string defaultValue = GetDefaultValue(generationMode);
+            return defaultValue.Replace(PrecisionUtil.Token, concretePrecision.ToShaderString());
+        }
+
         public virtual string GetDefaultValue(GenerationMode generationMode)
         {
             var matOwner = owner as AbstractMaterialNode;

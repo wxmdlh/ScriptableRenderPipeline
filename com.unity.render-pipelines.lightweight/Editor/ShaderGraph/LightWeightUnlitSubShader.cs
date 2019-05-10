@@ -251,7 +251,7 @@ namespace UnityEngine.Rendering.LWRP
             // -------------------------------------
             // Generate Output structure for Vertex Description function
 
-            GraphUtil.GenerateVertexDescriptionStruct(vertexDescriptionStruct, vertexSlots, masterNode);
+            GraphUtil.GenerateVertexDescriptionStruct(vertexDescriptionStruct, vertexSlots);
 
             // -------------------------------------
             // Generate Vertex Description function
@@ -298,7 +298,7 @@ namespace UnityEngine.Rendering.LWRP
             // -------------------------------------
             // Generate Output structure for Surface Description function
 
-            GraphUtil.GenerateSurfaceDescriptionStruct(surfaceDescriptionStruct, pixelSlots, masterNode);
+            GraphUtil.GenerateSurfaceDescriptionStruct(surfaceDescriptionStruct, pixelSlots);
 
             // -------------------------------------
             // Generate Surface Description function
@@ -324,7 +324,7 @@ namespace UnityEngine.Rendering.LWRP
             // -------------------------------------
             // Property uniforms
 
-            shaderProperties.GetPropertiesDeclaration(shaderPropertyUniforms, mode);
+            shaderProperties.GetPropertiesDeclaration(shaderPropertyUniforms, mode, masterNode.owner.concretePrecision);
 
             // -------------------------------------
             // Generate Input structure for Vertex shader

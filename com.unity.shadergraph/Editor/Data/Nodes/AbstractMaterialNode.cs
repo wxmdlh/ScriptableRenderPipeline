@@ -236,6 +236,12 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
+        public string GetSlotValue(int inputSlotId, GenerationMode generationMode, ConcretePrecision concretePrecision)
+        {
+            string slotValue = GetSlotValue(inputSlotId, generationMode);
+            return slotValue.Replace(PrecisionUtil.Token, concretePrecision.ToShaderString());
+        }
+
         public string GetSlotValue(int inputSlotId, GenerationMode generationMode)
         {
             var inputSlot = FindSlot<MaterialSlot>(inputSlotId);

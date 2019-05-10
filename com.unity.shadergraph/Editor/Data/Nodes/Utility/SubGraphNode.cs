@@ -172,7 +172,7 @@ namespace UnityEditor.ShaderGraph
                 GetOutputSlots(outputSlots);
                 foreach (var slot in outputSlots)
                 {
-                    sb.AppendLine($"{slot.concreteValueType.ToShaderString()} {GetVariableNameForSlot(slot.id)} = {slot.GetDefaultValue(GenerationMode.ForReals)};");
+                    sb.AppendLine($"{slot.concreteValueType.ToShaderString(subGraphData.outputPrecision)} {GetVariableNameForSlot(slot.id)} = {slot.GetDefaultValue(GenerationMode.ForReals)};");
                 }
                 
                 return;
@@ -183,32 +183,26 @@ namespace UnityEditor.ShaderGraph
             GraphUtil.GenerateSurfaceInputTransferCode(sb, subGraphData.requirements, subGraphData.inputStructName, inputVariableName);
 
             foreach (var outSlot in subGraphData.outputs)
-                sb.AppendLine("{0} {1};", outSlot.concreteValueType.ToShaderString().Replace("$precision", subGraphData.outputPrecision.ToShaderString()), GetVariableNameForSlot(outSlot.id));
+                sb.AppendLine("{0} {1};", outSlot.concreteValueType.ToShaderString(subGraphData.outputPrecision), GetVariableNameForSlot(outSlot.id));
 
             sb.AppendIndentation();
             sb.Append("{0}(", subGraphData.functionName);
 
             foreach (var prop in subGraphData.inputs)
             {
-                if(prop.precision == Precision.Inherit)
-                    prop.concretePrecision = subGraphData.concretePrecision;
-                else
-                    prop.concretePrecision = prop.precision.ToConcrete();
-
-                sb.currentSource = prop;
+                prop.MakePrecisionConcrete(subGraphData.graphPrecision);
                 var inSlotId = m_PropertyIds[m_PropertyGuids.IndexOf(prop.guid.ToString())];
 
                 if (prop is TextureShaderProperty)
-                    sb.Append("TEXTURE2D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
+                    sb.Append("TEXTURE2D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
                 else if (prop is Texture2DArrayShaderProperty)
-                    sb.Append("TEXTURE2D_ARRAY_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
+                    sb.Append("TEXTURE2D_ARRAY_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
                 else if (prop is Texture3DShaderProperty)
-                    sb.Append("TEXTURE3D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
+                    sb.Append("TEXTURE3D_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
                 else if (prop is CubemapShaderProperty)
-                    sb.Append("TEXTURECUBE_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode));
+                    sb.Append("TEXTURECUBE_ARGS({0}, sampler{0}), ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
                 else
-                    sb.Append("{0}, ", GetSlotValue(inSlotId, generationMode));
-                ReplacementProcessor.CalculateReplacements(sb);
+                    sb.Append("{0}, ", GetSlotValue(inSlotId, generationMode, prop.concretePrecision));
             }
 
             // pass surface inputs through

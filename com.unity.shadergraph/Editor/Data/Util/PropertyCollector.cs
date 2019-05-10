@@ -22,17 +22,6 @@ namespace UnityEditor.ShaderGraph
             properties.Add(chunk);
         }
 
-        public void ConcretizePrecisions(ConcretePrecision graphPrecision)
-        {
-            foreach (var prop in properties)
-            {
-                if(prop.precision == Precision.Inherit)
-                    prop.concretePrecision = graphPrecision;
-                else
-                    prop.concretePrecision = prop.precision.ToConcrete();
-            }
-        }
-
         public string GetPropertiesBlock(int baseIndentLevel)
         {
             var sb = new StringBuilder();
@@ -48,17 +37,19 @@ namespace UnityEditor.ShaderGraph
             return sb.ToString();
         }
 
-        public void GetPropertiesDeclaration(ShaderStringBuilder builder, GenerationMode mode)
+        public void GetPropertiesDeclaration(ShaderStringBuilder builder, GenerationMode mode, ConcretePrecision inheritedPrecision)
         {
+            foreach (var prop in properties)
+            {
+                prop.MakePrecisionConcrete(inheritedPrecision);
+            }
+
             var batchAll = mode == GenerationMode.Preview;
             builder.AppendLine("CBUFFER_START(UnityPerMaterial)");
             foreach (var prop in properties.Where(n => batchAll || (n.generatePropertyBlock && n.isBatchable)))
             {
-                builder.currentSource = prop;
                 builder.AppendLine(prop.GetPropertyDeclarationString());
-                ReplacementProcessor.CalculateReplacements(builder);
             }
-            builder.currentSource = null;
             builder.AppendLine("CBUFFER_END");
             builder.AppendNewLine();
 
@@ -67,11 +58,8 @@ namespace UnityEditor.ShaderGraph
             
             foreach (var prop in properties.Where(n => !n.isBatchable || !n.generatePropertyBlock))
             {
-                builder.currentSource = prop;
                 builder.AppendLine(prop.GetPropertyDeclarationString());
-                ReplacementProcessor.CalculateReplacements(builder);
             }
-            builder.currentSource = null;
         }
 
         public List<TextureInfo> GetConfiguredTexutres()

@@ -30,7 +30,7 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionName()
         {
-            return "Unity_NormalFromTexture_" + concretePrecision.ToShaderString();
+            return $"Unity_NormalFromTexture_{concretePrecision.ToShaderString()}";
         }
 
         public override bool hasPreview { get { return true; } }

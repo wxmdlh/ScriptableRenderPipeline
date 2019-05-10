@@ -94,6 +94,14 @@ namespace UnityEditor.ShaderGraph
             return GetPropertyDeclarationString(string.Empty);
         }
 
+        public void MakePrecisionConcrete(ConcretePrecision inheritedPrecision)
+        {
+            if(precision == Precision.Inherit)
+                m_ConcretePrecision = inheritedPrecision;
+            else
+                m_ConcretePrecision = precision.ToConcrete();
+        }
+
         public abstract PreviewProperty GetPreviewMaterialProperty();
         public abstract AbstractMaterialNode ToConcreteNode();
         public abstract AbstractShaderProperty Copy();

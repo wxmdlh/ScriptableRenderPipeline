@@ -553,7 +553,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             HDRPShaderStructs.AddActiveFieldsFromPixelGraphRequirements(activeFields, pixelRequirements);
 
             // build the graph outputs structure, and populate activeFields with the fields of that structure
-            GraphUtil.GenerateSurfaceDescriptionStruct(pixelGraphOutputs, pixelSlots, masterNode, pixelGraphOutputStructName, activeFields);
+            GraphUtil.GenerateSurfaceDescriptionStruct(pixelGraphOutputs, pixelSlots, pixelGraphOutputStructName, activeFields);
 
             // Build the graph evaluation code, to evaluate the specified slots
             GraphUtil.GenerateSurfaceDescriptionFunction(
@@ -586,7 +586,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 // -------------------------------------
                 // Generate Output structure for Vertex Description function
-                GraphUtil.GenerateVertexDescriptionStruct(vertexGraphOutputs, vertexSlots, masterNode, vertexGraphOutputStructName, activeFields);
+                GraphUtil.GenerateVertexDescriptionStruct(vertexGraphOutputs, vertexSlots, vertexGraphOutputStructName, activeFields);
 
                 // -------------------------------------
                 // Generate Vertex Description function
@@ -615,7 +615,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             HDRPShaderStructs.AddRequiredFields(pass.RequiredFields, activeFields);
 
             // Get property declarations
-            sharedProperties.GetPropertiesDeclaration(shaderPropertyUniforms, mode);
+            sharedProperties.GetPropertiesDeclaration(shaderPropertyUniforms, mode, masterNode.owner.concretePrecision);
 
             // propagate active field requirements using dependencies
             ShaderSpliceUtil.ApplyDependencies(

@@ -27,9 +27,7 @@ namespace UnityEditor.ShaderGraph
 
         string GetFunctionName()
         {
-            return string.Format("Unity_InvertColors_{0}{1}"
-                , concretePrecision.ToShaderString()
-                , NodeUtils.GetSlotDimension(FindSlot<MaterialSlot>(OutputSlotId).concreteValueType));
+            return $"Unity_InvertColors_{FindSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToShaderString(concretePrecision)}";
         }
 
         public sealed override void UpdateNodeAfterDeserialization()

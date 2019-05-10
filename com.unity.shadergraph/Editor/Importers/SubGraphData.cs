@@ -52,7 +52,7 @@ namespace UnityEditor.ShaderGraph
 
         public List<string> ancestors = new List<string>();
 
-        public ConcretePrecision concretePrecision;
+        public ConcretePrecision graphPrecision;
 
         public ConcretePrecision outputPrecision;
 

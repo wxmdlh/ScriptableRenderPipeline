@@ -75,7 +75,7 @@ namespace UnityEditor.ShaderGraph
 
         public override string GetPropertyDeclarationString(string delimiter = ";")
         {
-            return string.Format("TEXTURE2D({0}){1} SAMPLER(sampler{0}); $precision4 {0}_TexelSize{1}", referenceName, delimiter);
+            return string.Format("TEXTURE2D({0}){1} SAMPLER(sampler{0}); {2}4 {0}_TexelSize{1}", referenceName, delimiter, concretePrecision.ToShaderString());
         }
 
         public override string GetPropertyAsArgumentString()
