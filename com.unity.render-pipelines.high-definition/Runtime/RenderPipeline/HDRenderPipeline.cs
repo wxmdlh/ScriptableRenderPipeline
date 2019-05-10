@@ -1509,7 +1509,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Must update after getting DebugDisplaySettings
             m_RayTracingManager.rayCountManager.ClearRayCount(cmd, hdCamera);
 #endif
-            
+
 
             m_DbufferManager.enableDecals = false;
             if (hdCamera.frameSettings.IsEnabled(FrameSettingsField.Decals))
@@ -1750,7 +1750,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         PushLightLoopGlobalParams(hdCamera, cmd);
 
                         // Run the contact shadow as they now need the light list
-                        RenderContactShadows();
+                        DispatchContactShadows();
                     }
                 }
                 else
@@ -1759,12 +1759,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     {
                         BuildGPULightLists(hdCamera, cmd, m_SharedRTManager.GetDepthStencilBuffer(hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA)), m_SharedRTManager.GetStencilBufferCopy(), m_SkyManager.IsLightingSkyValid());
                     }
-                    
-                    RenderContactShadows();
+
+                    DispatchContactShadows();
                 }
-                
+
                 // Contact shadows needs the light loop so we do them after the build light list
-                void RenderContactShadows()
+                void DispatchContactShadows()
                 {
                     if (hdCamera.frameSettings.ContactShadowsRunAsync())
                     {
@@ -1810,7 +1810,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // The pass requires the volume properties, the light list and the shadows, and can run async.
                 VolumetricLightingPass(hdCamera, cmd, m_FrameCount);
 
-                m_LightLoop.RenderScreenSpaceShadows(hdCamera, m_ScreenSpaceShadowsBuffer, cmd);
+                RenderScreenSpaceShadows(hdCamera, m_ScreenSpaceShadowsBuffer, cmd);
 
                 SetMicroShadowingSettings(cmd);
 
@@ -2743,7 +2743,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             var visualEnv = VolumeManager.instance.stack.GetComponent<VisualEnvironment>();
             m_SkyManager.RenderSky(hdCamera, CoreUtils.IsSceneLightingDisabled(hdCamera.camera) ? null : GetCurrentSunLight(), colorBuffer, depthBuffer, m_CurrentDebugDisplaySettings, cmd);
-             
+
             if (visualEnv.fogType.value != FogType.None)
             {
                 var pixelCoordToViewDirWS = hdCamera.mainViewConstants.pixelCoordToViewDirWS;

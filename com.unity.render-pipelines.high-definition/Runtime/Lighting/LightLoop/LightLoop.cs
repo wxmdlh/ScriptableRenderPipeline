@@ -305,7 +305,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         private ComputeShader clearDispatchIndirectShader { get { return asset.renderPipelineResources.shaders.clearDispatchIndirectCS; } }
         private ComputeShader deferredComputeShader { get { return asset.renderPipelineResources.shaders.deferredCS; } }
         private ComputeShader contactShadowComputeShader { get { return asset.renderPipelineResources.shaders.contactShadowCS; } }
-        private Shader screenSpaceShadowsShader { get { return asset.shaders.renderPipelineResources.screenSpaceShadowPS; } }
+        private Shader screenSpaceShadowsShader { get { return asset.renderPipelineResources.shaders.screenSpaceShadowPS; } }
 
         private Shader deferredTilePixelShader { get { return asset.renderPipelineResources.shaders.deferredTilePS; } }
 
@@ -2360,7 +2360,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool isOrthographic = camera.orthographic;
             bool isProjectionOblique = GeometryUtils.IsProjectionMatrixOblique(m_LightListProjMatrices[0]);
 
-            // If we don't need to run the light list, we still run it for the first frame that is not needed in order to keep the lists in a clean state. 
+            // If we don't need to run the light list, we still run it for the first frame that is not needed in order to keep the lists in a clean state.
             if (!runLightList && m_hasRunLightListPrevFrame)
             {
                 m_hasRunLightListPrevFrame = false;
@@ -2687,7 +2687,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public bool WillRenderScreenSpaceShadows()
         {
-            // For now this is only for DXR. 
+            // For now this is only for DXR.
 #if ENABLE_RAYTRACING
             return true;
 #else
@@ -2712,7 +2712,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             if (!contactShadowEnabled)
                 return 0;
-            
+
             // We have 24 max contact shadow light per frame
             if (m_ContactShadowIndex >= LightDefinitions.s_LightListMaxPrunedEntries)
                 return 0;
@@ -2743,7 +2743,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetComputeIntParam(contactShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, m_ContactShadows.sampleCount.value);
                 cmd.SetComputeBufferParam(contactShadowComputeShader, kernel, HDShaderIDs._DirectionalLightDatas, m_DirectionalLightDatas);
 
-                // Send light list to the compute 
+                // Send light list to the compute
                 cmd.SetComputeBufferParam(contactShadowComputeShader, kernel, HDShaderIDs._LightDatas, m_LightDatas);
                 cmd.SetComputeBufferParam(contactShadowComputeShader, kernel, HDShaderIDs.g_vLightListGlobal, s_LightList);
 
