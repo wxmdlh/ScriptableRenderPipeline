@@ -415,6 +415,15 @@ namespace UnityEngine.Rendering
             return m_AssemblyTypes;
         }
 
+        public static IEnumerable<Type> GetAllTypesDerivedFrom<T>()
+        {
+#if UNITY_EDITOR && UNITY_2019_2_OR_NEWER
+            return UnityEditor.TypeCache.GetTypesDerivedFrom<T>();
+#else
+            return GetAllAssemblyTypes().Where(t => t.IsSubclassOf(typeof(T)));
+#endif
+        }
+
         public static void Destroy(params UnityObject[] objs)
         {
             if (objs == null)
@@ -580,6 +589,26 @@ namespace UnityEngine.Rendering
         #endif
 
             return animateMaterials;
+        }
+
+        public static bool IsSceneLightingDisabled(Camera camera)
+        {
+            bool disabled = false;
+#if UNITY_EDITOR
+            if (camera.cameraType == CameraType.SceneView)
+            {
+                // Determine whether the "No Scene Lighting" checkbox is checked for the current view.
+                foreach (UnityEditor.SceneView sv in UnityEditor.SceneView.sceneViews)
+                {
+                    if (sv.camera == camera && !sv.sceneLighting)
+                    {
+                        disabled = true;
+                        break;
+                    }
+                }
+            }
+#endif
+            return disabled;
         }
 
 #if UNITY_EDITOR

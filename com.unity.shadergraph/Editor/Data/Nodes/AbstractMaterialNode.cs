@@ -41,7 +41,7 @@ namespace UnityEditor.ShaderGraph
 
         [NonSerialized]
         bool m_HasError;
-        
+
         [NonSerialized]
         private List<ISlot> m_Slots = new List<ISlot>();
 
@@ -91,7 +91,7 @@ namespace UnityEditor.ShaderGraph
 
         public virtual bool canDeleteNode
         {
-            get { return true; }
+            get { return owner != null && guid != owner.activeOutputNodeGuid; }
         }
 
         public DrawState drawState
@@ -100,7 +100,7 @@ namespace UnityEditor.ShaderGraph
             set
             {
                 m_DrawState = value;
-                Dirty(ModificationScope.Node);
+                Dirty(ModificationScope.Layout);
             }
         }
 
@@ -158,7 +158,7 @@ namespace UnityEditor.ShaderGraph
             get { return m_HasError; }
             protected set { m_HasError = value; }
         }
-        
+
         string m_DefaultVariableName;
         string m_NameForDefaultVariableName;
         Guid m_GuidForDefaultVariableName;
@@ -316,24 +316,6 @@ namespace UnityEditor.ShaderGraph
             var isInError = false;
             var errorMessage = k_validationErrorMessage;
 
-            // all children nodes needs to be updated first
-            // so do that here
-            var slots = ListPool<MaterialSlot>.Get();
-            GetInputSlots(slots);
-            foreach (var inputSlot in slots)
-            {
-                inputSlot.hasError = false;
-
-                var edges = owner.GetEdges(inputSlot.slotReference);
-                foreach (var edge in edges)
-                {
-                    var fromSocketRef = edge.outputSlot;
-                    var outputNode = owner.GetNodeFromGuid(fromSocketRef.nodeGuid);
-                    outputNode?.ValidateNode();
-                }
-            }
-            ListPool<MaterialSlot>.Release(slots);
-
             var dynamicInputSlotsToCompare = DictionaryPool<DynamicVectorMaterialSlot, ConcreteSlotValueType>.Get();
             var skippedDynamicSlots = ListPool<DynamicVectorMaterialSlot>.Get();
 
@@ -345,6 +327,7 @@ namespace UnityEditor.ShaderGraph
             GetInputSlots(s_TempSlots);
             foreach (var inputSlot in s_TempSlots)
             {
+                inputSlot.hasError = false;
                 // if there is a connection
                 var edges = owner.GetEdges(inputSlot.slotReference).ToList();
                 if (!edges.Any())
@@ -463,6 +446,7 @@ namespace UnityEditor.ShaderGraph
         }
 
         public int version { get; set; }
+        public virtual bool canCopyNode => true;
 
         //True if error
         protected virtual bool CalculateNodeHasError(ref string errorMessage)
@@ -498,7 +482,7 @@ namespace UnityEditor.ShaderGraph
             var slot = FindSlot<MaterialSlot>(slotId);
             if (slot == null)
                 throw new ArgumentException(string.Format("Attempting to use MaterialSlot({0}) on node of type {1} where this slot can not be found", slotId, this), "slotId");
-            return string.Format("_{0}_{1}", GetVariableNameForNode(), NodeUtils.GetHLSLSafeName(slot.shaderOutputName));
+            return string.Format("_{0}_{1}_{2}", GetVariableNameForNode(), NodeUtils.GetHLSLSafeName(slot.shaderOutputName), unchecked((uint)slotId));
         }
 
         public virtual string GetVariableNameForNode()
@@ -520,7 +504,7 @@ namespace UnityEditor.ShaderGraph
             m_Slots.Add(slot);
             slot.owner = this;
 
-            Dirty(ModificationScope.Topological);
+            OnSlotsChanged();
 
             if (foundSlot == null)
                 return;
@@ -544,7 +528,13 @@ namespace UnityEditor.ShaderGraph
             //remove slots
             m_Slots.RemoveAll(x => x.id == slotId);
 
+            OnSlotsChanged();
+        }
+
+        protected virtual void OnSlotsChanged()
+        {
             Dirty(ModificationScope.Topological);
+            owner?.ClearErrorsForNode(this);
         }
 
         public void RemoveSlotsNameNotMatching(IEnumerable<int> slotIds, bool supressWarnings = false)

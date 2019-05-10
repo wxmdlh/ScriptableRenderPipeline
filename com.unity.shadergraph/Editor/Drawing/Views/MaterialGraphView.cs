@@ -29,7 +29,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         protected override bool canCopySelection
         {
-            get { return selection.OfType<Node>().Any() || selection.OfType<Group>().Any() || selection.OfType<BlackboardField>().Any(); }
+            get { return selection.OfType<IShaderNodeView>().Any(x => x.node.canCopyNode) || selection.OfType<Group>().Any() || selection.OfType<BlackboardField>().Any(); }
         }
 
         public MaterialGraphView(GraphData graph) : this()
@@ -150,6 +150,14 @@ namespace UnityEditor.ShaderGraph.Drawing
                 evt.menu.AppendAction("Collapse Previews", CollapsePreviews, (a) => DropdownMenuAction.Status.Normal);
                 evt.menu.AppendAction("Expand Previews", ExpandPreviews, (a) => DropdownMenuAction.Status.Normal);
                 evt.menu.AppendSeparator();
+            }
+        }
+
+        protected override bool canDeleteSelection
+        {
+            get
+            {
+                return selection.Any(x => !(x is IShaderNodeView nodeView) || nodeView.node.canDeleteNode);
             }
         }
 
@@ -290,8 +298,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         DropdownMenuAction.Status ConvertToSubgraphStatus(DropdownMenuAction action)
         {
             if (onConvertToSubgraphClick == null) return DropdownMenuAction.Status.Hidden;
-            if (graph.isSubGraph) return DropdownMenuAction.Status.Hidden;
-            return selection.OfType<IShaderNodeView>().Any(v => v.node != null) ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Hidden;
+            return selection.OfType<IShaderNodeView>().Any(v => v.node != null && v.node.allowedInSubGraph && !(v.node is SubGraphOutputNode) ) ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Hidden;
         }
 
         void ConvertToSubgraph(DropdownMenuAction action)
@@ -302,7 +309,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         string SerializeGraphElementsImplementation(IEnumerable<GraphElement> elements)
         {
             var groups = elements.OfType<ShaderGroup>().Select(x => x.userData);
-            var nodes = elements.OfType<IShaderNodeView>().Select(x => (AbstractMaterialNode)x.node);
+            var nodes = elements.OfType<IShaderNodeView>().Select(x => x.node).Where(x => x.canCopyNode);
             var edges = elements.OfType<Edge>().Select(x => x.userData).OfType<IEdge>();
             var properties = selection.OfType<BlackboardField>().Select(x => x.userData as AbstractShaderProperty);
 
@@ -310,7 +317,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             var propertyNodeGuids = nodes.OfType<PropertyNode>().Select(x => x.propertyGuid);
             var metaProperties = this.graph.properties.Where(x => propertyNodeGuids.Contains(x.guid));
 
-            var graph = new CopyPasteGraph(this.graph.guid, groups, nodes, edges, properties, metaProperties);
+            var graph = new CopyPasteGraph(this.graph.assetGuid, groups, nodes, edges, properties, metaProperties);
             return JsonUtility.ToJson(graph, true);
         }
 
@@ -343,7 +350,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             }
 
             graph.owner.RegisterCompleteObjectUndo(operationName);
-            graph.RemoveElements(selection.OfType<IShaderNodeView>().Where(v => !(v.node is SubGraphOutputNode)).Select(x => (AbstractMaterialNode)x.node),
+            graph.RemoveElements(selection.OfType<IShaderNodeView>().Where(v => !(v.node is SubGraphOutputNode) && v.node.canDeleteNode).Select(x => x.node),
                 selection.OfType<Edge>().Select(x => x.userData).OfType<IEdge>(),
                 selection.OfType<ShaderGroup>().Select(x => x.userData));
 
@@ -364,7 +371,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         static bool ValidateObjectForDrop(Object obj)
         {
-            return EditorUtility.IsPersistent(obj) && (obj is Texture2D || obj is Cubemap || obj is MaterialSubGraphAsset || obj is Texture2DArray || obj is Texture3D);
+            return EditorUtility.IsPersistent(obj) && (obj is Texture2D || obj is Cubemap || obj is SubGraphAsset || obj is Texture2DArray || obj is Texture3D);
         }
 
         static void OnDragUpdatedEvent(DragUpdatedEvent e)
@@ -508,7 +515,7 @@ namespace UnityEditor.ShaderGraph.Drawing
                     inputslot.cubemap = cubemap;
             }
 
-            var subGraphAsset = obj as MaterialSubGraphAsset;
+            var subGraphAsset = obj as SubGraphAsset;
             if (subGraphAsset != null)
             {
                 graph.owner.RegisterCompleteObjectUndo("Drag Sub-Graph");
@@ -576,7 +583,7 @@ namespace UnityEditor.ShaderGraph.Drawing
                     var remappedEdges = remappedEdgesDisposable.value;
                     graphView.graph.PasteGraph(copyGraph, remappedNodes, remappedEdges);
 
-                    if (graphView.graph.guid != copyGraph.sourceGraphGuid)
+                    if (graphView.graph.assetGuid != copyGraph.sourceGraphGuid)
                     {
                         // Compute the mean of the copied nodes.
                         Vector2 centroid = Vector2.zero;
