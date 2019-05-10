@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added multipass support for VR
 - Added XR SDK integration (multipass only)
 - Added Shader Graph samples for Hair, Fabric and Decal master nodes.
+- `Fixed`, `Viewer`, and `Automatic` modes to compute the FOV used when rendering a `PlanarReflectionProbe`
+- A checkbox to toggle the chrome gizmo of `ReflectionProbe`and `PlanarReflectionProbe`
 
 ### Fixed
 - Fixed deserialization crash at runtime
@@ -63,6 +65,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed NaNs arising during the hair lighting pass
 - Fixed synchronization issue in decal HTile that occasionally caused rendering artifacts around decal borders
 - Fixed QualitySettings getting marked as modified by HDRP (and thus checked out in Perforce)
+- The correct preview is displayed when selecting multiple `PlanarReflectionProbe`s
 
 ### Changed
 - Refactor PixelCoordToViewDirWS to be VR compatible and to compute it only once per frame
@@ -174,8 +177,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added depth-of-field support with stereo instancing
 - Adding real time area light shadow support
 - Added a new FrameSettings: Specular Lighting to toggle the specular during the rendering
-- `Fixed`, `Viewer`, and `Automatic` modes to compute the FOV used when rendering a `PlanarReflectionProbe`
-- A checkbox to toggle the chrome gizmo of `ReflectionProbe`and `PlanarReflectionProbe`
 
 ### Fixed
 - Fixed diffusion profile upgrade breaking package when upgrading to a new version
@@ -191,7 +192,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed failing builds when light explorer window is open
 - Fixed cascade shadows border sometime causing artefacts between cascades
 - Restored shadows in the Cascade Shadow debug visualization
-- The correct preview is displayed when selecting multiple `PlanarReflectionProbe`s
 - `camera.RenderToCubemap` use proper face culling
 
 ### Changed
