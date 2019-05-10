@@ -1,9 +1,50 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.LWRP;
+using UnityEngine.TestTools;
 
 class EditorTests
 {
+    [Test]
+    public void CreatePipelineAssetWithoutErrors()
+    {
+        // Test without any render pipeline assigned to GraphicsSettings.
+        var renderPipelineAsset = GraphicsSettings.renderPipelineAsset;
+        GraphicsSettings.renderPipelineAsset = null;
+
+        try
+        {
+            LightweightRenderPipelineAsset asset = LightweightRenderPipelineAsset.Create();
+            LogAssert.NoUnexpectedReceived();
+            ScriptableObject.DestroyImmediate(asset);
+        }
+        finally
+        {
+            GraphicsSettings.renderPipelineAsset = renderPipelineAsset;
+        }
+    }
+
+    [Test]
+    public void CreateForwardRendererAssetWithoutErrors()
+    {
+        // Test without any render pipeline assigned to GraphicsSettings.
+        var renderPipelineAsset = GraphicsSettings.renderPipelineAsset;
+        GraphicsSettings.renderPipelineAsset = null;
+
+        try
+        {
+            var asset = ScriptableObject.CreateInstance<ForwardRendererData>();
+            ResourceReloader.ReloadAllNullIn(asset, LightweightRenderPipelineAsset.packagePath);
+            LogAssert.NoUnexpectedReceived();
+            ScriptableObject.DestroyImmediate(asset);
+        }
+        finally
+        {
+            GraphicsSettings.renderPipelineAsset = renderPipelineAsset;
+        }
+    }
+
     // When creating LWRP all required resources should be initialized.
     [Test]
     public void ValidateNewAssetResources()
