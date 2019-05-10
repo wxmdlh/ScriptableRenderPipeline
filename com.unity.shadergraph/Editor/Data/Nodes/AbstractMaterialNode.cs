@@ -177,8 +177,6 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
-        public int version { get; set; }
-
         #region Custom Colors
 
         [SerializeField]
@@ -468,6 +466,7 @@ namespace UnityEditor.ShaderGraph
             DictionaryPool<DynamicMatrixMaterialSlot, ConcreteSlotValueType>.Release(dynamicMatrixInputSlotsToCompare);
         }
 
+        public int version { get; set; }
         public virtual bool canCopyNode => true;
         //True if error
         protected virtual bool CalculateNodeHasError(ref string errorMessage)
