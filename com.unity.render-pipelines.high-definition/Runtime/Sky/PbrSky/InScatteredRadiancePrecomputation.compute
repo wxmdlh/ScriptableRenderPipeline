@@ -168,11 +168,16 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float3 airInScatterTerm0     = viewTransm * lightTransm * AirScatter(height);
     float3 aerosolInScatterTerm0 = viewTransm * lightTransm * AerosolScatter(height);
 
-    // const int numSamples = 4096;
+    // Eye-balled number of samples.
     const int numSamples = 256;
+    // const int numSamples = 4096;
+
     for (int i = 0; i < numSamples; i++)
     {
-        float t1 = tMin + (tMax - tMin) * Sq((i + 1) * rcp(numSamples));
+        // Use (n = 1/2) when looking down, and (n = 2) when looking up.
+        // TODO: use exponential media importance sampling...
+        float n  = lerp(0.5, 2, saturate(cosChi * 0.5 + 0.5));
+        float t1 = tMin + (tMax - tMin) * pow((i + 1) * rcp(numSamples), n);
         float dt = t1 - t0;
 
         float3 P = O + t1 * -V;
