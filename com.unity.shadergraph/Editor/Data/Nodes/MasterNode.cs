@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.UIElements;
+using UnityEditor.ShaderGraph.Drawing.Inspector;
 
 namespace UnityEditor.ShaderGraph
 {
@@ -168,5 +169,7 @@ namespace UnityEditor.ShaderGraph
         {
             return null;
         }
+
+        public virtual void SetPreviewView(MasterPreviewView previewView) {}
     }
 }

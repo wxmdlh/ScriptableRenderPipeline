@@ -46,6 +46,8 @@ namespace UnityEditor.ShaderGraph.Drawing
             get { return m_BlackboardProvider; }
         }
 
+        public MasterPreviewView masterPreviewView => m_MasterPreviewView;
+
         const string k_ToggleSettings = "UnityEditor.ShaderGraph.ToggleSettings";
         ToggleSettings m_ToggleSettings;
 
@@ -218,6 +220,8 @@ namespace UnityEditor.ShaderGraph.Drawing
             var masterPreviewViewDraggable = new WindowDraggable(null, this);
             m_MasterPreviewView.AddManipulator(masterPreviewViewDraggable);
             m_GraphView.Add(m_MasterPreviewView);
+
+            (m_Graph.outputNode as IMasterNode)?.SetPreviewView(m_MasterPreviewView);
 
             masterPreviewViewDraggable.OnDragFinished += UpdateSerializedWindowLayout;
             m_MasterPreviewView.previewResizeBorderFrame.OnResizeFinished += UpdateSerializedWindowLayout;

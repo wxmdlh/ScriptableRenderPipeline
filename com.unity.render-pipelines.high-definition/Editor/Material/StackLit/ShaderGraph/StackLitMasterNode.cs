@@ -914,21 +914,19 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public override void CollectShaderProperties(PropertyCollector collector, GenerationMode generationMode)
         {
             // Hack to apply HDRP material keywords on preview material
-            UnityEditor.ShaderGraph.Drawing.HackedPreview.OnCompiled = (Material previewMaterial) => {
-                // Fixup the material settings:
-                previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
-                previewMaterial.SetFloat("_DoubleSidedNormalMode", (int)doubleSidedMode);
-                previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
-                previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
-                previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
-                previewMaterial.SetFloat("_DistortionDepthTest", distortionDepthTest.isOn ? 1.0f : 0.0f);
-                previewMaterial.SetFloat("_DistortionEnable", distortion.isOn ? 1.0f : 0.0f);
-                // No sorting priority for shader graph preview
-                var renderingPass = surfaceType == SurfaceType.Opaque ? HDRenderQueue.RenderQueueType.Opaque : HDRenderQueue.RenderQueueType.Transparent;
-                previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
+            // UnityEditor.ShaderGraph.Drawing.HackedPreview.OnCompiled = (Material previewMaterial) => {
+            //     // Fixup the material settings:
+            //     previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
+            //     previewMaterial.SetFloat("_DoubleSidedNormalMode", (int)doubleSidedMode);
+            //     previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
+            //     previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
+            //     previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
+            //     // No sorting priority for shader graph preview
+            //     var renderingPass = surfaceType == SurfaceType.Opaque ? HDRenderQueue.RenderQueueType.Opaque : HDRenderQueue.RenderQueueType.Transparent;
+            //     previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
                 
-                LitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
-            };
+            //     LitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
+            // };
 
             if (debug.isOn)
             {

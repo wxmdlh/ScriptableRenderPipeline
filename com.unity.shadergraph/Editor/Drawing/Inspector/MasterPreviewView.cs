@@ -26,6 +26,8 @@ namespace UnityEditor.ShaderGraph.Drawing.Inspector
             get { return m_PreviewTextureView; }
         }
 
+        public PreviewManager previewManager => m_PreviewManager;
+
         Vector2 m_PreviewScrollPosition;
         ObjectField m_PreviewMeshPicker;
 
