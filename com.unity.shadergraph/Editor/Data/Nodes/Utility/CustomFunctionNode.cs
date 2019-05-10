@@ -57,7 +57,7 @@ namespace UnityEditor.ShaderGraph
 
         const string k_DefaultFunctionName = "Enter function name here...";
 
-        public string functionName 
+        public string functionName
         {
             get => m_FunctionName;
             set => m_FunctionName = value;
@@ -107,7 +107,7 @@ namespace UnityEditor.ShaderGraph
                 }
                 return;
             }
-            
+
             foreach (var argument in slots)
                 visitor.AddShaderChunk(string.Format("{0} _{1}_{2};",
                     NodeUtils.ConvertConcreteSlotValueTypeToString(precision, argument.concreteValueType),
@@ -115,7 +115,7 @@ namespace UnityEditor.ShaderGraph
 
             string call = string.Format("{0}_{1}(", functionName, precision);
             bool first = true;
-            
+
             slots.Clear();
             GetInputSlots<MaterialSlot>(slots);
             foreach (var argument in slots)
@@ -228,7 +228,23 @@ namespace UnityEditor.ShaderGraph
             }
 
             bool validFunctionSource = !string.IsNullOrEmpty(functionSource) && functionSource != k_DefaultFunctionSource;
-            return validFunctionName & validFunctionSource;
+                return validFunctionName & validFunctionSource;
+            }
+
+        void ValidateSlotName()
+        {
+            List<MaterialSlot> slots = new List<MaterialSlot>();
+            GetSlots(slots);
+
+            foreach (var slot in slots)
+            {
+                var error = NodeUtils.ValidateSlotName(slot.RawDisplayName(), out string errorMessage);
+                if (error)
+                {
+                    owner.AddValidationError(tempId, errorMessage);
+                    break;
+                }
+            }
         }
 
         public override void ValidateNode()
@@ -237,7 +253,8 @@ namespace UnityEditor.ShaderGraph
             {
                 owner.AddValidationError(tempId, k_MissingOutputSlot, ShaderCompilerMessageSeverity.Warning);
             }
-            
+            ValidateSlotName();
+
             base.ValidateNode();
         }
         

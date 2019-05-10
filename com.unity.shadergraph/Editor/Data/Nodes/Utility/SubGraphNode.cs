@@ -22,11 +22,13 @@ namespace UnityEditor.ShaderGraph
         , IMayRequireVertexColor
         , IMayRequireTime
         , IMayRequireFaceSign
+        , IMayRequireCameraOpaqueTexture
+        , IMayRequireDepthTexture
     {
         [Serializable]
         public class MinimalSubGraphNode : IHasDependencies
         {
-            [SerializeField]
+        [SerializeField]
             string m_SerializedSubGraph = string.Empty;
             
             public void GetSourceAssetDependencies(List<string> paths)
@@ -34,7 +36,7 @@ namespace UnityEditor.ShaderGraph
                 var assetReference = JsonUtility.FromJson<SubGraphAssetReference>(m_SerializedSubGraph);
                 var guid = assetReference?.subGraph?.guid;
                 if (guid != null)
-                {
+        {
                     paths.Add(AssetDatabase.GUIDToAssetPath(guid));
                 }
             }
@@ -53,7 +55,7 @@ namespace UnityEditor.ShaderGraph
 
         [Serializable]
         class AssetReference
-        {
+            {
             public long fileID = default;
             public string guid = default;
             public int type = default;
@@ -109,8 +111,8 @@ namespace UnityEditor.ShaderGraph
                 }
                 
                 name = m_SubGraph.name;
-            }
-        }
+                    }
+                }
 
         public SubGraphAsset asset
         {
@@ -222,11 +224,11 @@ namespace UnityEditor.ShaderGraph
         public void Reload(List<string> changedSubGraphs)
         {
             if (changedSubGraphs.Contains(asset.assetGuid) || asset.descendents.Any(changedSubGraphs.Contains))
-            {
-                m_SubGraph = null;
-                UpdateSlots();
-                Dirty(ModificationScope.Graph);
-            }
+        {
+            m_SubGraph = null;
+            UpdateSlots();
+            Dirty(ModificationScope.Graph);
+        }
         }
 
         public virtual void UpdateSlots()
@@ -430,7 +432,7 @@ namespace UnityEditor.ShaderGraph
             foreach (var property in asset.nodeProperties)
             {
                 properties.Add(property.GetPreviewMaterialProperty());
-            }
+        }
         }
 
         public virtual void GenerateNodeFunction(FunctionRegistry registry, GraphContext graphContext, GenerationMode generationMode)
@@ -525,6 +527,22 @@ namespace UnityEditor.ShaderGraph
                 return false;
 
             return asset.requirements.requiresVertexColor;
+        }
+
+        public bool RequiresCameraOpaqueTexture(ShaderStageCapability stageCapability)
+        {
+            if (asset == null)
+                return false;
+
+            return asset.requirements.requiresCameraOpaqueTexture;
+        }
+
+        public bool RequiresDepthTexture(ShaderStageCapability stageCapability)
+        {
+            if (asset == null)
+                return false;
+
+            return asset.requirements.requiresDepthTexture;
         }
     }
 }
