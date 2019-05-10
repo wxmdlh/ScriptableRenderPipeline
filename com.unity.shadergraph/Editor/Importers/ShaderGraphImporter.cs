@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ using UnityEditor.Graphing.Util;
 
 namespace UnityEditor.ShaderGraph
 {
-    [ScriptedImporter(26, Extension, 3)]
+    [ScriptedImporter(27, Extension)]
     class ShaderGraphImporter : ScriptedImporter
     {
         public const string Extension = "shadergraph";
@@ -56,19 +57,25 @@ Shader ""Hidden/GraphErrorShader2""
     Fallback Off
 }";
 
+        [SuppressMessage("ReSharper", "UnusedMember.Local")]
+        static string[] GatherDependenciesFromSourceFile(string assetPath)
+        {
+            return MinimalGraphData.GetDependencies(assetPath);
+        }
+
         public override void OnImportAsset(AssetImportContext ctx)
         {
             var oldShader = AssetDatabase.LoadAssetAtPath<Shader>(ctx.assetPath);
             if (oldShader != null)
                 ShaderUtil.ClearShaderMessages(oldShader);
 
-            List<PropertyCollector.TextureInfo> configuredTextures;
             string path = ctx.assetPath;
             var sourceAssetDependencyPaths = new List<string>();
-            var text = GetShaderText(path, out configuredTextures, sourceAssetDependencyPaths, out var graph);
+
+            var text = GetShaderText(path, out var configuredTextures, out var graph, sourceAssetDependencyPaths);
             var shader = ShaderUtil.CreateShaderAsset(text);
             
-            if (graph.messageManager.nodeMessagesChanged)
+            if (graph != null && graph.messageManager.nodeMessagesChanged)
             {
                 foreach (var pair in graph.messageManager.GetNodeMessages())
                 {
@@ -98,11 +105,12 @@ Shader ""Hidden/GraphErrorShader2""
                     Debug.LogWarning($"Invalid dependency path: {sourceAssetDependencyPath}", shader);
                     continue;
                 }
+                
                 ctx.DependsOnSourceAsset(sourceAssetDependencyPath);
             }
         }
 
-        static string GetShaderText(string path, out List<PropertyCollector.TextureInfo> configuredTextures, List<string> sourceAssetDependencyPaths, out GraphData graph)
+        static string GetShaderText(string path, out List<PropertyCollector.TextureInfo> configuredTextures, out GraphData graph, List<string> sourceAssetDependencyPaths)
         {
             graph = null;
             string shaderString = null;
@@ -120,22 +128,15 @@ Shader ""Hidden/GraphErrorShader2""
                     shaderName = graph.path + "/" + shaderName;
                 shaderString = ((IMasterNode)graph.outputNode).GetShader(GenerationMode.ForReals, shaderName, out configuredTextures, sourceAssetDependencyPaths);
 
-                if (sourceAssetDependencyPaths != null)
-                {
-                    foreach (var node in graph.GetNodes<AbstractMaterialNode>())
-                        node.GetSourceAssetDependencies(sourceAssetDependencyPaths);
-                }
-
                 if (graph.messageManager.nodeMessagesChanged)
                 {
                     shaderString = null;
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Debug.LogException(e);
                 configuredTextures = new List<PropertyCollector.TextureInfo>();
-
-                // ignored
             }
 
             return shaderString ?? k_ErrorShader.Replace("Hidden/GraphErrorShader2", shaderName);
@@ -143,7 +144,7 @@ Shader ""Hidden/GraphErrorShader2""
 
         internal static string GetShaderText(string path, out List<PropertyCollector.TextureInfo> configuredTextures)
         {
-            return GetShaderText(path, out configuredTextures, null, out _);
+            return GetShaderText(path, out configuredTextures, out _, null);
         }
     }
 }

@@ -55,12 +55,18 @@ namespace UnityEditor.ShaderGraph
                 UpdateAfterAssetChange(movedAssets);
             }
 
-            if (anyMovedShaderGraphs || importedAssets.Any(val => val.EndsWith(ShaderSubGraphImporter.Extension, StringComparison.InvariantCultureIgnoreCase)))
+            var changedSubGraphs = movedAssets.Union(importedAssets)
+                .Where(x => x.EndsWith(ShaderSubGraphImporter.Extension, StringComparison.InvariantCultureIgnoreCase))
+                .Select(AssetDatabase.AssetPathToGUID)
+                .Distinct()
+                .ToList();
+
+            if (changedSubGraphs.Count > 0)
             {
                 var windows = Resources.FindObjectsOfTypeAll<MaterialGraphEditWindow>();
                 foreach (var window in windows)
                 {
-                    window.reloadSubGraphs = true;
+                    window.changedSubGraphs = changedSubGraphs;
                 }
             }
         }

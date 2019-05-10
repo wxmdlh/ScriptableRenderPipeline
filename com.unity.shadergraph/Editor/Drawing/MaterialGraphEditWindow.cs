@@ -29,7 +29,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         bool m_HasError;
 
         [NonSerialized]
-        public bool reloadSubGraphs;
+        public List<string> changedSubGraphs;
 
         ColorSpace m_ColorSpace;
         RenderPipelineAsset m_RenderPipelineAsset;
@@ -145,17 +145,17 @@ namespace UnityEditor.ShaderGraph.Drawing
                     graphObject.Validate();
                 }
 
-                if (reloadSubGraphs)
+                if (changedSubGraphs != null)
                 {
                     if (graphObject != null && graphObject.graph != null)
                     {
                         foreach (var subGraphNode in graphObject.graph.GetNodes<SubGraphNode>())
                         {
-                            subGraphNode.Reload();
+                            subGraphNode.Reload(changedSubGraphs);
                         }
                     }
 
-                    reloadSubGraphs = false;
+                    changedSubGraphs = null;
                 }
 
                 if (graphObject.wasUndoRedoPerformed)
@@ -448,7 +448,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             ds.position = new Rect(middle - new Vector2(100f, 150f), Vector2.zero);
             subGraphNode.drawState = ds;
             graphObject.graph.AddNode(subGraphNode);
-            subGraphNode.subGraphAsset = loadedSubGraph;
+            subGraphNode.asset = loadedSubGraph;
 
             foreach (var edgeMap in externalInputNeedingConnection)
             {

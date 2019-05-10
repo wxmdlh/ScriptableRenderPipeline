@@ -9,10 +9,32 @@ using UnityEditor.ShaderGraph.Drawing;
 
 namespace UnityEditor.ShaderGraph
 {
+    [HasDependencies(typeof(MinimalCustomFunctionNode))]
     [Title("Utility", "Custom Function")]
     class CustomFunctionNode : AbstractMaterialNode, IGeneratesBodyCode, IGeneratesFunction, IHasSettings
     {
-        static string s_MissingOutputSlot = "A Custom Function Node must have at least one output slot";
+        [Serializable]
+        public class MinimalCustomFunctionNode : IHasDependencies
+        {
+            [SerializeField]
+            HlslSourceType m_SourceType = HlslSourceType.File;
+
+            [SerializeField]
+            string m_FunctionName = k_DefaultFunctionName;
+        
+            [SerializeField]
+            string m_FunctionSource = null;
+        
+            public void GetSourceAssetDependencies(List<string> paths)
+            {
+                if (m_SourceType == HlslSourceType.File && IsValidFunction(m_SourceType, m_FunctionName, m_FunctionSource, null))
+                {
+                    paths.Add(m_FunctionSource);
+                }
+            }
+        }
+
+        const string k_MissingOutputSlot = "A Custom Function Node must have at least one output slot";
 
         public CustomFunctionNode()
         {
@@ -31,9 +53,9 @@ namespace UnityEditor.ShaderGraph
         }
 
         [SerializeField]
-        private string m_FunctionName = m_DefaultFunctionName;
+        private string m_FunctionName = k_DefaultFunctionName;
 
-        private static string m_DefaultFunctionName = "Enter function name here...";
+        const string k_DefaultFunctionName = "Enter function name here...";
 
         public string functionName 
         {
@@ -41,12 +63,12 @@ namespace UnityEditor.ShaderGraph
             set => m_FunctionName = value;
         }
 
-        public static string defaultFunctionName => m_DefaultFunctionName;
+        public static string defaultFunctionName => k_DefaultFunctionName;
 
         [SerializeField]
-        private string m_FunctionSource = m_DefaultFunctionSource;
+        private string m_FunctionSource = k_DefaultFunctionSource;
 
-        private static string m_DefaultFunctionSource = "Enter function source file path here...";
+        const string k_DefaultFunctionSource = "Enter function source file path here...";
 
         public string functionSource
         {
@@ -54,12 +76,12 @@ namespace UnityEditor.ShaderGraph
             set => m_FunctionSource = value;
         }
 
-        public static string defaultFunctionSource => m_DefaultFunctionSource;
+        public static string defaultFunctionSource => k_DefaultFunctionSource;
 
         [SerializeField]
-        private string m_FunctionBody = m_DefaultFunctionBody;
+        private string m_FunctionBody = k_DefaultFunctionBody;
 
-        private static string m_DefaultFunctionBody = "Enter function body here...";
+        const string k_DefaultFunctionBody = "Enter function body here...";
 
         public string functionBody
         {
@@ -67,7 +89,7 @@ namespace UnityEditor.ShaderGraph
             set => m_FunctionBody = value;
         }
 
-        public static string defaultFunctionBody => m_DefaultFunctionBody;
+        public static string defaultFunctionBody => k_DefaultFunctionBody;
 
         public void GenerateNodeCode(ShaderGenerator visitor, GraphContext graphContext, GenerationMode generationMode)
         {
@@ -190,41 +212,33 @@ namespace UnityEditor.ShaderGraph
             return port.GetDefaultValue(generationMode);
         }
 
-        private bool IsValidFunction()
+        bool IsValidFunction()
         {
-            bool validFunctionName = !string.IsNullOrEmpty(functionName) && functionName != m_DefaultFunctionName;
+            return IsValidFunction(sourceType, functionName, functionSource, functionBody);
+        }
+
+        static bool IsValidFunction(HlslSourceType sourceType, string functionName, string functionSource, string functionBody)
+        {
+            bool validFunctionName = !string.IsNullOrEmpty(functionName) && functionName != k_DefaultFunctionName;
 
             if(sourceType == HlslSourceType.String)
             {
-                bool validFunctionBody = !string.IsNullOrEmpty(functionBody) && functionBody != m_DefaultFunctionBody;
+                bool validFunctionBody = !string.IsNullOrEmpty(functionBody) && functionBody != k_DefaultFunctionBody;
                 return validFunctionName & validFunctionBody;
             }
-            else
-            {
-                bool validFunctionSource = !string.IsNullOrEmpty(functionSource) && functionSource != m_DefaultFunctionSource;
-                return validFunctionName & validFunctionSource;
-            }
+
+            bool validFunctionSource = !string.IsNullOrEmpty(functionSource) && functionSource != k_DefaultFunctionSource;
+            return validFunctionName & validFunctionSource;
         }
 
         public override void ValidateNode()
         {
             if (!this.GetOutputSlots<MaterialSlot>().Any())
             {
-                owner.AddValidationError(tempId, s_MissingOutputSlot, ShaderCompilerMessageSeverity.Warning);
+                owner.AddValidationError(tempId, k_MissingOutputSlot, ShaderCompilerMessageSeverity.Warning);
             }
             
             base.ValidateNode();
-        }
-        
-        public override void GetSourceAssetDependencies(List<string> paths)
-        {
-            base.GetSourceAssetDependencies(paths);
-            if (sourceType == HlslSourceType.File && IsValidFunction())
-            {
-                paths.Add(functionSource);
-                foreach (var dependencyPath in AssetDatabase.GetDependencies(functionSource))
-                    paths.Add(dependencyPath);
-            }
         }
         
         public VisualElement CreateSettingsElement()
