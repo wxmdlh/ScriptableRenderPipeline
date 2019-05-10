@@ -75,6 +75,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             emissiveColorLDR = FindProperty(kEmissiveColorLDR);
             useEmissiveIntensity = FindProperty(kUseEmissiveIntensity);
             albedoAffectEmissive = FindProperty(kAlbedoAffectEmissive);
+            UVEmissive = FindProperty(kUVEmissive);
         }
 
         public override void OnGUI()

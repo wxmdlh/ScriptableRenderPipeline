@@ -34,6 +34,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent useEmissionIntensityText = new GUIContent("Use Emission Intensity", "When enabled, this Material separates emission color and intensity. This makes the Emission Map into an LDR color and exposes the Emission Intensity property.");
             public static GUIContent emissionMapText = new GUIContent("Emission Map", "Specifies a map (RGB) that the Material uses for emission.");
             public static GUIContent emissiveIntensityText = new GUIContent("Emission Intensity", "Sets the overall strength of the emission effect.");
+            public static GUIContent emissiveExposureWeightText = new GUIContent("Exposure weight", "Control the percentage of emission to expose.");
 
             public static GUIContent[] maskMapText =
             {
@@ -63,90 +64,93 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             BaseColorMapAlpha,
             MaskMapBlue
         }
-        protected string[] blendSourceNames = Enum.GetNames(typeof(BlendSource));
+        string[] blendSourceNames = Enum.GetNames(typeof(BlendSource));
 
-        protected string[] blendModeNames = Enum.GetNames(typeof(BlendMode));
+        string[] blendModeNames = Enum.GetNames(typeof(BlendMode));
 
-        protected MaterialProperty baseColorMap = new MaterialProperty();
-        protected const string kBaseColorMap = "_BaseColorMap";
+        MaterialProperty baseColorMap = new MaterialProperty();
+        const string kBaseColorMap = "_BaseColorMap";
 
-        protected MaterialProperty baseColor = new MaterialProperty();
-        protected const string kBaseColor = "_BaseColor";
+        MaterialProperty baseColor = new MaterialProperty();
+        const string kBaseColor = "_BaseColor";
 
-        protected MaterialProperty normalMap = new MaterialProperty();
-        protected const string kNormalMap = "_NormalMap";
+        MaterialProperty normalMap = new MaterialProperty();
+        const string kNormalMap = "_NormalMap";
 
-        protected MaterialProperty maskMap = new MaterialProperty();
-        protected const string kMaskMap = "_MaskMap";
+        MaterialProperty maskMap = new MaterialProperty();
+        const string kMaskMap = "_MaskMap";
 
-        protected MaterialProperty decalBlend = new MaterialProperty();
-        protected const string kDecalBlend = "_DecalBlend";
+        MaterialProperty decalBlend = new MaterialProperty();
+        const string kDecalBlend = "_DecalBlend";
 
-        protected MaterialProperty albedoMode = new MaterialProperty();
-        protected const string kAlbedoMode = "_AlbedoMode";
+        MaterialProperty albedoMode = new MaterialProperty();
+        const string kAlbedoMode = "_AlbedoMode";
 
-        protected MaterialProperty normalBlendSrc = new MaterialProperty();
-        protected const string kNormalBlendSrc = "_NormalBlendSrc";
+        MaterialProperty normalBlendSrc = new MaterialProperty();
+        const string kNormalBlendSrc = "_NormalBlendSrc";
 
-        protected MaterialProperty maskBlendSrc = new MaterialProperty();
-        protected const string kMaskBlendSrc = "_MaskBlendSrc";
+        MaterialProperty maskBlendSrc = new MaterialProperty();
+        const string kMaskBlendSrc = "_MaskBlendSrc";
 
-        protected MaterialProperty maskBlendMode = new MaterialProperty();
-        protected const string kMaskBlendMode = "_MaskBlendMode";
+        MaterialProperty maskBlendMode = new MaterialProperty();
+        const string kMaskBlendMode = "_MaskBlendMode";
 
-        protected MaterialProperty maskmapMetal = new MaterialProperty();
-        protected const string kMaskmapMetal = "_MaskmapMetal";
+        MaterialProperty maskmapMetal = new MaterialProperty();
+        const string kMaskmapMetal = "_MaskmapMetal";
 
-        protected MaterialProperty maskmapAO = new MaterialProperty();
-        protected const string kMaskmapAO = "_MaskmapAO";
+        MaterialProperty maskmapAO = new MaterialProperty();
+        const string kMaskmapAO = "_MaskmapAO";
 
-        protected MaterialProperty maskmapSmoothness = new MaterialProperty();
-        protected const string kMaskmapSmoothness = "_MaskmapSmoothness";
+        MaterialProperty maskmapSmoothness = new MaterialProperty();
+        const string kMaskmapSmoothness = "_MaskmapSmoothness";
 
-        protected const string kDecalStencilWriteMask = "_DecalStencilWriteMask";
-        protected const string kDecalStencilRef = "_DecalStencilRef";
+        const string kDecalStencilWriteMask = "_DecalStencilWriteMask";
+        const string kDecalStencilRef = "_DecalStencilRef";
 
-        protected MaterialProperty AORemapMin = new MaterialProperty();
-        protected const string kAORemapMin = "_AORemapMin";
+        MaterialProperty AORemapMin = new MaterialProperty();
+        const string kAORemapMin = "_AORemapMin";
 
-        protected MaterialProperty AORemapMax = new MaterialProperty();
-        protected const string kAORemapMax = "_AORemapMax";
+        MaterialProperty AORemapMax = new MaterialProperty();
+        const string kAORemapMax = "_AORemapMax";
 
-        protected MaterialProperty smoothnessRemapMin = new MaterialProperty();
-        protected const string kSmoothnessRemapMin = "_SmoothnessRemapMin";
+        MaterialProperty smoothnessRemapMin = new MaterialProperty();
+        const string kSmoothnessRemapMin = "_SmoothnessRemapMin";
 
-        protected MaterialProperty smoothnessRemapMax = new MaterialProperty();
-        protected const string kSmoothnessRemapMax = "_SmoothnessRemapMax";
+        MaterialProperty smoothnessRemapMax = new MaterialProperty();
+        const string kSmoothnessRemapMax = "_SmoothnessRemapMax";
 
-        protected MaterialProperty metallicScale = new MaterialProperty();
-        protected const string kMetallicScale = "_MetallicScale";
+        MaterialProperty metallicScale = new MaterialProperty();
+        const string kMetallicScale = "_MetallicScale";
 
-        protected MaterialProperty maskMapBlueScale = new MaterialProperty();
-        protected const string kMaskMapBlueScale = "_DecalMaskMapBlueScale";
+        MaterialProperty maskMapBlueScale = new MaterialProperty();
+        const string kMaskMapBlueScale = "_DecalMaskMapBlueScale";
 
-        protected MaterialProperty emissiveColor = new MaterialProperty();
-        protected const string kEmissiveColor = "_EmissiveColor";
+        MaterialProperty emissiveColor = new MaterialProperty();
+        const string kEmissiveColor = "_EmissiveColor";
 
-        protected MaterialProperty emissiveColorMap = new MaterialProperty();
-        protected const string kEmissiveColorMap = "_EmissiveColorMap";
+        MaterialProperty emissiveColorMap = new MaterialProperty();
+        const string kEmissiveColorMap = "_EmissiveColorMap";
 
-        protected MaterialProperty emissive = new MaterialProperty();
-        protected const string kEmissive = "_Emissive";
+        MaterialProperty emissive = new MaterialProperty();
+        const string kEmissive = "_Emissive";
 
-        protected MaterialProperty emissiveIntensity = null;
-        protected const string kEmissiveIntensity = "_EmissiveIntensity";
+        MaterialProperty emissiveIntensity = null;
+        const string kEmissiveIntensity = "_EmissiveIntensity";
 
-        protected MaterialProperty emissiveIntensityUnit = null;
-        protected const string kEmissiveIntensityUnit = "_EmissiveIntensityUnit";
+        MaterialProperty emissiveIntensityUnit = null;
+        const string kEmissiveIntensityUnit = "_EmissiveIntensityUnit";
 
-        protected MaterialProperty useEmissiveIntensity = null;
-        protected const string kUseEmissiveIntensity = "_UseEmissiveIntensity";
+        MaterialProperty useEmissiveIntensity = null;
+        const string kUseEmissiveIntensity = "_UseEmissiveIntensity";
 
-        protected MaterialProperty emissiveColorLDR = null;
-        protected const string kEmissiveColorLDR = "_EmissiveColorLDR";
+        MaterialProperty emissiveColorLDR = null;
+        const string kEmissiveColorLDR = "_EmissiveColorLDR";
 
-        protected MaterialProperty emissiveColorHDR = null;
-        protected const string kEmissiveColorHDR = "_EmissiveColorHDR";
+        MaterialProperty emissiveColorHDR = null;
+        const string kEmissiveColorHDR = "_EmissiveColorHDR";
+        
+        MaterialProperty emissiveExposureWeight = null;
+        const string kEmissiveExposureWeight = "_EmissiveExposureWeight";
 
         public DecalSurfaceInputsUIBlock(Expandable expandableBit)
         {
@@ -173,6 +177,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             smoothnessRemapMax = FindProperty(kSmoothnessRemapMax);
             metallicScale = FindProperty(kMetallicScale);
             maskMapBlueScale = FindProperty(kMaskMapBlueScale);
+
+            // TODO: move emission to the EmissionUIBlock ?
             emissiveColor = FindProperty(kEmissiveColor);
             emissiveColorMap = FindProperty(kEmissiveColorMap);
             emissive = FindProperty(kEmissive);
@@ -181,6 +187,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             emissiveIntensity = FindProperty(kEmissiveIntensity);
             emissiveColorLDR = FindProperty(kEmissiveColorLDR);
             emissiveColorHDR = FindProperty(kEmissiveColorHDR);
+            emissiveExposureWeight = FindProperty(kEmissiveExposureWeight);
 
             // always instanced
             SerializedProperty instancing = materialEditor.serializedObject.FindProperty("m_EnableInstancingVariants");
@@ -290,7 +297,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 {
                     materialEditor.ShaderProperty(useEmissiveIntensity, Styles.useEmissionIntensityText);
                     
-                    if(useEmissiveIntensity.floatValue == 1.0f)
+                    if (useEmissiveIntensity.floatValue == 1.0f)
                     {
                         materialEditor.TexturePropertySingleLine(Styles.emissionMapText, emissiveColorMap, emissiveColorLDR);
                         using (new EditorGUILayout.HorizontalScope())
@@ -312,6 +319,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     {
                         materialEditor.TexturePropertySingleLine(Styles.emissionMapText, emissiveColorMap, emissiveColorHDR);
                     }
+
+                    materialEditor.ShaderProperty(emissiveExposureWeight, Styles.emissiveExposureWeightText);
                 }
 
                 EditorGUI.indentLevel--;
