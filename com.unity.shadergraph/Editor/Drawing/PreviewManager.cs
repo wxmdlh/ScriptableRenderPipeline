@@ -14,16 +14,7 @@ using Object = UnityEngine.Object;
 namespace UnityEditor.ShaderGraph.Drawing
 {
     delegate void OnPrimaryMasterChanged();
-
-    // HACK to access the preview material for HDRP, does not support more than one shader graph window at the same time
-    public static class HackedPreview
-    {
-        public delegate void CompiledDelegate(Material m);
-        public static CompiledDelegate OnCompiled;
-
-        public static void OnCompiledCall(Material previewMaterial) => OnCompiled?.Invoke(previewMaterial);
-    }
-    // End HACK
+    delegate void OnPreviewShaderUpdated(PreviewShaderData previewShaderData);
 
     class PreviewManager : IDisposable
     {
@@ -58,6 +49,11 @@ namespace UnityEditor.ShaderGraph.Drawing
         }
 
         public OnPrimaryMasterChanged onPrimaryMasterChanged;
+
+        /// <summary>
+        /// Called when the preview shader is updated
+        /// </summary>
+        public OnPreviewShaderUpdated onShaderUpdated;
 
         static Texture2D GenerateFourSquare(Color c1, Color c2)
         {
@@ -411,11 +407,10 @@ namespace UnityEditor.ShaderGraph.Drawing
                 if (renderData != null && renderData.shaderData.isCompiling &&
                     ShaderUtil.IsPassCompiled(renderData.shaderData.mat, 0))
                 {
-                    if (renderData.shaderData.node is IMasterNode)
-                        HackedPreview.OnCompiledCall(renderData.shaderData.mat);
                     renderData.shaderData.isCompiling = false;
                     CheckForErrors(renderData.shaderData);
                     m_NodesToDraw.Add(renderData.shaderData.node);
+                    onShaderUpdated?.Invoke(renderData.shaderData);
                 }
             }
 
