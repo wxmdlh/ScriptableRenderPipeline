@@ -28,12 +28,6 @@ namespace UnityEngine.Rendering.LWRP
             // TODO: This needs to account for stereo rendering
             public static int _InvCameraViewProj;
             public static int _ScaledScreenParams;
-
-            public static int _WorldSpaceCameraPos;
-            public static int _ProjectionParams;
-            public static int _ScreenParams;
-            public static int _ZBufferParams;
-            public static int unity_OrthoParams;
         }
 
         public const string k_ShaderTagName = "LightweightPipeline";
@@ -91,12 +85,6 @@ namespace UnityEngine.Rendering.LWRP
 
             PerCameraBuffer._InvCameraViewProj = Shader.PropertyToID("_InvCameraViewProj");
             PerCameraBuffer._ScaledScreenParams = Shader.PropertyToID("_ScaledScreenParams");
-
-            PerCameraBuffer._WorldSpaceCameraPos = Shader.PropertyToID("_WorldSpaceCameraPos");
-            PerCameraBuffer._ProjectionParams = Shader.PropertyToID("_ProjectionParams");
-            PerCameraBuffer._ScreenParams = Shader.PropertyToID("_ScreenParams");
-            PerCameraBuffer._ZBufferParams = Shader.PropertyToID("_ZBufferParams");
-            PerCameraBuffer.unity_OrthoParams = Shader.PropertyToID("unity_OrthoParams");
 
             // Let engine know we have MSAA on for cases where we support MSAA backbuffer
             if (QualitySettings.antiAliasing != asset.msaaSampleCount)

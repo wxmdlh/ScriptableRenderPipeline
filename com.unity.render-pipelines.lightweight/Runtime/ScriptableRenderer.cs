@@ -28,13 +28,6 @@ namespace UnityEngine.Rendering.LWRP
              public Vector4 cosTime;
              public Vector4 deltaTime;
  
-             // Camera Values
-             public Vector4 wordSpaceCameraPosition;
-             public Vector4 projectionParameters;
-             public Vector4 screenParameters;
-             public Vector4 zBufferParameters;
-             public Vector4 orthographicParameters;
- 
              public void SetFrameValues(CommandBuffer cmd)
              {
                  if (cmd == null)
@@ -43,12 +36,6 @@ namespace UnityEngine.Rendering.LWRP
                      Shader.SetGlobalVector(LightweightRenderPipeline.PerFrameBuffer._SinTime, sinTime);
                      Shader.SetGlobalVector(LightweightRenderPipeline.PerFrameBuffer._CosTime, cosTime);
                      Shader.SetGlobalVector(LightweightRenderPipeline.PerFrameBuffer.unity_DeltaTime, deltaTime);
- 
-                     //Shader.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._WorldSpaceCameraPos, wordSpaceCameraPosition);
-                     //Shader.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._ProjectionParams, projectionParameters);
-                     //Shader.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._ScreenParams, screenParameters);
-                     //Shader.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._ZBufferParams, zBufferParameters);
-                     //Shader.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer.unity_OrthoParams, orthographicParameters);
                  }
                  else
                  {
@@ -56,12 +43,6 @@ namespace UnityEngine.Rendering.LWRP
                      cmd.SetGlobalVector(LightweightRenderPipeline.PerFrameBuffer._SinTime, sinTime);
                      cmd.SetGlobalVector(LightweightRenderPipeline.PerFrameBuffer._CosTime, cosTime);
                      cmd.SetGlobalVector(LightweightRenderPipeline.PerFrameBuffer.unity_DeltaTime, deltaTime);
- 
-                     //cmd.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._WorldSpaceCameraPos, wordSpaceCameraPosition);
-                     //cmd.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._ProjectionParams, projectionParameters);
-                     //cmd.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._ScreenParams, screenParameters);
-                     //cmd.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer._ZBufferParams, zBufferParameters);
-                     //cmd.SetGlobalVector(LightweightRenderPipeline.PerCameraBuffer.unity_OrthoParams, orthographicParameters);
                  }
              }
          }
@@ -123,15 +104,6 @@ namespace UnityEngine.Rendering.LWRP
         static PerFrameConstants GetFrameConstants(ref Camera camera)
         {
             // We make these parameters to mirror those described in `https://docs.unity3d.com/Manual/SL-UnityShaderVariables.html
-            float nearPlane = camera.nearClipPlane;
-            float farPlane = camera.farClipPlane;
-
-            float zBufferParametersX = 1f - nearPlane / farPlane;
-            float zBufferParametersY = farPlane / nearPlane;
-
-            float cameraOrthographicHeight = camera.orthographicSize * 2f;
-            float cameraOrthographicWidth = cameraOrthographicHeight * camera.aspect;
-
             float timeEights = Time.time / 8f;
             float timeFourth = Time.time / 4f;
             float timeHalf = Time.time / 2f;
@@ -139,25 +111,10 @@ namespace UnityEngine.Rendering.LWRP
             PerFrameConstants perFrameConstants = new PerFrameConstants();
 
             // Time values
-            perFrameConstants.time = Time.time* new Vector4(1f / 20f, 1f, 2f, 1f);
+            perFrameConstants.time = Time.time * new Vector4(1f / 20f, 1f, 2f, 1f);
             perFrameConstants.sinTime = new Vector4(Mathf.Sin(timeEights), Mathf.Sin(timeFourth), Mathf.Sin(timeHalf), Mathf.Sin(Time.time));
             perFrameConstants.cosTime = new Vector4(Mathf.Cos(timeEights), Mathf.Cos(timeFourth), Mathf.Cos(timeHalf), Mathf.Cos(Time.time));
             perFrameConstants.deltaTime = new Vector4(Time.deltaTime, 1f / Time.deltaTime, Time.smoothDeltaTime, 1f / Time.smoothDeltaTime);
-
-            // Camera values
-            perFrameConstants.wordSpaceCameraPosition = camera.transform.position;
-            perFrameConstants.projectionParameters = new Vector4(1f, nearPlane, farPlane, 1f / farPlane);
-
-
-            if (camera.activeTexture != null)
-                perFrameConstants.screenParameters = new Vector4(camera.targetTexture.width, camera.targetTexture.height, 1f + 1f / camera.targetTexture.width, 1f + 1f / camera.targetTexture.width);
-            else if (Screen.width > 0 && Screen.height > 0)
-                perFrameConstants.screenParameters = new Vector4(Screen.width, Screen.height, 1f + 1f / Screen.width, 1f + 1f / Screen.width);
-            else
-                perFrameConstants.screenParameters = Vector4.zero;
-
-            perFrameConstants.zBufferParameters = new Vector4(zBufferParametersX, zBufferParametersY, zBufferParametersX / farPlane, zBufferParametersY / farPlane);
-            perFrameConstants.orthographicParameters = new Vector4(cameraOrthographicWidth, cameraOrthographicHeight, 0f, camera.orthographic? 1f : 0f);
 
             return perFrameConstants;
         }
