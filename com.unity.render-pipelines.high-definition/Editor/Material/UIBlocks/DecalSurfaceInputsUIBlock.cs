@@ -323,8 +323,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     materialEditor.ShaderProperty(emissiveExposureWeight, Styles.emissiveExposureWeightText);
                 }
 
-                EditorGUI.indentLevel--;
-
                 EditorGUILayout.HelpBox(
                     "Enable 'Metal and AO properties' in your HDRP Asset if you want to control the Metal and AO properties of decals.\nThere is a performance cost of enabling this option.",
                     MessageType.Info);

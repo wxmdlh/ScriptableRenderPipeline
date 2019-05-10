@@ -22,7 +22,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base),
             new TessellationOptionsUIBlock(MaterialUIBlock.Expandable.Tesselation),
-            new VertexAnimationUIBlock(MaterialUIBlock.Expandable.VertexAnimation),
             new LitSurfaceInputsUIBlock(MaterialUIBlock.Expandable.Input, kMaxLayerCount, features: commonLitSurfaceInputsFeatures),
             new MaterialToCopyUIBlock(MaterialUIBlock.Expandable.MaterialReferences),
             new LayersUIBlock(),
