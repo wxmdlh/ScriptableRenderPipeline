@@ -59,7 +59,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed NaNs arising during the hair lighting pass
 - Fixed QualitySettings getting marked as modified by HDRP (and thus checked out in Perforce)
 
-
 ### Changed
 - Refactor PixelCoordToViewDirWS to be VR compatible and to compute it only once per frame
 - Modified the variants stripper to take in account multiple HDRP assets used in the build.
