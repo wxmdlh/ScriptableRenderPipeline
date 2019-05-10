@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed synchronization issue in decal HTile that occasionally caused rendering artifacts around decal borders
 - Fixed QualitySettings getting marked as modified by HDRP (and thus checked out in Perforce)
 - Fixed a bug with uninitialized values in light explorer
+- Fixed shader warnings related to raytracing and TEXTURE2D_X
 
 ### Changed
 - Refactor PixelCoordToViewDirWS to be VR compatible and to compute it only once per frame
