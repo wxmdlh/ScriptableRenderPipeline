@@ -14,7 +14,7 @@ using Object = UnityEngine.Object;
 namespace UnityEditor.ShaderGraph.Drawing
 {
     delegate void OnPrimaryMasterChanged();
-    delegate void OnMaterialUpdated(Material previewMaterial);
+    delegate void OnPreviewShaderUpdated(PreviewShaderData previewShaderData);
 
     class PreviewManager : IDisposable
     {
@@ -50,6 +50,11 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         public OnPrimaryMasterChanged onPrimaryMasterChanged;
         public OnMaterialUpdated onMaterialUpdated;
+
+        /// <summary>
+        /// Called when the preview shader is updated
+        /// </summary>
+        public OnPreviewShaderUpdated onShaderUpdated;
 
         static Texture2D GenerateFourSquare(Color c1, Color c2)
         {
@@ -406,7 +411,7 @@ namespace UnityEditor.ShaderGraph.Drawing
                     renderData.shaderData.isCompiling = false;
                     CheckForErrors(renderData.shaderData);
                     m_NodesToDraw.Add(renderData.shaderData.node);
-                    onMaterialUpdated?.Invoke(renderData.shaderData.mat);
+                    onShaderUpdated?.Invoke(renderData.shaderData);
                 }
             }
 
