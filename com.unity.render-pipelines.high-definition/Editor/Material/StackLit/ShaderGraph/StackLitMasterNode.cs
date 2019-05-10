@@ -8,6 +8,7 @@ using UnityEditor.ShaderGraph.Drawing.Controls;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.Experimental.Rendering.HDPipeline;
+using UnityEditor.ShaderGraph.Drawing.Inspector;
 
 //TODOTODO: 
 // clamp in shader code the ranged() properties
@@ -910,24 +911,33 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             return subsurfaceScattering.isOn;
         }
+    
+        public override void SetPreviewView(MasterPreviewView previewView)
+        {
+            var previewMaterial = previewView.previewManager.masterRenderData.shaderData.mat;
+            previewView.previewManager.onPrimaryMasterChanged += () => SetupPreviewMaterial(previewMaterial);
+            previewView.onMasterPreviewMaterialUpdated += (shaderData) => SetupPreviewMaterial(shaderData.mat);
+            SetupPreviewMaterial(previewMaterial);
+        }
+
+        void SetupPreviewMaterial(Material previewMaterial)
+        {
+            // Fixup the material settings:
+            previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
+            previewMaterial.SetFloat("_DoubleSidedNormalMode", (int)doubleSidedMode);
+            previewMaterial.SetFloat("_DoubleSidedEnable", doubleSidedMode != DoubleSidedMode.Disabled ? 1.0f : 0.0f);
+            previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
+            previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
+            previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
+            // No sorting priority for shader graph preview
+            var renderingPass = surfaceType == SurfaceType.Opaque ? HDRenderQueue.RenderQueueType.Opaque : HDRenderQueue.RenderQueueType.Transparent;
+            previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
+
+            LitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
+        }
 
         public override void CollectShaderProperties(PropertyCollector collector, GenerationMode generationMode)
         {
-            // Hack to apply HDRP material keywords on preview material
-            // UnityEditor.ShaderGraph.Drawing.HackedPreview.OnCompiled = (Material previewMaterial) => {
-            //     // Fixup the material settings:
-            //     previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
-            //     previewMaterial.SetFloat("_DoubleSidedNormalMode", (int)doubleSidedMode);
-            //     previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
-            //     previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
-            //     previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
-            //     // No sorting priority for shader graph preview
-            //     var renderingPass = surfaceType == SurfaceType.Opaque ? HDRenderQueue.RenderQueueType.Opaque : HDRenderQueue.RenderQueueType.Transparent;
-            //     previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
-                
-            //     LitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
-            // };
-
             if (debug.isOn)
             {
                 // We have useful debug options in StackLit, so add them always, and let the UI editor (non shadergraph) handle displaying them

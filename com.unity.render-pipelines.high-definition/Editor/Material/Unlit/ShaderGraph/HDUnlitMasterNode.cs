@@ -9,6 +9,8 @@ using UnityEditor.ShaderGraph.Drawing.Controls;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.Experimental.Rendering.HDPipeline;
+using UnityEditor.ShaderGraph.Drawing.Inspector;
+using UnityEditor.ShaderGraph.Drawing;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
@@ -282,6 +284,28 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
             return validSlots.OfType<IMayRequirePosition>().Aggregate(NeededCoordinateSpace.None, (mask, node) => mask | node.RequiresPosition(stageCapability));
         }
+
+        public override void SetPreviewView(MasterPreviewView previewView)
+        {
+            var previewMaterial = previewView.previewManager.masterRenderData.shaderData.mat;
+            previewView.previewManager.onPrimaryMasterChanged += () => SetupPreviewMaterial(previewMaterial);
+            previewView.onMasterPreviewMaterialUpdated += (shaderData) => SetupPreviewMaterial(shaderData.mat);
+            SetupPreviewMaterial(previewMaterial);
+        }
+
+        void SetupPreviewMaterial(Material previewMaterial)
+        {
+            // Fixup the material settings:
+            previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
+            previewMaterial.SetFloat("_DoubleSidedEnable", doubleSided.isOn ? 1.0f : 0.0f);
+            previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
+            previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
+            previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
+            // No sorting priority for shader graph preview
+            previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
+
+            LitGUI.SetupMaterialKeywordsAndPass(previewMaterial);
+        }
         
         public override void CollectShaderProperties(PropertyCollector collector, GenerationMode generationMode)
         {
@@ -304,20 +328,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 hidden = true,
                 value = (int)renderingPass,
             });
-
-            // Hack to apply HDRP material keywords on preview material
-            // HackedPreview.OnCompiled = (Material previewMaterial) => {
-            //     // Fixup the material settings:
-            //     previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
-            //     previewMaterial.SetFloat("_DoubleSidedEnable", doubleSided.isOn ? 1.0f : 0.0f);
-            //     previewMaterial.SetFloat("_AlphaCutoffEnable", alphaTest.isOn ? 1 : 0);
-            //     previewMaterial.SetFloat("_BlendMode", (int)HDSubShaderUtilities.ConvertAlphaModeToBlendMode(alphaMode));
-            //     previewMaterial.SetFloat("_EnableFogOnTransparent", transparencyFog.isOn ? 1.0f : 0.0f);
-            //     // No sorting priority for shader graph preview
-            //     previewMaterial.renderQueue = (int)HDRenderQueue.ChangeType(renderingPass, offset: 0, alphaTest: alphaTest.isOn);
-
-            //     UnlitGUI.SetupUnlitMaterialKeywordsAndPass(previewMaterial);
-            // };
 
             // Add all shader properties required by the inspector
             HDSubShaderUtilities.AddStencilShaderProperties(collector);

@@ -900,14 +900,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             var previewMaterial = previewView.previewManager.masterRenderData.shaderData.mat;
             previewView.previewManager.onPrimaryMasterChanged += () => SetupPreviewMaterial(previewMaterial);
-            previewView.previewManager.onMaterialUpdated += (mat) => SetupPreviewMaterial(mat);
+            previewView.onMasterPreviewMaterialUpdated += (shaderData) => SetupPreviewMaterial(shaderData.mat);
             SetupPreviewMaterial(previewMaterial);
         }
 
         void SetupPreviewMaterial(Material previewMaterial)
         {
-            Debug.Log("SETUP");
-
             // Fixup the material settings:
             previewMaterial.SetFloat("_SurfaceType", (int)(SurfaceType)surfaceType);
             previewMaterial.SetFloat("_DoubleSidedNormalMode", (int)doubleSidedMode);
