@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Debug = UnityEngine.Debug;
+using UnityEditor.VersionControl;
 
 namespace UnityEditor.ShaderGraph
 {
@@ -42,9 +43,9 @@ namespace UnityEditor.ShaderGraph
                 var asset = VersionControl.Provider.GetAssetByPath(path);
                 if (asset != null)
                 {
-                    if (VersionControl.Provider.CheckoutIsValid(asset))
+                    if (!VersionControl.Provider.IsOpenForEdit(asset))
                     {
-                        var task = VersionControl.Provider.Checkout(asset, VersionControl.CheckoutMode.Both);
+                        var task = VersionControl.Provider.Checkout(asset, VersionControl.CheckoutMode.Asset);
                         task.Wait();
 
                         if (!task.success)
