@@ -35,7 +35,7 @@ namespace UnityEditor.ShaderGraph
 
         private static string m_DefaultFunctionName = "Enter function name here...";
 
-        public string functionName 
+        public string functionName
         {
             get => m_FunctionName;
             set => m_FunctionName = value;
@@ -86,7 +86,7 @@ namespace UnityEditor.ShaderGraph
                 }
                 return;
             }
-            
+
             foreach (var argument in slots)
                 sb.AppendLine("{0} _{1}_{2};",
                     NodeUtils.ConvertConcreteSlotValueTypeToString(precision, argument.concreteValueType),
@@ -95,7 +95,7 @@ namespace UnityEditor.ShaderGraph
 
             string call = string.Format("{0}_{1}(", functionName, precision);
             bool first = true;
-            
+
             slots.Clear();
             GetInputSlots<MaterialSlot>(slots);
             foreach (var argument in slots)
@@ -208,16 +208,33 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
+        void ValidateSlotName()
+        {
+            List<MaterialSlot> slots = new List<MaterialSlot>();
+            GetSlots(slots);
+
+            foreach (var slot in slots)
+            {
+                var error = NodeUtils.ValidateSlotName(slot.RawDisplayName(), out string errorMessage);
+                if (error)
+                {
+                    owner.AddValidationError(tempId, errorMessage);
+                    break;
+                }
+            }
+        }
+
         public override void ValidateNode()
         {
             if (!this.GetOutputSlots<MaterialSlot>().Any())
             {
                 owner.AddValidationError(tempId, s_MissingOutputSlot, ShaderCompilerMessageSeverity.Warning);
             }
-            
+            ValidateSlotName();
+
             base.ValidateNode();
         }
-        
+
         public override void GetSourceAssetDependencies(List<string> paths)
         {
             base.GetSourceAssetDependencies(paths);
@@ -228,7 +245,7 @@ namespace UnityEditor.ShaderGraph
                     paths.Add(dependencyPath);
             }
         }
-        
+
         public VisualElement CreateSettingsElement()
         {
             PropertySheet ps = new PropertySheet();
