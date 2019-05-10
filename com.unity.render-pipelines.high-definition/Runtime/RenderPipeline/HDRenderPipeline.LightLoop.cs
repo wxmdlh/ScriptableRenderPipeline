@@ -6,12 +6,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
     public partial class HDRenderPipeline
     {
-        public void InitializeLightLoop(HDRenderPipelineAsset hdAsset)
-        {
-        }
 
-        public void CleanupLightLoop()
-        {
-        }
     }
 }

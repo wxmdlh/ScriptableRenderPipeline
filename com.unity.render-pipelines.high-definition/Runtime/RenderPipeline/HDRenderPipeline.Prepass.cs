@@ -140,7 +140,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             {
                                 renderQueueRange = HDRenderQueue.k_RenderQueue_AllOpaque,
                                 sortingCriteria = SortingCriteria.CommonOpaque,
-                                excludeMotionVectors = objectMotionEnabled
+                                excludeObjectMotionVectors = objectMotionEnabled
                             }));
 
                         builder.SetRenderFunc(
@@ -168,7 +168,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             {
                                 renderQueueRange = fullDeferredPrepass ? HDRenderQueue.k_RenderQueue_AllOpaque : partialPrepassRenderQueueRange,
                                 sortingCriteria = SortingCriteria.CommonOpaque,
-                                excludeMotionVectors = excludeMotion
+                                excludeObjectMotionVectors = excludeMotion
                             }));
 
                         // Then forward only material that output normal buffer
@@ -177,7 +177,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             {
                                 renderQueueRange = HDRenderQueue.k_RenderQueue_AllOpaque,
                                 sortingCriteria = SortingCriteria.CommonOpaque,
-                                excludeMotionVectors = excludeMotion
+                                excludeObjectMotionVectors = excludeMotion
                             }));
 
                         passData.depthBuffer = builder.WriteTexture(GetDepthStencilBuffer(msaa));
