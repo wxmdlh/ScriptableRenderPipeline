@@ -12,17 +12,28 @@ namespace UnityEngine.Rendering.LWRP
 {
     public sealed partial class LightweightRenderPipeline : RenderPipeline
     {
-        static class PerFrameBuffer
+        static internal class PerFrameBuffer
         {
             public static int _GlossyEnvironmentColor;
             public static int _SubtractiveShadowColor;
+
+            public static int _Time;
+            public static int _SinTime;
+            public static int _CosTime;
+            public static int unity_DeltaTime;
         }
 
-        static class PerCameraBuffer
+        static internal class PerCameraBuffer
         {
             // TODO: This needs to account for stereo rendering
             public static int _InvCameraViewProj;
             public static int _ScaledScreenParams;
+
+            public static int _WorldSpaceCameraPos;
+            public static int _ProjectionParams;
+            public static int _ScreenParams;
+            public static int _ZBufferParams;
+            public static int unity_OrthoParams;
         }
 
         public const string k_ShaderTagName = "LightweightPipeline";
@@ -73,8 +84,19 @@ namespace UnityEngine.Rendering.LWRP
             PerFrameBuffer._GlossyEnvironmentColor = Shader.PropertyToID("_GlossyEnvironmentColor");
             PerFrameBuffer._SubtractiveShadowColor = Shader.PropertyToID("_SubtractiveShadowColor");
 
+            PerFrameBuffer._Time = Shader.PropertyToID("_Time");
+            PerFrameBuffer._SinTime = Shader.PropertyToID("_SinTime");
+            PerFrameBuffer._CosTime = Shader.PropertyToID("_CosTime");
+            PerFrameBuffer.unity_DeltaTime = Shader.PropertyToID("unity_DeltaTime");
+
             PerCameraBuffer._InvCameraViewProj = Shader.PropertyToID("_InvCameraViewProj");
             PerCameraBuffer._ScaledScreenParams = Shader.PropertyToID("_ScaledScreenParams");
+
+            PerCameraBuffer._WorldSpaceCameraPos = Shader.PropertyToID("_WorldSpaceCameraPos");
+            PerCameraBuffer._ProjectionParams = Shader.PropertyToID("_ProjectionParams");
+            PerCameraBuffer._ScreenParams = Shader.PropertyToID("_ScreenParams");
+            PerCameraBuffer._ZBufferParams = Shader.PropertyToID("_ZBufferParams");
+            PerCameraBuffer.unity_OrthoParams = Shader.PropertyToID("unity_OrthoParams");
 
             // Let engine know we have MSAA on for cases where we support MSAA backbuffer
             if (QualitySettings.antiAliasing != asset.msaaSampleCount)
