@@ -2544,10 +2544,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     var rendererList1 = CreateOpaqueRendererList(
                         cull, hdCamera.camera, m_DepthOnlyPassNames,
                         renderQueueRange: fullDeferredPrepass ? HDRenderQueue.k_RenderQueue_AllOpaque : partialPrepassRenderQueueRange,
-                        excludeObjectMotionVectors: objectMotionEnabled);
+                        excludeObjectMotionVectors: excludeMotion);
 
                     // Then forward only material that output normal buffer
-                    var rendererList2 = CreateOpaqueRendererList(cull, hdCamera.camera, m_DepthForwardOnlyPassNames, excludeObjectMotionVectors: objectMotionEnabled);
+                    var rendererList2 = CreateOpaqueRendererList(cull, hdCamera.camera, m_DepthForwardOnlyPassNames, excludeObjectMotionVectors: excludeMotion);
 
                     using (new ProfilingSample(cmd, passName, CustomSamplerId.DepthPrepass.GetSampler()))
                     {
