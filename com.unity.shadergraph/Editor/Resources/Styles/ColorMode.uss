@@ -1,0 +1,28 @@
+/* Node Category Colors */
+MaterialNodeView.Artistic #title {
+    border-color:#008080;
+}
+
+MaterialNodeView.Channel #title {
+    border-color:#667328;
+}
+
+MaterialNodeView.Input #title {
+    border-color:#99291F;
+}
+
+MaterialNodeView.Math #title {
+    border-color:#1F4799;
+}
+
+MaterialNodeView.Procedural #title {
+    border-color:#993D88;
+}
+
+MaterialNodeView.Utility #title {
+    border-color:#6B83B3;
+}
+
+MaterialNodeView.UV #title {
+    border-color:#268044;
+}

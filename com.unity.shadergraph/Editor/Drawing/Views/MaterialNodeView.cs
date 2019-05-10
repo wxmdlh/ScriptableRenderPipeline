@@ -9,6 +9,7 @@ using UnityEngine.Rendering;
 
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.Rendering;
+using UnityEditor.ShaderGraph.Drawing.Colors;
 using UnityEngine.UIElements;
 using Node = UnityEditor.Experimental.GraphView.Node;
 
@@ -39,7 +40,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         public void Initialize(AbstractMaterialNode inNode, PreviewManager previewManager, IEdgeConnectorListener connectorListener, GraphView graphView)
         {
             styleSheets.Add(Resources.Load<StyleSheet>("Styles/MaterialNodeView"));
-            styleSheets.Add(Resources.Load<StyleSheet>("Styles/NodeColors"));
+            styleSheets.Add(Resources.Load<StyleSheet>($"Styles/{ColorManager.StyleFile}"));
             AddToClassList("MaterialNode");
 
             if (inNode == null)
@@ -225,7 +226,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         public VisualElement colorElement
         {
-            get { return m_TitleContainer; }
+            get { return this; }
         }
 
         static readonly StyleColor noColor = new StyleColor(StyleKeyword.Null);

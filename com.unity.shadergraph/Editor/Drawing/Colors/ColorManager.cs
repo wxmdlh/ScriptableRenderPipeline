@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace UnityEditor.ShaderGraph.Drawing.Colors
 {
@@ -12,6 +10,7 @@ namespace UnityEditor.ShaderGraph.Drawing.Colors
     // IColorProvider for how to use these different methods.
     class ColorManager
     {
+        public static string StyleFile = "ColorMode"; 
         static string DefaultProvider = NoColors.NoColorTitle;
     
         List<IColorProvider> m_Providers;
@@ -36,7 +35,7 @@ namespace UnityEditor.ShaderGraph.Drawing.Colors
             if (string.IsNullOrEmpty(activeColors))
                 activeColors = DefaultProvider;
 
-            foreach (var colorType in UnityEditor.TypeCache.GetTypesDerivedFrom<IColorProvider>())
+            foreach (var colorType in TypeCache.GetTypesDerivedFrom<IColorProvider>())
             {
                 var provider = (IColorProvider) Activator.CreateInstance(colorType);
                 m_Providers.Add(provider);
@@ -45,6 +44,8 @@ namespace UnityEditor.ShaderGraph.Drawing.Colors
                     activeIndex = m_Providers.Count-1;
                 }
             }
+            
+            m_Providers.Sort((p1, p2) =>  string.Compare(p1.Title, p2.Title, StringComparison.InvariantCulture));
         }
 
         public void SetColor(IShaderNodeView nodeView)
@@ -73,94 +74,6 @@ namespace UnityEditor.ShaderGraph.Drawing.Colors
         public bool activeSupportsCustom
         {
             get => m_Providers[activeIndex].AllowCustom;
-        }
-    }
-
-    // Implement this to provide colors based on whatever factor you want
-    interface IColorProvider
-    {
-        string Title { get; }
-        
-        bool AllowCustom { get; }
-
-        // If your color must be set programatically, return it here.
-        // If your colors are in USS and set via classes, return null here.
-        Color? GetColor(AbstractMaterialNode node);
-        // If your color is defined in USS and set via classes, set them on the element here and return true.
-        // If your color must be set programatically, return false here.
-        bool ApplyColorTo(AbstractMaterialNode node, VisualElement el);
-    }
-
-    class NoColors : IColorProvider
-    {
-        public static string NoColorTitle = "<None>";
-        public string Title => NoColorTitle;
-        public bool AllowCustom => false;
-
-        public Color? GetColor(AbstractMaterialNode node)
-        {
-            return null;
-        }
-
-        public bool ApplyColorTo(AbstractMaterialNode node, VisualElement el)
-        {
-            return true;
-        }
-    }
-    
-    
-    class CategoryColors : IColorProvider
-    {
-        public string Title => "Category";
-        public bool AllowCustom => false;
-
-        public Color? GetColor(AbstractMaterialNode node)
-        {
-            return null;
-        }
-
-        public bool ApplyColorTo(AbstractMaterialNode node, VisualElement el)
-        {
-            if (!(node.GetType().GetCustomAttributes(typeof(TitleAttribute), false).FirstOrDefault() is TitleAttribute title))
-                return true;
-
-            var cat = title.title[0];
-            
-            if (string.IsNullOrEmpty(cat))
-                return true;
-            
-            el.AddToClassList(cat);
-            return true;
-        }
-    }
-
-    class UserColors : IColorProvider 
-    {
-        string m_Title = "User Defined";
-        public bool AllowCustom => true;
-
-        public UserColors() {}
-        
-        public UserColors(string title)
-        {
-            m_Title = title;
-        }
-
-        public void ChangeTitle(string newTitle)
-        {
-            m_Title = newTitle;
-        }
-        
-        public string Title => m_Title;
-
-        public Color? GetColor(AbstractMaterialNode node)
-        {
-            return node.GetColor(m_Title);
-        }
-
-        public bool ApplyColorTo(AbstractMaterialNode node, VisualElement el)
-        {
-            return false;
         }
     }
 }
