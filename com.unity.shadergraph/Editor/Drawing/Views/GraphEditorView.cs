@@ -130,6 +130,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             }
 
             previewManager.RenderPreviews();
+            var colorProviders = m_ColorManager.providerNames.ToArray();
             var toolbar = new IMGUIContainer(() =>
                 {
                     GUILayout.BeginHorizontal(EditorStyles.toolbar);
@@ -147,7 +148,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
                     GUILayout.FlexibleSpace();
 
-                    var newIdx = EditorGUILayout.Popup("Node Colors:", m_ColorManager.activeIndex, m_ColorManager.providerNames.ToArray());
+                    var newIdx = EditorGUILayout.Popup("Color Mode:", m_ColorManager.activeIndex, colorProviders);
                     if(newIdx != m_ColorManager.activeIndex)
                     {
                         m_ColorManager.activeIndex = newIdx;
