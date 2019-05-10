@@ -49,7 +49,6 @@ namespace UnityEditor.ShaderGraph.Drawing
         }
 
         public OnPrimaryMasterChanged onPrimaryMasterChanged;
-        public OnMaterialUpdated onMaterialUpdated;
 
         /// <summary>
         /// Called when the preview shader is updated
