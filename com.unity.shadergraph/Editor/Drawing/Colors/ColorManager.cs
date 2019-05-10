@@ -39,13 +39,10 @@ namespace UnityEditor.ShaderGraph.Drawing.Colors
             {
                 var provider = (IColorProvider) Activator.CreateInstance(colorType);
                 m_Providers.Add(provider);
-                if (provider.Title == activeColors)
-                {
-                    activeIndex = m_Providers.Count-1;
-                }
             }
             
             m_Providers.Sort((p1, p2) =>  string.Compare(p1.Title, p2.Title, StringComparison.InvariantCulture));
+            activeIndex = m_Providers.FindIndex(provider => provider.Title == activeColors);
         }
 
         public void SetColor(IShaderNodeView nodeView)
