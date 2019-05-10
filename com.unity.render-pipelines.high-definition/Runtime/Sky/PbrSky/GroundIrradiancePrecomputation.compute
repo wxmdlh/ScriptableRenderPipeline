@@ -1,6 +1,8 @@
 #pragma enable_d3d11_debug_symbols
 #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
-#pragma kernel main
+
+#pragma kernel MAIN_1 main=MAIN_1 SINGLE_SCATTERING
+#pragma kernel MAIN_N main=MAIN_N MULTIPLE_SCATTERING
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Sky/PbrSky/PbrSkyCommon.hlsl"
 
@@ -29,7 +31,7 @@ void main(uint dispatchThreadId : SV_DispatchThreadID)
     {
         float3 transm = SampleTransmittanceTexture(NdotL, 0, false);
 
-        tableEntry.rgb = _SunRadiance * transm * NdotL;
+        tableEntry.rgb = transm * NdotL;
     }
 
     _GroundIrradianceTable[tableCoord] = tableEntry;

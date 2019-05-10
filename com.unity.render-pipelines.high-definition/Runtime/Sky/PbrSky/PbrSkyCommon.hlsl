@@ -30,7 +30,7 @@ CBUFFER_START(UnityPbrSky)
 
     float3 _PlanetCenterPosition;
 
-    float3 _SunRadiance;  // TODO: isn't that just a global multiplier?
+    float3 _SunRadiance;
 CBUFFER_END
 
 TEXTURE2D(_OpticalDepthTexture);
@@ -39,6 +39,7 @@ TEXTURE2D(_GroundIrradianceTexture);
 // Emulate a 4D texture with a "deep" 3D texture.
 TEXTURE3D(_AirSingleScatteringTexture);
 TEXTURE3D(_AerosolSingleScatteringTexture);
+TEXTURE3D(_MultipleScatteringTexture);
 
 #ifndef UNITY_SHADER_VARIABLES_INCLUDED
     SAMPLER(s_linear_clamp_sampler);
@@ -62,6 +63,11 @@ float AerosolScatter(float height)
 float AerosolPhase(float LdotV)
 {
     return _AerosolPhasePartConstant * CornetteShanksPhasePartVarying(_AerosolAnisotropy, -LdotV);
+}
+
+float3 AtmospherPhaseScatter(float LdotV, float height)
+{
+    return AirPhase(LdotV) * AirScatter(height) + AerosolPhase(LdotV) * AerosolScatter(height);
 }
 
 // Returns the closest hit in X and the farthest hit in Y.
@@ -102,10 +108,11 @@ float2 IntersectSphere(float sphereRadius, float cosChi, float radialDistance)
                                      -cosChi + sqrt(d)));
 }
 
-// rayOrigin = {0, 0, r}.
 float2 IntersectRayCylinder(float3 cylAxis, float cylRadius,
-                            float  r, float3 rayDir)
+                            float  radialDistance, float3 rayDir)
 {
+    // rayOrigin = {0, 0, r}.
+    float r = radialDistance;
     float x = dot(cylAxis, rayDir);
 
     // Solve: t^2 + 2 * (b / a) * t + (c / a) = 0.

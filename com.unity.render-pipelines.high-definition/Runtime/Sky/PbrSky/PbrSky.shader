@@ -120,6 +120,12 @@ Shader "Hidden/HDRP/Sky/PbrSky"
                          SAMPLE_TEXTURE3D(_AerosolSingleScatteringTexture, s_linear_clamp_sampler, float3(tc.u, tc.v, tc.w1)),
                          tc.a).rgb * AerosolPhase(LdotV);
 
+        radiance += lerp(SAMPLE_TEXTURE3D(_MultipleScatteringTexture,      s_linear_clamp_sampler, float3(tc.u, tc.v, tc.w0)),
+                         SAMPLE_TEXTURE3D(_MultipleScatteringTexture,      s_linear_clamp_sampler, float3(tc.u, tc.v, tc.w1)),
+                         tc.a).rgb;
+
+        radiance *= _SunRadiance;
+
         if (earlyOut)
         {
             // Can't perform an early return at the beginning of the shader

@@ -1,8 +1,8 @@
 #pragma enable_d3d11_debug_symbols
 #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
-#pragma kernel MAIN_1 main=MAIN_1 SCATTERING_ORDER=1
-#pragma kernel MAIN_N main=MAIN_N
+#pragma kernel MAIN_1 main=MAIN_1 SINGLE_SCATTERING
+#pragma kernel MAIN_N main=MAIN_N MULTIPLE_SCATTERING
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Sky/PbrSky/PbrSkyCommon.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Sampling/Sampling.hlsl"
@@ -14,6 +14,7 @@
 // Emulate a 4D texture with a "deep" 3D texture.
 RW_TEXTURE3D(float4, _AirSingleScatteringTable);
 RW_TEXTURE3D(float4, _AerosolSingleScatteringTable);
+RW_TEXTURE3D(float4, _MultipleScatteringTable);
 
 [numthreads(4, 4, 4)]
 void main(uint3 dispatchThreadId : SV_DispatchThreadID)
@@ -58,7 +59,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float  h = height;
     float  R = _PlanetaryRadius;
     float  r = h + R;
-    float3 O = float3(0, 0, r);
+    float3 O = r * N;
 
     // Determine the region of integration.
     float tMin = 0;
@@ -74,10 +75,7 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         tMax = IntersectSphere(_PlanetaryRadius,   cosChi, r).x; // Min root
     }
 
-    // float3 radiance   = 0;
-    // float4 tableEntry = float4(radiance, 0);
-
-#if (SCATTERING_ORDER == 1)
+#ifdef SINGLE_SCATTERING
 
     float4 airTableEntry     = 0;
     float4 aerosolTableEntry = 0;
@@ -201,8 +199,8 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         float3 aerosolInScatterTerm1 = viewTransm * lightTransm * AerosolScatter(height);
 
         // Apply the phase function at runtime.
-        airTableEntry.rgb     += (airInScatterTerm0     + airInScatterTerm1    ) * (0.5 * dt) * _SunRadiance;
-        aerosolTableEntry.rgb += (aerosolInScatterTerm0 + aerosolInScatterTerm1) * (0.5 * dt) * _SunRadiance;
+        airTableEntry.rgb     += (airInScatterTerm0     + airInScatterTerm1    ) * (0.5 * dt);
+        aerosolTableEntry.rgb += (aerosolInScatterTerm0 + aerosolInScatterTerm1) * (0.5 * dt);
 
         // Carry these over to the next iteration...
         t0                    = t1;
@@ -210,70 +208,52 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID)
         aerosolInScatterTerm0 = aerosolInScatterTerm1;
     }
 
+    // TODO: deep compositing.
     _AirSingleScatteringTable[tableCoord]     = airTableEntry;
     _AerosolSingleScatteringTable[tableCoord] = aerosolTableEntry;
-#endif
 
-    // if (NdotL > cosHor)
-    // {
-    //     // Sun is directly visible from this position.
-    //     float3 transm  = SampleTransmittanceTexture(NdotL, height, false);
-    //     float3 scatter = AtmosphereScatter(LdotV, height);
+#else // MULTIPLE_SCATTERING
 
-    //     radiance += scatter * transm * _SunRadiance;
-    // }
-    // else
-    // {
-    //     // The sun is occluded by the planet.
-    // }
+    float3 radiance = 0;
 
-    // // Integrate ground contribution.
-    // // The ground is a Lambertian reflector. It is basically a textured sphere light.
-    // // TODO: a lot of values are almost zero! How to early-out?
-    // {
-    //     // We will importance sample according to the solid angle.
-    //     // Hard to take transmittance, the phase function and the illumination into account...
-    //     float R = _PlanetaryRadius;
-    //     float h = height;
-    //     float r = R + h;
+    // Integrate ground contribution.
+    // The ground is a Lambertian reflector. It is basically a textured sphere light.
+    // TODO: 50% of the ground is black! And most of the time it's too far away! How to early-out?
+    {
+        float cosAperture = -cosHor; // Cosine of the half-angle
 
-    //     float3 P           = r * N;
-    //     float  cosAperture = -cosHor; // Cosine of the half-angle
+        const int numGroundSamples = 89;
 
-    //     const int numGroundSamples = 89;
+        for (int i = 0; i < numGroundSamples; i++)
+        {
+            float2 f = Fibonacci2d(i, numGroundSamples);
 
-    //     for (int i = 0; i < numGroundSamples; i++)
-    //     {
-    //         float2 f = Fibonacci2d(i, numGroundSamples);
+            // Construct a direction around the up vector.
+            float3 dir; float rcpPdf;
+            SampleCone(f, cosAperture, dir, rcpPdf);
 
-    //         // Construct a direction around the up vector.
-    //         float3 dir; float rcpPdf;
-    //         SampleCone(f, cosAperture, dir, rcpPdf);
+            // Flip it upside-down to point towards the sphere light (planet).
+            float3 gL = -dir;
 
-    //         // Flip it upside-down to point towards the sphere light (planet).
-    //         float3 gL = -dir;
+            // TODO: compute analytically?
+            float  t  = IntersectSphere(_PlanetaryRadius, gL.z, r).x;
+            float3 gP = O + t * gL;
+            float3 gN = normalize(gP);
 
-    //         // TODO: compute analytically?
-    //         float  t  = IntersectPlanetFromOutside(gL.z, h);
-    //         float3 gP = P + t * gL;
-    //         float3 gN = normalize(gP);
+            // Shade the ground.
+            const float3 gBrdf = INV_PI * _GroundAlbedo;
 
-    //         // Shade the ground.
-    //         const float3 gBrdf = INV_PI * _GroundAlbedo;
+            float3 transm  = SampleTransmittanceTexture(gL.z, h);
+            float3 scatter = AtmospherPhaseScatter(dot(gL, V), h);
 
-    //         float3 transm  = SampleTransmittanceTexture(gL.z, h, true);
-    //         float3 scatter = AtmosphereScatter(dot(gL, V), h);
+            float weight = rcpPdf * rcp(numGroundSamples);
+            radiance += weight * scatter * transm * gBrdf * SampleGroundIrradianceTexture(dot(gN, L));
+        }
+    }
 
-    //         float weight = rcpPdf * rcp(numGroundSamples);
-    //         radiance += weight * scatter * transm * gBrdf * SampleGroundIrradianceTexture(dot(gN, L));
-    //     }
-    // }
+    float4 tableEntry = float4(radiance, 1);
 
     // TODO: deep compositing.
-    // tableEntry.rgb = radiance;
-    // tableEntry = float4(radiance, tMax);
-    // tableEntry = float4(cosChi, h, NdotL, tMax);
-    // tableEntry = float4(viewTransmX, tMax);
-
-    // _InScatteredRadianceTable[tableCoord] = tableEntry;
+    _MultipleScatteringTable[tableCoord] = tableEntry;
+#endif
 }

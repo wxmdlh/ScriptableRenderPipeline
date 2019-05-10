@@ -1,3 +1,4 @@
+using System;
 using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
@@ -170,24 +171,28 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             using (new ProfilingSample(cmd, "InScattered Radiance Precomputation"))
             {
-                const int numBounces = 1;
+                const int numBounces = 2;
 
                 for (int i = 1; i <= numBounces; i++)
                 {
-                    cmd.SetComputeTextureParam(s_GroundIrradiancePrecomputationCS, 0, "_OpticalDepthTexture",   m_OpticalDepthTable);
-                    cmd.SetComputeTextureParam(s_GroundIrradiancePrecomputationCS, 0, "_GroundIrradianceTable", m_GroundIrradianceTable);
-                    cmd.DispatchCompute(s_GroundIrradiancePrecomputationCS, 0, (int)PbrSkyConfig.GroundIrradianceTableSize / 64, 1, 1);
+                    int k = Math.Min(i - 1, 1);
 
-                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_OpticalDepthTexture",          m_OpticalDepthTable);
-                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_GroundIrradianceTexture",      m_GroundIrradianceTable);
-                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_AirSingleScatteringTable",     m_InScatteredRadianceTables[0]);
-                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, 0, "_AerosolSingleScatteringTable", m_InScatteredRadianceTables[1]);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, k, "_OpticalDepthTexture",          m_OpticalDepthTable);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, k, "_GroundIrradianceTexture",      m_GroundIrradianceTable);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, k, "_AirSingleScatteringTable",     m_InScatteredRadianceTables[0]);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, k, "_AerosolSingleScatteringTable", m_InScatteredRadianceTables[1]);
+                    cmd.SetComputeTextureParam(s_InScatteredRadiancePrecomputationCS, k, "_MultipleScatteringTable",      m_InScatteredRadianceTables[2]);
 
                     // Emulate a 4D dispatch with a "deep" 3D dispatch.
-                    cmd.DispatchCompute(s_InScatteredRadiancePrecomputationCS, 0, (int)PbrSkyConfig.InScatteredRadianceTableSizeX / 4,
+                    cmd.DispatchCompute(s_InScatteredRadiancePrecomputationCS, k, (int)PbrSkyConfig.InScatteredRadianceTableSizeX / 4,
                                                                                   (int)PbrSkyConfig.InScatteredRadianceTableSizeY / 4,
                                                                                   (int)PbrSkyConfig.InScatteredRadianceTableSizeZ / 4 *
                                                                                   (int)PbrSkyConfig.InScatteredRadianceTableSizeW);
+
+                    cmd.SetComputeTextureParam(s_GroundIrradiancePrecomputationCS, k, "_OpticalDepthTexture",   m_OpticalDepthTable);
+                    cmd.SetComputeTextureParam(s_GroundIrradiancePrecomputationCS, k, "_GroundIrradianceTable", m_GroundIrradianceTable);
+
+                    cmd.DispatchCompute(s_GroundIrradiancePrecomputationCS, k, (int)PbrSkyConfig.GroundIrradianceTableSize / 64, 1, 1);
                 }
             }
         }
@@ -227,6 +232,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             s_PbrSkyMaterialProperties.SetTexture("_GroundIrradianceTexture",         m_GroundIrradianceTable);
             s_PbrSkyMaterialProperties.SetTexture("_AirSingleScatteringTexture",      m_InScatteredRadianceTables[0]);
             s_PbrSkyMaterialProperties.SetTexture("_AerosolSingleScatteringTexture",  m_InScatteredRadianceTables[1]);
+            s_PbrSkyMaterialProperties.SetTexture("_MultipleScatteringTexture",       m_InScatteredRadianceTables[2]);
 
             CoreUtils.DrawFullScreen(builtinParams.commandBuffer, s_PbrSkyMaterial, s_PbrSkyMaterialProperties, renderForCubemap ? 0 : 1);
         }
