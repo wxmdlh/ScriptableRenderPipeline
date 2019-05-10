@@ -4,7 +4,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine.Experimental.Rendering.HDPipeline.Attributes;
 using UnityEngine.Rendering;
-using static UnityEngine.Experimental.Rendering.HDPipeline.MaterialDebugSettings;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -146,6 +145,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return data.materialDebugSettings.GetDebugMaterialIndexes();
         }
 
+        public DebugLightFilterMode GetDebugLightFilterMode()
+        {
+            return data.lightingDebugSettings.debugLightFilterMode;
+        }
+
         public DebugLightingMode GetDebugLightingMode()
         {
             return data.lightingDebugSettings.debugLightingMode;
@@ -275,6 +279,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             data.lightingDebugSettings.shadowDebugMode = value;
         }
 
+        public void SetDebugLightFilterMode(DebugLightFilterMode value)
+        {
+            if (value != 0)
+            {
+                data.materialDebugSettings.DisableMaterialDebug();
+                data.mipMapDebugSettings.debugMipMapMode = DebugMipMapMode.None;
+            }
+            data.lightingDebugSettings.debugLightFilterMode = value;
+        }
+
         public void SetDebugLightingMode(DebugLightingMode value)
         {
             if (value != 0)
@@ -320,9 +334,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             DebugLightingMode debugLighting = data.lightingDebugSettings.debugLightingMode;
             DebugViewGbuffer debugGBuffer = (DebugViewGbuffer)data.materialDebugSettings.debugViewGBuffer;
-            return (debugLighting == DebugLightingMode.DiffuseLighting || debugLighting == DebugLightingMode.SpecularLighting) ||
+            return (debugLighting == DebugLightingMode.DiffuseLighting || debugLighting == DebugLightingMode.SpecularLighting || debugLighting == DebugLightingMode.VisualizeCascade) ||
+                (data.lightingDebugSettings.overrideAlbedo || data.lightingDebugSettings.overrideNormal || data.lightingDebugSettings.overrideSmoothness || data.lightingDebugSettings.overrideSpecularColor || data.lightingDebugSettings.overrideEmissiveColor) ||
                 (debugGBuffer == DebugViewGbuffer.BakeDiffuseLightingWithAlbedoPlusEmissive) ||
-                (data.fullScreenDebugMode == FullScreenDebugMode.PreRefractionColorPyramid || data.fullScreenDebugMode == FullScreenDebugMode.FinalColorPyramid || data.fullScreenDebugMode == FullScreenDebugMode.ScreenSpaceReflections || data.fullScreenDebugMode == FullScreenDebugMode.LightCluster || data.fullScreenDebugMode == FullScreenDebugMode.RaytracedAreaShadow);
+                (data.fullScreenDebugMode == FullScreenDebugMode.PreRefractionColorPyramid || data.fullScreenDebugMode == FullScreenDebugMode.FinalColorPyramid || data.fullScreenDebugMode == FullScreenDebugMode.ScreenSpaceReflections || data.fullScreenDebugMode == FullScreenDebugMode.LightCluster || data.fullScreenDebugMode == FullScreenDebugMode.RaytracedAreaShadow || data.fullScreenDebugMode == FullScreenDebugMode.NanTracker);
         }
 
         void RegisterDisplayStatsDebug()
@@ -458,6 +473,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             list.Add(new DebugUI.FloatField { displayName = "Shadow Range Max Value", getter = () => data.lightingDebugSettings.shadowMaxValue, setter = value => data.lightingDebugSettings.shadowMaxValue = value });
 
             list.Add(new DebugUI.EnumField { displayName = "Lighting Debug Mode", getter = () => (int)data.lightingDebugSettings.debugLightingMode, setter = value => SetDebugLightingMode((DebugLightingMode)value), autoEnum = typeof(DebugLightingMode), onValueChanged = RefreshLightingDebug, getIndex = () => data.lightingDebugModeEnumIndex, setIndex = value => data.lightingDebugModeEnumIndex = value });
+            list.Add(new DebugUI.BitField { displayName = "Light Hierarchy Debug Mode", getter = () => data.lightingDebugSettings.debugLightFilterMode, setter = value => SetDebugLightFilterMode((DebugLightFilterMode)value), enumType = typeof(DebugLightFilterMode), onValueChanged = RefreshLightingDebug, });
             list.Add(new DebugUI.EnumField { displayName = "Fullscreen Debug Mode", getter = () => (int)data.fullScreenDebugMode, setter = value => SetFullScreenDebugMode((FullScreenDebugMode)value), enumNames = s_LightingFullScreenDebugStrings, enumValues = s_LightingFullScreenDebugValues, onValueChanged = RefreshLightingDebug, getIndex = () => data.lightingFulscreenDebugModeEnumIndex, setIndex = value => data.lightingFulscreenDebugModeEnumIndex = value });
             switch (data.fullScreenDebugMode)
             {
